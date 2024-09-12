@@ -5,8 +5,17 @@
 #ifndef ROUTE_HPP
 # define ROUTE_HPP
 
-class Route {
+#include <map>
+#include <string>
 
+class Route {
+	private:
+		const bool							GET;
+		const bool							POST;
+		const bool							DELETE;
+		std::map<std::string, std::string>	locations;
+		const bool							listing;
+		const std::string					default;
 };
 
 #endif

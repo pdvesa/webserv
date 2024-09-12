@@ -10,12 +10,12 @@
 
 class Webserv {
 	private:
-		std::string	host;
-		int			port;
-		std::string	names[];
-		std::string	errorsPagesPaths[];
-		int			maxClientBodySize;
-		Route		routes[];
+		const std::string	host;
+		const int			port;
+		const std::string	names[];
+		const std::string	errorsPagesPaths[];
+		const int			maxClientBodySize;
+		const Route			routes[];
 };
 
 
