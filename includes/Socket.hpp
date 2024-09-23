@@ -15,9 +15,11 @@
 #include<cstring>
 #include<unistd.h>
 #include<iostream>
+#include<cerrno>
 
 //maybe need vector of sockets or socketfds
 //idk if we need to save port and host data to identfiy
+//maybe add rule of three
 
 class Socket {
 	private:
@@ -35,6 +37,7 @@ class Socket {
 		//general functionality
 		void bindSocket();
 		void listenSocket(int backlog);
+		void acceptConnection(int &connectionFd); // dont know if belongs to here
 };
 
 #endif
