@@ -14,6 +14,7 @@
 #include<arpa/inet.h>
 #include<cstring>
 #include<unistd.h>
+#include<iostream>
 
 //maybe need vector of sockets or socketfds
 //idk if we need to save port and host data to identfiy
@@ -23,11 +24,17 @@ class Socket {
 		int			socketFd;
 		sockaddr_in	sockAdr;
 	public:
+		//constructor and deconstructor
 		Socket(int domain, int type, int protocol, int port, std::string host);
 		~Socket();
-		//add getters, setters etc
 		
+		//getters
+		const int getSocket() const;
+		const sockaddr_in &getSocketAddress() const;
+		
+		//general functionality
 		void bindSocket();
+		void listenSocket(int backlog);
 };
 
 #endif
