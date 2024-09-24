@@ -6,8 +6,10 @@
 
 class Controller {
 	private:
-		std::vector<Socket *> socketVector; //eh
+		std::vector<Socket> socketVector; //eh
 	public:
+		Controller(std::vector<int> portVector);
+		~Controller();
 		void createSockets(int domain, int type, int protocol, std::vector<int> portVector, std::string host); //parsed class later, for now shitty test input
 		void acceptConnection(int &connectionFd, int index);
 };

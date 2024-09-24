@@ -8,8 +8,10 @@
 # endif
 
 int main() {
-	Controller ctrl;
 	std::vector<int> portVector = {8080, 8081, 8082, 8083};
+	Controller ctrl(portVector);
+	for (auto &i : portVector)
+		std::cout << i << std::endl;
     int fd;
 	int rb;
 	char buffer[10000];
@@ -17,6 +19,7 @@ int main() {
     ctrl.createSockets(AF_INET, SOCK_STREAM, 0, portVector, ADDR_TEST);
 	while (1) {
 		ctrl.acceptConnection(fd, 0);
+		ctrl.acceptConnection(fd, 1);
 		rb = read(fd, buffer, 10000);
 		if (rb > 0) {
 			std::cout << buffer << std::endl;
