@@ -16,8 +16,9 @@ OBJDIR = obj
 INCDIR = includes
 CC = c++
 CFLAGS = -Wall -Wextra -Werror -pedantic -g
-SRCS = $(SRCDIR)/Webserv.cpp \
-		$(SRCDIR)/Route.cpp
+SRCS = $(SRCDIR)/main.cpp \
+		$(SRCDIR)/Controller.cpp \
+		$(SRCDIR)/Socket.cpp \
 
 OBJS =  $(patsubst $(SRCDIR)/%.cpp, $(OBJDIR)/%.o, $(SRCS))
 

@@ -25,12 +25,13 @@ class Socket {
 //		Socket &operator=(const Socket &src);
 		
 		//getters
-		const int getSocket() const;
+		int getSocket() const;
 		const sockaddr_in &getSocketAddress() const;
 		
 		//general functionality
 		void bindSocket();
 		void listenSocket(int backlog);
+		void closeSocket();
 };
 
 #endif
