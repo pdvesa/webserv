@@ -30,8 +30,9 @@ void Controller::controlLoop() {
 		//this will get listening socket fd from epoll maybe we create a instance of client with every epoll match?
 		acceptConnection(listenFd);
 		clientVector.back().saveRequest(); //we could just call HttpRequest and save fd there
-		std::cout << clientVector.back().getRequest() << std::endl; //test print
 		send(clientVector.back().getResponseFd(), response.c_str(), response.length(), 0);
+		for (auto &client : clientVector)
+			std::cout << client.getRequest() << std::endl; //test print
 	}
 }
 
@@ -59,7 +60,7 @@ void Controller::acceptConnection(int listenFd) {
 	client.setListening(listenFd);
 	client.setResponseFd(connectionFd);
 	clientVector.push_back(client);
-	std::cout << "Connection accepted" << std::endl;
+	std::cout << "Connection accepted for fd " << connectionFd << std::endl;
 }
 
 void Controller::errorHandler(const std::runtime_error &err) {
