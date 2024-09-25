@@ -19,6 +19,7 @@ CFLAGS = -Wall -Wextra -Werror -pedantic -g
 SRCS = $(SRCDIR)/main.cpp \
 		$(SRCDIR)/Controller.cpp \
 		$(SRCDIR)/Socket.cpp \
+		$(SRCDIR)/Client.cpp \
 
 OBJS =  $(patsubst $(SRCDIR)/%.cpp, $(OBJDIR)/%.o, $(SRCS))
 

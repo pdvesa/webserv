@@ -16,25 +16,25 @@ Controller::~Controller() {
 void Controller::controlLoop() {
 	/*test variables*/
 	std::vector<int> portVector = {8080, 8081, 8082, 8083};
-    int fd;
-	int rb;
-	char buffer[10000];
+	int listenFd;
 	std::string response;
-	/*test variables*/
-	createSockets(AF_INET, SOCK_STREAM, 0, portVector, ADDR_TEST);
-	while (true) {
-		acceptConnection(fd, 0);
-		rb = read(fd, buffer, 10000);
-		if (rb > 0) {
-			std::cout << buffer << std::endl;
-			response = "HTTP/1.1 200 OK\r\n"
+	response = "HTTP/1.1 200 OK\r\n"
             "Content-Type: text/plain\r\n"
             "Content-Length: 5\r\n"
             "\r\n"
             "OKMEN";
-            send(fd, response.c_str(), response.length(), 0);
-		}
-		close (fd);
+	/*test variables*/
+	createSockets(AF_INET, SOCK_STREAM, 0, portVector, ADDR_TEST);
+	while (true) {
+		listenFd = socketVector.front().getSocket(); //test
+		//this will get listening socket fd from epoll maybe we create a instance of client with every epoll match?
+		acceptConnection(listenFd);
+		clientVector.front().saveRequest();
+		send(clientVector.front().getResponseFd(), response.c_str(), response.length(), 0);
+		std::cout << inet_ntoa((clientVector.front().getClientAddress().sin_addr)) << std::endl; //test
+		std::cout << ntohs((clientVector.front().getClientAddress().sin_port)) << std::endl; //test
+		std::cout << clientVector.front().getRequest() << std::endl; //test print
+		close(clientVector.front().getResponseFd()); // i guess we can destroy client after answer ? maybe some other container type
 	}
 }
 
@@ -51,12 +51,17 @@ void Controller::createSockets(int domain, int type, int protocol, std::vector<i
 	}
 }
 
-void Controller::acceptConnection(int &connectionFd, int index) { //make sure that connectioFDs still in scope, might need changing, not sure about index either
-	sockaddr_in	client; //this will likely need to be moved somewhere else
-	unsigned int clientSize = sizeof(client);
-	std::memset(&client, 0, clientSize);
-	if ((connectionFd = accept(socketVector.at(index).getSocket(), (sockaddr *)&client, &clientSize)) < 0)
+void Controller::acceptConnection(int listenFd) {
+	Client 			client;
+	int				connectionFd;
+	sockaddr_in		clientLocal;
+	unsigned int	clientSize = sizeof(clientLocal);
+	std::memset(&clientLocal, 0 , clientSize);
+	if ((connectionFd = accept(listenFd, (sockaddr *)&clientLocal, &clientSize)) < 0)
 		throw std::runtime_error("Failed in accept connection");
+	client.setListening(listenFd);
+	client.setResponseFd(connectionFd);
+	clientVector.push_back(client);
 	std::cout << "Connection accepted" << std::endl;
 }
 
@@ -67,8 +72,8 @@ void Controller::errorHandler(const std::runtime_error &err) {
 }
 
 void Controller::errorLogger(const std::string &errMsg) {
-    std::ofstream		errorLog;
-	const auto 			now = std::chrono::system_clock::now();
+	std::ofstream		errorLog;
+	const auto			now = std::chrono::system_clock::now();
 	const std::time_t	timestamp = std::chrono::system_clock::to_time_t(now);
 	std::cerr << "ERROR: " << errMsg << ": "<< strerror(errno) << std::endl;
     errorLog.open("error.log", std::ios::app);
@@ -80,6 +85,6 @@ void Controller::errorLogger(const std::string &errMsg) {
 }
 
 void Controller::cleanResources() {
-	for (auto &socket : socketVector)
+	for (Socket &socket : socketVector)
 		socket.closeSocket();
 }

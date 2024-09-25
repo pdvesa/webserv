@@ -11,20 +11,9 @@ Socket::Socket(int domain, int type, int protocol, int port, std::string host) {
 }
 
 Socket::~Socket() {
-	std::cout << "Debug" << std::endl;
+//	std::cout << "Debug" << std::endl;
 //	close (socketFd); //no idea if needed
 }
-
-/*Socket::Socket(const Socket &src) {
-	socketFd = src.socketFd;
-	socketAddr = src.socketAddr;
-}
-
-Socket &Socket::operator=(Socket const &src) {
-	socketFd = src.socketFd;
-	socketAddr = src.socketAddr;
-	return (*this);
-}*/
 
 int Socket::getSocket() const {
 	return (socketFd);

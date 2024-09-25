@@ -11,24 +11,17 @@
 #include <cerrno> 
 
 //idk if we need to save port and host data to identfiy
-//maybe add rule of three
+//maybe needs rule of three
 
 class Socket {
 	private:
 		int			socketFd;
 		sockaddr_in	socketAddr;
 	public:
-		//constructors etc
 		Socket(int domain, int type, int protocol, int port, std::string host);
 		~Socket();
-//		Socket(const Socket &src);
-//		Socket &operator=(const Socket &src);
-		
-		//getters
 		int getSocket() const;
 		const sockaddr_in &getSocketAddress() const;
-		
-		//general functionality
 		void bindSocket();
 		void listenSocket(int backlog);
 		void closeSocket();
