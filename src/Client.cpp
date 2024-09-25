@@ -31,16 +31,14 @@ void Client::setListening(int fd) {
 }
 
 void Client::saveRequest() {
-	int		readBytes;
+	int		recBytes;
 	char	buffer[BUF_SIZE];
-	/*while ((readBytes = read(responseFd, buffer, BUF_SIZE - 1)) > 0) { for some reason we never read 0 IDK maybe brain damagu
-		std::cout << readBytes << std::endl;
-		buffer[readBytes] = '\0';
+	while ((recBytes = recv(responseFd, buffer, (BUF_SIZE - 1), 0)) > 0) { 
+		buffer[recBytes] = '\0';
 		request.append(buffer);
-	}*/
-	readBytes = read(responseFd, buffer, BUF_SIZE);
-	buffer[readBytes] = '\0';
-	request.append(buffer);
-	if (readBytes < 0)
+		if (recBytes < (BUF_SIZE - 1)) // i dont know if this can cause problems for "streaming" the request from socket
+			break;
+	}
+	if (recBytes < 0)
 		throw std::runtime_error("Failed reading the request");
 }
