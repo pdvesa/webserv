@@ -26,15 +26,12 @@ void Controller::controlLoop() {
 	/*test variables*/
 	createSockets(AF_INET, SOCK_STREAM, 0, portVector, ADDR_TEST);
 	while (true) {
-		listenFd = socketVector.front().getSocket(); //test
+		listenFd = listenFds[0]; //test
 		//this will get listening socket fd from epoll maybe we create a instance of client with every epoll match?
 		acceptConnection(listenFd);
-		clientVector.front().saveRequest();
-		send(clientVector.front().getResponseFd(), response.c_str(), response.length(), 0);
-		std::cout << inet_ntoa((clientVector.front().getClientAddress().sin_addr)) << std::endl; //test
-		std::cout << ntohs((clientVector.front().getClientAddress().sin_port)) << std::endl; //test
-		std::cout << clientVector.front().getRequest() << std::endl; //test print
-		close(clientVector.front().getResponseFd()); // i guess we can destroy client after answer ? maybe some other container type
+		clientVector.back().saveRequest(); //we could just call HttpRequest and save fd there
+		std::cout << clientVector.back().getRequest() << std::endl; //test print
+		send(clientVector.back().getResponseFd(), response.c_str(), response.length(), 0);
 	}
 }
 
@@ -42,9 +39,9 @@ void Controller::createSockets(int domain, int type, int protocol, std::vector<i
 	try {
 		for (const int &port : portVector) {
 			Socket newInstance = Socket(domain, type, protocol, port, host);
-			socketVector.push_back((newInstance));
-			socketVector.back().bindSocket();
-			socketVector.back().listenSocket(FD_SETSIZE);
+			newInstance.bindSocket();
+			newInstance.listenSocket(FD_SETSIZE);
+			listenFds.push_back((newInstance.getSocket()));
 		}
 	} catch (const std::runtime_error &err) {
 		errorHandler(err);
@@ -52,7 +49,7 @@ void Controller::createSockets(int domain, int type, int protocol, std::vector<i
 }
 
 void Controller::acceptConnection(int listenFd) {
-	Client 			client;
+	Client			client;
 	int				connectionFd;
 	sockaddr_in		clientLocal;
 	unsigned int	clientSize = sizeof(clientLocal);
@@ -85,6 +82,6 @@ void Controller::errorLogger(const std::string &errMsg) {
 }
 
 void Controller::cleanResources() {
-	for (Socket &socket : socketVector)
-		socket.closeSocket();
+	for (const int &fd : listenFds)
+		close (fd);
 }

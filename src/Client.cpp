@@ -38,7 +38,7 @@ void Client::saveRequest() {
 		request.append(buffer);
 		if (recBytes < (BUF_SIZE - 1)) // i dont know if this can cause problems for "streaming" the request from socket
 			break;
-	}
-	if (recBytes < 0)
+	} if (recBytes < 0)
 		throw std::runtime_error("Failed reading the request");
+	std::cout << "Request saved from socket " << listeningSocket << std::endl;
 }

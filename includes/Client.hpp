@@ -6,28 +6,26 @@
 #endif
 
 #include <iostream>
-#include <netinet/in.h>
 #include <arpa/inet.h>
-#include <cstring>
-#include <unistd.h>
 
 class Client {
 	private:
 		int			responseFd;
 		int			listeningSocket;
 		sockaddr_in	clientAddr;
-		std::string	request; //might need diffirent datatype
-		//responses go somrwhere
+//		HttpRequest	request;
+//		HttpResponse	response;	
+		std::string	request;
 	public:
 		Client();
 		~Client();
 		int getResponseFd() const;
 		int getListening() const;
 		const sockaddr_in &getClientAddress() const;
-		const std::string &getRequest() const;
+		const std::string &getRequest() const; //placeholder
 		void setResponseFd(int fd);
 		void setListening(int fd);
-		void saveRequest(); //errors mabe idk i have no idea what im doing
+		void saveRequest(); //placeholder
 };
 
 #endif

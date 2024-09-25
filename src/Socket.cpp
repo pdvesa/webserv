@@ -11,16 +11,10 @@ Socket::Socket(int domain, int type, int protocol, int port, std::string host) {
 }
 
 Socket::~Socket() {
-//	std::cout << "Debug" << std::endl;
-//	close (socketFd); //no idea if needed
 }
 
 int Socket::getSocket() const {
 	return (socketFd);
-}
-
-const sockaddr_in &Socket::getSocketAddress() const {
-	return (socketAddr);
 }
 
 void Socket::bindSocket() {
@@ -33,8 +27,4 @@ void Socket::listenSocket(int backlog) {
 	if ((listen(socketFd, backlog)) < 0)
 		throw std::runtime_error("Failed in listen socket");
 	std::cout << "Socket listening to " << inet_ntoa(socketAddr.sin_addr) << ":" << ntohs(socketAddr.sin_port) << std::endl;
-}
-
-void Socket::closeSocket() {
-	close(socketFd);
 }

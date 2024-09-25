@@ -1,17 +1,18 @@
 #ifndef CONTROLLER_HPP
 # define CONTROLLER_HPP
 
-#include <Socket.hpp>
 #include <Client.hpp>
-#include <vector> //consolidate headers i guess
+#include <Socket.hpp>
+#include <vector>
 #include <fstream>
 #include <chrono>
 #include <sys/epoll.h>
+#include <unistd.h>
 
 class Controller {
 	private:
-		std::vector<Socket> socketVector;
-		std::vector<Client> clientVector; //not sure about this
+		std::vector<int> listenFds;
+		std::vector<Client> clientVector; //mayeb this is not necessary, we will see
 	public:
 		Controller();
 		~Controller();
