@@ -1,4 +1,5 @@
 #include <Controller.hpp>
+#include <algorithm> // idk
 
 # ifndef PORT_TEST //placeholder
 #  define PORT_TEST 8080 
@@ -6,6 +7,12 @@
 # ifndef ADDR_TEST //placeholder
 #  define ADDR_TEST "127.0.0.1"
 # endif
+#ifndef MAX_EVENTS
+# define MAX_EVENTS 42
+#endif
+#ifndef CONNECTIONS
+# define CONNECTIONS 4
+#endif
 
 Controller::Controller() {
 }
@@ -16,7 +23,6 @@ Controller::~Controller() {
 void Controller::controlLoop() {
 	/*test variables*/
 	std::vector<int> portVector = {8080, 8081, 8082, 8083};
-	int listenFd;
 	std::string response;
 	response = "HTTP/1.1 200 OK\r\n"
             "Content-Type: text/plain\r\n"
@@ -24,15 +30,30 @@ void Controller::controlLoop() {
             "\r\n"
             "OKMEN";
 	/*test variables*/
+	int epollFd = epoll_create1(0);
+	int eventsWaiting;
+	epoll_event event[CONNECTIONS]; //we will get these from parser
+	epoll_event eventQue[MAX_EVENTS];
 	createSockets(AF_INET, SOCK_STREAM, 0, portVector, ADDR_TEST);
+	for (int i = 0; i < CONNECTIONS; i++) {
+		event[i].events = EPOLLIN;
+		event[i].data.fd = listenFds[i];
+		epoll_ctl(epollFd, EPOLL_CTL_ADD, listenFds[i], &event[i]);
+	}
 	while (true) {
-		listenFd = listenFds[0]; //test
-		//this will get listening socket fd from epoll maybe we create a instance of client with every epoll match?
-		acceptConnection(listenFd);
+		eventsWaiting = epoll_wait(epollFd, eventQue, MAX_EVENTS, -1);
+		for (int j = 0; j < eventsWaiting; j++) {
+			if (std::find(listenFds.cbegin(), listenFds.cend(), eventQue[j].data.fd) != std::end(listenFds)) {
+				acceptConnection(eventQue[j].data.fd);
+				std::cout << "We connected from socket " << eventQue[j].data.fd << std::endl;
+			}
+		}
+		/*
 		clientVector.back().saveRequest(); //we could just call HttpRequest and save fd there
 		send(clientVector.back().getResponseFd(), response.c_str(), response.length(), 0);
 		for (auto &client : clientVector)
 			std::cout << client.getRequest() << std::endl; //test print
+		*/
 	}
 }
 
