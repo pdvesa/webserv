@@ -15,7 +15,14 @@ class Route {
 		const bool							DELETE;
 		std::map<std::string, std::string>	locations;
 		const bool							listing;
-		const std::string					default;
+		const std::string					defaultFile;
+
+		Route();
+		Route(const bool& GET, const bool& POST, const bool& DELETE, std::map<std::string, std::string> locations,
+			const bool& listing, const std::string& defaultFile);
+		Route(const Route& other);
+
+		Route& operator=(const Route& other);
 };
 
 #endif
