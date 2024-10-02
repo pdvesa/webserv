@@ -60,3 +60,7 @@ target_include_directories(webserv_test PRIVATE includes)
 
 # Add tests to CTest
 add_test(NAME webserv_test COMMAND webserv_test)
+
+# Add compilation flags
+target_compile_options(webserv PRIVATE -Wall -Wextra -Werror)
+#target_compile_options(webserv_test PRIVATE -Wall -Wextra -Werror)

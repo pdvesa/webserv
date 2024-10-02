@@ -14,5 +14,4 @@ Webserv Webserv::fromConfigFile(const std::string& filePath) {
 	buffer << configFile.rdbuf();
 	std::string	content = buffer.str();
 	std::string	serverBlock = Parsing::extractBlock(content, "server");
-
 }
