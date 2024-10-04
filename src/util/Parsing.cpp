@@ -5,7 +5,7 @@
 #include <iostream>
 #include <Parsing.hpp>
 
-const std::string	Parsing::VALID_NAME_CHAR = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789_";
+const std::string	Parsing::VALID_NAME_CHAR = "abcdefghijklmnopqrstuvwxyz";
 
 std::string Parsing::extractBlock(std::string& string, const std::string& blockName) {
 	const size_t	pos = findInCurrentBlock(string, blockName);
@@ -83,6 +83,32 @@ std::string Parsing::extractVariable(std::string& string, const std::string& var
 		valuePos++;
 	if (valuePos >= string.length())
 		throw std::runtime_error("Could not find value for variable : " + variableName);
+
+	std::string	extracted;
+	if (string[valuePos] == '"' || string[valuePos] == '\'')
+		extracted = extractQuoteContent(string, string[valuePos], valuePos);
+	else
+		extracted = extractWord(string, valuePos);
+
+	std::string	remaining = string.substr(0, pos) + string.substr(pos + 1, string.length() - (pos + 1));
+	string = remaining;
+	return (extracted);
+}
+
+std::string	Parsing::extractWord(std::string& string, size_t start) {
+	size_t	pos = start;
+
+	if (start == 0)
+		throw std::runtime_error("Start must be above 0");
+
+	while (!isSpecialChar(string[pos]))
+		pos++;
+	std::string	extracted = string.substr(start, pos - start - 1);
+
+	std::string	remaining = string.substr(0, start - 1) + string.substr(pos, string.length - pos);
+	string = remaining;
+
+	return (extracted);
 }
 
 std::string Parsing::extractQuoteContent(std::string& string, char quote, size_t start) {
@@ -103,4 +129,12 @@ std::string Parsing::extractQuoteContent(std::string& string, char quote, size_t
 	string = remaining;
 
 	return (extracted);
+}
+
+bool	Parsing::isSpecialChar(char c) {
+	const std::string	SPECIALS = "{}\n'\"";
+
+	if (std::isspace(c) || SPECIALS.find(c) != std::npos)
+		return (true);
+	return (false);
 }
