@@ -4,7 +4,7 @@ cmake_minimum_required(VERSION 3.10)
 project(Webserv VERSION 1.0)
 
 # Set C++ standard
-set(CMAKE_CXX_STANDARD 17)
+set(CMAKE_CXX_STANDARD 23)
 set(CMAKE_CXX_STANDARD_REQUIRED True)
 
 # Add executable
@@ -46,8 +46,8 @@ add_subdirectory(${CMAKE_BINARY_DIR}/googletest-src
 
 # Test sources files
 file(GLOB_RECURSE TEST_SOURCES
-        test/model/*.cpp
-        test/util/*.cpp
+        test/model/*/*.cpp
+        test/util/*/*.cpp
 )
 
 add_executable(webserv_test test/test.cpp ${TEST_SOURCES} ${SOURCES})
