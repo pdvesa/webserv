@@ -2,12 +2,11 @@
 // Created by jcayot on 9/23/24.
 //
 
-#include <iostream>
 #include <Parsing.hpp>
 
 const std::string	Parsing::VALID_NAME_CHAR = "abcdefghijklmnopqrstuvwxyz";
 
-std::string Parsing::extractBlock(std::string& string, const std::string& blockName) {
+std::string	Parsing::extractBlock(std::string& string, const std::string& blockName) {
 	const size_t	pos = findInCurrentBlock(string, blockName);
 
 	if (pos == std::string::npos)
@@ -28,7 +27,7 @@ std::string Parsing::extractBlock(std::string& string, const std::string& blockN
 	return (blockContent);
 }
 
-std::string Parsing::extractVariable(std::string& string, const std::string& variableName) {
+std::string	Parsing::extractVariable(std::string& string, const std::string& variableName) {
 	const size_t	pos = findInCurrentBlock(string, variableName);
 
 	if (pos == std::string::npos)
@@ -52,7 +51,12 @@ std::string Parsing::extractVariable(std::string& string, const std::string& var
 	return (extracted);
 }
 
-std::string Parsing::extractBracketLayer(std::string& string, size_t start) {
+u_int	Parsing::extractInteger(std::string& string, const std::string& variableName) {
+	std::string	varString = extractVariable(string, variableName);
+	return (StrictUtoi::strictUtoi(varString));
+}
+
+std::string	Parsing::extractBracketLayer(std::string& string, size_t start) {
 	size_t	closeBracket = start + 1;
 	int		bracketIndex = 0;
 
@@ -81,7 +85,7 @@ std::string Parsing::extractBracketLayer(std::string& string, size_t start) {
 	return (extracted);
 }
 
-size_t Parsing::findInCurrentBlock(const std::string& string, const std::string& name) {
+size_t	Parsing::findInCurrentBlock(const std::string& string, const std::string& name) {
 	size_t	pos = 0;
 	u_int	bracketLayer = 0;
 
@@ -107,7 +111,7 @@ std::string	Parsing::extractWord(std::string& string, size_t start) {
 	if (start > string.length())
 		throw std::out_of_range("Start must be inferior or equal to string.length()");
 
-	while (!isSpecialChar(string[pos]) && pos <	string.length())
+	while (!isSpecialChar(string[pos]) && string[pos] != ';' && pos < string.length())
 		pos++;
 	std::string	extracted = string.substr(start, pos - start);
 
@@ -117,7 +121,7 @@ std::string	Parsing::extractWord(std::string& string, size_t start) {
 	return (extracted);
 }
 
-std::string Parsing::extractQuoteContent(std::string& string, char quote, size_t start) {
+std::string	Parsing::extractQuoteContent(std::string& string, char quote, size_t start) {
 	size_t	pos = start;
 
 	if (start >= string.length())
@@ -142,7 +146,7 @@ std::string Parsing::extractQuoteContent(std::string& string, char quote, size_t
 bool	Parsing::isSpecialChar(char c) {
 	const std::string	SPECIALS = "{}\n'\"";
 
-	if (std::isspace(c) || SPECIALS.find(c) != std::string::npos)
+	if (SPECIALS.find(c) != std::string::npos)
 		return (true);
 	return (false);
 }

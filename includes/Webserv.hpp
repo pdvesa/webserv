@@ -13,14 +13,18 @@
 #include <Route.hpp>
 #include <Parsing.hpp>
 
+#ifndef CLIENT_MAX_BODY_SIZE_LIMIT
+# define CLIENT_MAX_BODY_SIZE_LIMIT 8192
+#endif
+
 class Webserv {
 	private:
-		const std::string				host;
-		const int						port;
-		const std::list<std::string>	names;
-		const std::list<std::string>	errorsPagesPaths;
-		const int						maxClientBodySize;
-		const std::list<Route>			routes;
+		const std::string					host;
+		const int							port;
+		const std::list<std::string>		names;
+		const std::map<u_int, std::string>	errorsPages;
+		const int							maxClientBodySize;
+		const std::list<Route>				routes;
 
 		Webserv();
 		Webserv(const std::string& host, int port, const std::string names[],

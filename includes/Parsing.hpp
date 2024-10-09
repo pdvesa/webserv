@@ -8,6 +8,9 @@
 #include <string>
 #include <stdexcept>
 #include <cstring>
+#include <iostream>
+
+#include <StrictUtoi.hpp>
 
 class Parsing {
 	private:
@@ -24,6 +27,7 @@ class Parsing {
 		static size_t		findInCurrentBlock(const std::string& string, const std::string& name);
 		static std::string  extractBracketLayer(std::string& string, size_t start = 0);
 		static std::string	extractVariable(std::string& string, const std::string& variableName);
+		static u_int		extractInteger(std::string& string, const std::string& variableName);
 		static std::string	extractQuoteContent(std::string& string, char quote, size_t start);
 		static std::string	extractWord(std::string& string, size_t start);
 };
