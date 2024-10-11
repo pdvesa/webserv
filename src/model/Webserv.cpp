@@ -51,12 +51,19 @@ Webserv Webserv::fromConfigFile(const std::string& filePath) {
 						} catch (...) {
 
 						}
-
 					}
 				} else
 					throw std::runtime_error("");
 			} catch (...) {
 				break ;
+			}
+		}
+		std::map<std::string, Route> routes;
+		while (true) {
+			try {
+
+			} catch (...) {
+
 			}
 		}
 	}

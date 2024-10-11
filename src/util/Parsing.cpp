@@ -10,16 +10,16 @@ std::string	Parsing::extractBlock(std::string& string, const std::string& blockN
 	const size_t	pos = findInCurrentBlock(string, blockName);
 
 	if (pos == std::string::npos)
-		throw std::runtime_error("Could not find block : " + blockName);
+		throw Parsing::BlockNotFoundException("Could not find block : " + blockName);
 
 	size_t	openBracket = pos + blockName.size();
 		while (string[openBracket] != '{' && openBracket < string.length()) {
 		if (!std::isspace(string[openBracket]) && string[openBracket] != '\n')
-			throw std::runtime_error("Argument string must contain open bracket");
+			throw InvalidFileFormatException("Argument string must contain open bracket");
 		openBracket++;
 	}
 	if (openBracket >= string.length())
-		throw std::runtime_error("Argument string must contain open bracket");
+		throw InvalidFileFormatException("Argument string must contain open bracket");
 
 	std::string	blockContent = extractBracketLayer(string, openBracket);
 	std::string	remaining = string.substr(0, pos) + string.substr(openBracket, string.size() - (openBracket));
@@ -31,12 +31,12 @@ std::string	Parsing::extractVariable(std::string& string, const std::string& var
 	const size_t	pos = findInCurrentBlock(string, variableName);
 
 	if (pos == std::string::npos)
-		throw std::runtime_error("Could not find variable : " + variableName);
+		throw VariableNotFoundException("Could not find variable : " + variableName);
 	size_t	valuePos = pos + variableName.size();
 	while (std::isspace(string[valuePos]))
 		valuePos++;
 	if (valuePos >= string.length())
-		throw std::runtime_error("Could not find value for variable : " + variableName);
+		throw InvalidFileFormatException("Could not find value for variable : " + variableName);
 
 	std::string	extracted;
 	if (string[valuePos] == '"' || string[valuePos] == '\'')
@@ -63,7 +63,7 @@ std::string	Parsing::extractBracketLayer(std::string& string, size_t start) {
 	if (start >= string.length())
 		throw std::out_of_range("Start must be inferior to string.length()");
 	if (string[start] != '{')
-		throw std::runtime_error("Argument string must start with open bracket");
+		throw InvalidFileFormatException("Argument string must start with open bracket");
 
 	while (closeBracket < string.length()) {
 		if (string[closeBracket] == '}') {
@@ -75,7 +75,7 @@ std::string	Parsing::extractBracketLayer(std::string& string, size_t start) {
 		closeBracket++;
 	}
 	if (closeBracket >= string.length())
-		throw std::runtime_error("Unclosed bracketLayer");
+		throw InvalidFileFormatException("Unclosed bracketLayer");
 
 	std::string	extracted = string.substr(start + 1, closeBracket - start - 1);
 
@@ -107,7 +107,7 @@ std::string	Parsing::extractWord(std::string& string, size_t start) {
 	size_t	pos = start;
 
 	if (start == 0)
-		throw std::runtime_error("Start must be above 0");
+		throw std::out_of_range("Start must be above 0");
 	if (start > string.length())
 		throw std::out_of_range("Start must be inferior or equal to string.length()");
 
@@ -127,13 +127,13 @@ std::string	Parsing::extractQuoteContent(std::string& string, char quote, size_t
 	if (start >= string.length())
 		throw std::out_of_range("Start must be inferior to string.length()");
 	if (string[pos] != quote)
-		throw std::runtime_error("Argument string must start with " + quote);
+		throw InvalidFileFormatException("Argument string must start with " + quote);
 	while (++pos < string.length()) {
 		if (string[pos] == quote)
 			break ;
 	}
 	if (pos >= string.length())
-		throw std::runtime_error(quote + " must be closed");
+		throw InvalidFileFormatException(quote + " must be closed");
 
 	std::string	extracted = string.substr(start + 1, pos - start - 1);
 
