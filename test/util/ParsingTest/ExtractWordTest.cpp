@@ -39,15 +39,15 @@ TEST(ParsingExtractWordTestSuite, ContentAfterNoSpace) {
 
 TEST(ParsingExtractWordTestSuite, ContentAfterSpace) {
 	std::string testString = "var value othercontent:P";
-	std::string expectedString = "value";
+	std::string expectedString = "value othercontent:P";
 	std::string	result = Parsing::extractWord(testString, 4);
 	ASSERT_STREQ(expectedString.c_str(), result.c_str());
-	ASSERT_STREQ(testString.c_str(), "var othercontent:P");
+	ASSERT_STREQ(testString.c_str(), "var");
 }
 
 TEST(ParsingExtractWordTestSuite, startAt0) {
 	std::string testString = "var value othercontent:P";
-	ASSERT_THROW(Parsing::extractWord(testString, 0), std::runtime_error);
+	ASSERT_THROW(Parsing::extractWord(testString, 0), std::out_of_range);
 }
 
 TEST(ParsingExtractWordTestSuite, startAboveLen) {

@@ -39,10 +39,10 @@ TEST(ParsingExtractVariableTestSuite, VarBlock) {
 
 TEST(ParsingExtractVariableTestSuite, VarNotInString) {
 	std::string	testString = "val value";
-	ASSERT_THROW(Parsing::extractVariable(testString, "var"), std::runtime_error);
+	ASSERT_THROW(Parsing::extractVariable(testString, "var"), Parsing::VariableNotFoundException);
 }
 
 TEST(ParsingExtractVariableTestSuite, VarNoValue) {
 	std::string	testString = "var";
-	ASSERT_THROW(Parsing::extractVariable(testString, "var"), std::runtime_error);
+	ASSERT_THROW(Parsing::extractVariable(testString, "var"), Parsing::InvalidFileFormatException);
 }

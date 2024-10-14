@@ -84,17 +84,17 @@ TEST(ParsingExtractBracketLayerTestSuite, ComplexString) {
 
 TEST(ParsingExtractBracketLayerTestSuite, UnclosedBracket) {
 	std::string testString = "{string";
-	ASSERT_THROW(Parsing::extractBracketLayer(testString, 0), std::runtime_error);
+	ASSERT_THROW(Parsing::extractBracketLayer(testString, 0), Parsing::InvalidFileFormatException);
 }
 
 TEST(ParsingExtractBracketLayerTestSuite, UnclosedDoubleBracket) {
 	std::string testString = "{{string}";
-	ASSERT_THROW(Parsing::extractBracketLayer(testString, 0), std::runtime_error);
+	ASSERT_THROW(Parsing::extractBracketLayer(testString, 0), Parsing::InvalidFileFormatException);
 }
 
 TEST(ParsingExtractBracketLayerTestSuite, NotABracketStart) {
 	std::string testString = "qwewre{string}";
-	ASSERT_THROW(Parsing::extractBracketLayer(testString, 0), std::runtime_error);
+	ASSERT_THROW(Parsing::extractBracketLayer(testString, 0), Parsing::InvalidFileFormatException);
 }
 
 TEST(ParsingExtractBracketLayerTestSuite, offsetStart) {

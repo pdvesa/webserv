@@ -8,8 +8,16 @@
 #include <string>
 
 class StrictUtoi {
+	private:
+		StrictUtoi();
+		StrictUtoi(const StrictUtoi&);
+
+		StrictUtoi& operator=(const StrictUtoi&);
+
   	public:
-          static u_int	strictUtoi(const std::string & str);
+		~StrictUtoi();
+
+		static u_int	strictUtoi(const std::string & str);
 };
 
 

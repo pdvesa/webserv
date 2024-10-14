@@ -3,8 +3,21 @@
 //
 
 #include <Parsing.hpp>
+#include <SpacesClean.hpp>
 
 const std::string	Parsing::VALID_NAME_CHAR = "abcdefghijklmnopqrstuvwxyz";
+
+std::list<std::string> Parsing::extractVariableBlock(std::string& string, const std::string& blockName) {
+	const size_t	pos = findInCurrentBlock(string, blockName);
+
+	if (pos == std::string::npos)
+		throw Parsing::BlockNotFoundException("Could not find block : " + blockName);
+	std::list<std::string> result;
+	result.push_back(extractVariable(string, blockName));
+	result.push_back(extractBracketLayer(string, pos));
+	return (result);
+}
+
 
 std::string	Parsing::extractBlock(std::string& string, const std::string& blockName) {
 	const size_t	pos = findInCurrentBlock(string, blockName);
@@ -48,7 +61,7 @@ std::string	Parsing::extractVariable(std::string& string, const std::string& var
 	if (valuePos < string.length())
 		remaining += string.substr(valuePos - 1, string.length() - (valuePos - 1));
 	string = remaining;
-	return (extracted);
+	return (SpacesClean::cleanSpaces(extracted));
 }
 
 u_int	Parsing::extractInteger(std::string& string, const std::string& variableName) {

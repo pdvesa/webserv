@@ -10,8 +10,15 @@
 #include <vector>
 
 class CppSplit {
-  public:
-    static std::vector<std::string> cppSplit(const std::string &string, char delim);
+	private:
+		CppSplit();
+		CppSplit(const CppSplit &);
+
+		CppSplit &operator=(const CppSplit &);
+
+	public:
+		~CppSplit();
+		static std::vector<std::string> cppSplit(const std::string &string, char delim);
 };
 
 

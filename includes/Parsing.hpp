@@ -9,6 +9,7 @@
 #include <stdexcept>
 #include <cstring>
 #include <iostream>
+#include <list>
 
 #include <StrictUtoi.hpp>
 
@@ -23,13 +24,16 @@ class Parsing {
 		static bool			isSpecialChar(char c);
 
     public:
-		static std::string	extractBlock(std::string& string, const std::string& blockName);
-		static size_t		findInCurrentBlock(const std::string& string, const std::string& name);
-		static std::string  extractBracketLayer(std::string& string, size_t start = 0);
-		static std::string	extractVariable(std::string& string, const std::string& variableName);
-		static u_int		extractInteger(std::string& string, const std::string& variableName);
-		static std::string	extractQuoteContent(std::string& string, char quote, size_t start);
-		static std::string	extractWord(std::string& string, size_t start);
+		~Parsing();
+
+		static std::list<std::string>	extractVariableBlock(std::string& string, const std::string& blockName);
+		static std::string				extractBlock(std::string& string, const std::string& blockName);
+		static size_t					findInCurrentBlock(const std::string& string, const std::string& name);
+		static std::string				extractBracketLayer(std::string& string, size_t start = 0);
+		static std::string				extractVariable(std::string& string, const std::string& variableName);
+		static u_int					extractInteger(std::string& string, const std::string& variableName);
+		static std::string				extractQuoteContent(std::string& string, char quote, size_t start);
+		static std::string				extractWord(std::string& string, size_t start);
 
 	class BlockNotFoundException : public std::exception {
 		std::string message;
@@ -86,6 +90,25 @@ class Parsing {
 		explicit InvalidFileFormatException(const std::string& msg) : message(msg) {}
 
 		~InvalidFileFormatException() override = default;
+	};
+
+	class InvalidCharInNameException : public std::exception {
+		std::string message;
+
+		public:
+		const char* what() const noexcept override {
+			if (message.empty()) {
+				return "Invalid character in name exception";
+			} else {
+				return message.c_str();
+			}
+		}
+
+		InvalidCharInNameException() = default;
+
+		explicit InvalidCharInNameException(const std::string& msg) : message(msg) {}
+
+		~InvalidCharInNameException() override = default;
 	};
 };
 

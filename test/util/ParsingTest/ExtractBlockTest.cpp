@@ -60,16 +60,16 @@ TEST(ParsingExtractBlockTestSuite, ComplexFileBlock) {
 
 TEST(ParsingExtractBlockTestSuite, BlockNotInString) {
 	std::string testString = "other{GHFDGJH}\nblock\n{content}";
-	ASSERT_THROW(Parsing::extractBlock(testString, "server"), std::runtime_error);
+	ASSERT_THROW(Parsing::extractBlock(testString, "server"), Parsing::BlockNotFoundException);
 }
 
 TEST(ParsingExtractBlockTestSuite, BlockNotInScope) {
 	std::string testString = "other{GHFDGJH}\nblock\n{content\nserver{}}";
 	std::string expectedString = "content";
-	ASSERT_THROW(Parsing::extractBlock(testString, "server"), std::runtime_error);
+	ASSERT_THROW(Parsing::extractBlock(testString, "server"), Parsing::BlockNotFoundException);
 }
 
 TEST(ParsingExtractBlockTestSuite, NoOpenBracket) {
 	std::string testString = "other{GHFDGJH}\nblock\ncontent";
-	ASSERT_THROW(Parsing::extractBlock(testString, "block"), std::runtime_error);
+	ASSERT_THROW(Parsing::extractBlock(testString, "block"), Parsing::InvalidFileFormatException);
 }

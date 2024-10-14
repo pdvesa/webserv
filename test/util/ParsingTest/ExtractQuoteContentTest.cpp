@@ -47,10 +47,10 @@ TEST(ParsingExtractQuoteContentTestSuite, OffsetStart) {
 
 TEST(ParsingExtractQuoteContentTestSuite, NotAQuote) {
 	std::string testString = "       \"string\"";
-	ASSERT_THROW(Parsing::extractQuoteContent(testString, '"', 0), std::runtime_error);
+	ASSERT_THROW(Parsing::extractQuoteContent(testString, '"', 0), Parsing::InvalidFileFormatException);
 }
 
 TEST(ParsingExtractQuoteContentTestSuite, UnclosedQuote) {
 	std::string testString = "\"string";
-	ASSERT_THROW(Parsing::extractQuoteContent(testString, '"', 0), std::runtime_error);
+	ASSERT_THROW(Parsing::extractQuoteContent(testString, '"', 0), Parsing::InvalidFileFormatException);
 }
