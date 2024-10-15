@@ -5,6 +5,7 @@
 #include <map>
 #include <vector>
 #include <algorithm>
+#include "BodyChunk.hpp"
 
 class HttpRequest {
 	private:
@@ -13,9 +14,11 @@ class HttpRequest {
 		std::string							requestTarget;
 		std::string							requestVersion;
 		std::map<std::string, std::string>	requestHeader;
-		std::vector<unsigned char>			requestBody; //chunked bodies
+		std::vector<unsigned char>			rawBody; // maybe not needed anymore
+		bool								hasBody;
+		std::vector<BodyChunk>				requestBody; // more manageable body chunks
 	public:
-		HttpRequest();
+		HttpRequest(std::string req);
 		~HttpRequest();
 		void	fillRequest(std::string req);
 		void	fillHeaders(std::string &req);

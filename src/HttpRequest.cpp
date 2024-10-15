@@ -1,7 +1,7 @@
 #include "HttpRequest.hpp"
 #include <iostream>
-HttpRequest::HttpRequest(){
-	fillRequest("GET /background.png HTTP/1.0\r\n header:sampletext.png\r\n rotta: paska \r\n\r\n message body and whatnot");
+HttpRequest::HttpRequest(std::string req){
+	fillRequest(req);
 }
 
 HttpRequest::~HttpRequest(){}
@@ -50,13 +50,13 @@ void	HttpRequest::printElements() const
 	std::cout << "Request Version:" << requestVersion << std::endl;
 	for (const auto &i : requestHeader)
 		std::cout << "Key: " << i.first << " Value: " << i.second << std::endl;
-	for (const auto &i : requestBody)
+	for (const auto &i : rawBody)
 		std::cout << "Vector element: " << i << std::endl;
 }
 
 void	HttpRequest::fillBody(std::string &req)
 {
-	requestBody.reserve(req.size());
+	rawBody.reserve(req.size());
 	for (const auto &i : req)
-		requestBody.push_back(i);
+		rawBody.push_back(i);
 }
