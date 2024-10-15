@@ -6,7 +6,7 @@
 #    By: dbarrene <dbarrene@student.hive.fi>        +#+  +:+       +#+         #
 #                                                 +#+#+#+#+#+   +#+            #
 #    Created: 2024/09/01 18:14:56 by dbarrene          #+#    #+#              #
-#    Updated: 2024/09/12 17:11:30 by dbarrene         ###   ########.fr        #
+#    Updated: 2024/10/07 11:11:34 by dbarrene         ###   ########.fr        #
 #                                                                              #
 # **************************************************************************** #
 
@@ -20,6 +20,7 @@ SRCS = $(SRCDIR)/main.cpp \
 		$(SRCDIR)/Controller.cpp \
 		$(SRCDIR)/Socket.cpp \
 		$(SRCDIR)/Client.cpp \
+		$(SRCDIR)/HttpRequest.cpp \
 
 OBJS =  $(patsubst $(SRCDIR)/%.cpp, $(OBJDIR)/%.o, $(SRCS))
 
