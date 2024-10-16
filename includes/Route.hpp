@@ -5,6 +5,7 @@
 #ifndef ROUTE_HPP
 # define ROUTE_HPP
 
+#include <list>
 #include <map>
 #include <string>
 
@@ -23,6 +24,9 @@ class Route {
 		Route(const Route& other);
 
 		Route& operator=(const Route& other);
+
+	public:
+		static Route	fromVariableBlock(const std::list<std::string>& routeBlock);
 };
 
 #endif

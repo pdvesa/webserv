@@ -3,3 +3,7 @@
 //
 
 #include <Route.hpp>
+
+Route Route::fromVariableBlock(const std::list<std::string>& routeVariableBlock) {
+
+}

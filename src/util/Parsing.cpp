@@ -7,6 +7,24 @@
 
 const std::string	Parsing::VALID_NAME_CHAR = "abcdefghijklmnopqrstuvwxyz";
 
+/**
+ * Extracts the value of a variable and the content of a block from a string, given the name of the variable and the block.
+ *
+ * @param string The input string from which to extract the variable value and block content.
+ * @param blockName The name of the block to extract.
+ * @return A std::list containing the extracted variable value and block content as std::string objects.
+ * @throws BlockNotFoundException If the block is not found in the current block of the input string.
+ * @throws InvalidFileFormatException If the variable value or block content is not properly formatted.
+ *
+ * This function first searches for the block with the given name in the current block of the input
+ * string using the `findInCurrentBlock` function. If the block is found, the function extracts the value
+ * of the variable with the same name using the `extractVariable` function, and extracts the content of
+ * the block using the `extractBracketLayer` function. If the block is not found, or if the variable value
+ * or block content is not properly formatted, the function throws an exception. The function returns a
+ * std::list containing the extracted variable value and block content as std::string objects. The input
+ * string is modified to remove the extracted variable and block.
+ */
+
 std::list<std::string> Parsing::extractVariableBlock(std::string& string, const std::string& blockName) {
 	const size_t	pos = findInCurrentBlock(string, blockName);
 
@@ -19,11 +37,27 @@ std::list<std::string> Parsing::extractVariableBlock(std::string& string, const 
 }
 
 
+/**
+ * Extracts the content of a block from a string, given the name of the block.
+ *
+ * @param string The input string from which to extract the block content.
+ * @param blockName The name of the block to extract.
+ * @return The extracted block content as a std::string.
+ * @throws BlockNotFoundException If the block is not found in the current block of the input string.
+ * @throws InvalidFileFormatException If the block content is not properly formatted.
+ *
+ * This function first searches for the block with the given name in the current block of the input
+ * string using the `findInCurrentBlock` function. If the block is found, the function extracts its
+ * content from the input string using the `extractBracketLayer` function. If the block is not found,
+ * or if the block content is not properly formatted, the function throws an exception. The input
+ * string is modified to remove the extracted block and its content.
+ */
+
 std::string	Parsing::extractBlock(std::string& string, const std::string& blockName) {
 	const size_t	pos = findInCurrentBlock(string, blockName);
 
 	if (pos == std::string::npos)
-		throw Parsing::BlockNotFoundException("Could not find block : " + blockName);
+		throw BlockNotFoundException("Could not find block : " + blockName);
 
 	size_t	openBracket = pos + blockName.size();
 		while (string[openBracket] != '{' && openBracket < string.length()) {
@@ -39,6 +73,26 @@ std::string	Parsing::extractBlock(std::string& string, const std::string& blockN
 	string = remaining;
 	return (blockContent);
 }
+
+
+/**
+ * Extracts the value of a variable from a string, given the name of the variable.
+ *
+ * @param string The input string from which to extract the variable value.
+ * @param variableName The name of the variable to extract.
+ * @return The extracted variable value as a std::string.
+ * @throws VariableNotFoundException If the variable is not found in the current block of the input string.
+ * @throws InvalidFileFormatException If the variable value is not properly formatted.
+ *
+ * This function first searches for the variable with the given name in the current block of the input
+ * string using the `findInCurrentBlock` function. If the variable is found, the function extracts its
+ * value from the input string. If the value is enclosed in quotes, the function uses the
+ * `extractQuoteContent` function to extract the value. Otherwise, the function uses the `extractWord`
+ * function to extract the value. The function then removes any leading or trailing whitespace from the
+ * extracted value using the `SpacesClean::cleanSpaces` function. If the variable is not found, or if the
+ * variable value is not properly formatted, the function throws an exception. The input string is modified
+ * to remove the extracted variable and its value.
+ */
 
 std::string	Parsing::extractVariable(std::string& string, const std::string& variableName) {
 	const size_t	pos = findInCurrentBlock(string, variableName);
@@ -64,10 +118,46 @@ std::string	Parsing::extractVariable(std::string& string, const std::string& var
 	return (SpacesClean::cleanSpaces(extracted));
 }
 
+
+/**
+ * Extracts an integer value from a string, given the name of a variable that contains the integer value.
+ *
+ * @param string The input string from which to extract the integer value.
+ * @param variableName The name of the variable that contains the integer value.
+ * @return The extracted integer value.
+ * @throws std::invalid_argument If the variable value is not a valid integer.
+ *
+ * This function first extracts the value of the variable with the given name from the input string using
+ * the `extractVariable` function. It then converts the extracted value to an integer using the
+ * `StrictUtoi::strictUtoi` function. If the extracted value is not a valid integer, the function throws
+ * a `std::invalid_argument` exception.
+ */
+
 u_int	Parsing::extractInteger(std::string& string, const std::string& variableName) {
 	std::string	varString = extractVariable(string, variableName);
 	return (StrictUtoi::strictUtoi(varString));
 }
+
+
+/**
+ * Extracts the content between a pair of matching curly braces ({ and }) from a string, starting at a
+ * specified position.
+ *
+ * @param string The input string from which to extract the content.
+ * @param start The starting position in the input string from which to begin the search for the matching
+ *              curly braces.
+ * @return The extracted content as a std::string.
+ * @throws std::out_of_range If the starting position is greater than or equal to the length of the input
+ *         string.
+ * @throws InvalidFileFormatException If the input string does not start with an open curly brace, or if
+ *         the curly braces are not properly nested.
+ *
+ * This function searches for a pair of matching curly braces ({ and }) in the input string (`string`),
+ * starting at the position specified by the `start` parameter. If the curly braces are found and
+ * properly nested, the content between them is extracted and returned as a std::string. If the starting
+ * position is out of range, or if the curly braces are not found or properly nested, an exception is
+ * thrown. The input string is modified to remove the extracted content and the closing curly brace.
+ */
 
 std::string	Parsing::extractBracketLayer(std::string& string, size_t start) {
 	size_t	closeBracket = start + 1;
@@ -98,6 +188,22 @@ std::string	Parsing::extractBracketLayer(std::string& string, size_t start) {
 	return (extracted);
 }
 
+
+/**
+ * Searches for a given name in the current block of a string.
+ *
+ * @param string The input string in which to search for the name.
+ * @param name The name to search for.
+ * @return The position of the first character of the name in the string, or std::string::npos if the name
+ *         is not found in the current block.
+ *
+ * This function searches for the given name in the current block of the input string. A block is defined
+ * as the text between a pair of matching curly braces ({ and }). The function keeps track of the current
+ * block using a bracket layer counter. If the name is found in the current block, the function returns the
+ * position of the first character of the name in the string. If the name is not found in the current
+ * block, the function returns std::string::npos.
+ */
+
 size_t	Parsing::findInCurrentBlock(const std::string& string, const std::string& name) {
 	size_t	pos = 0;
 	u_int	bracketLayer = 0;
@@ -116,6 +222,18 @@ size_t	Parsing::findInCurrentBlock(const std::string& string, const std::string&
 	return (std::string::npos);
 }
 
+
+/**
+ * Extracts a word from a string, starting at a specified position.
+ *
+ * @param string The input string from which to extract the word.
+ * @param start The starting position in the input string from which to begin the search for the word.
+ * @return The extracted word as a std::string.
+ * @throws std::out_of_range If the starting position is less than 1 or greater than the length of the input string.
+ *
+ * This function searches for a word in the input string (`string`), starting at the position specified by the `start` parameter. A word is defined as a sequence of non-special characters that does not contain a semicolon (;). If a word is found, it is extracted and returned as a std::string. If the starting position is out of range, an exception is thrown. The input string is modified to remove the extracted word.
+ */
+
 std::string	Parsing::extractWord(std::string& string, size_t start) {
 	size_t	pos = start;
 
@@ -133,6 +251,26 @@ std::string	Parsing::extractWord(std::string& string, size_t start) {
 
 	return (extracted);
 }
+
+
+/**
+ * Extracts the content between a pair of quotes from a given string, starting at a specified position.
+ *
+ * @param string The input string from which to extract the quoted content.
+ * @param quote The quote character that delimits the content to be extracted.
+ * @param start The starting position in the input string from which to begin the search for the quoted content.
+ * @return The extracted quoted content as a std::string.
+ * @throws std::out_of_range If the starting position is greater than or equal to the length of the input string.
+ * @throws InvalidFileFormatException If the input string does not start with the specified quote character,
+ *         or if the quote character is not closed.
+ *
+ * This function searches for a pair of quote characters (specified by the `quote` parameter) in the input
+ * string (`string`), starting at the position specified by the `start` parameter. If the quote characters
+ * are found and properly nested, the content between them is extracted and returned as a std::string. If
+ * the starting position is out of range, or if the quote characters are not found or properly nested, an
+ * exception is thrown. The input string is modified to remove the extracted content and the closing quote
+ * character.
+ */
 
 std::string	Parsing::extractQuoteContent(std::string& string, char quote, size_t start) {
 	size_t	pos = start;
@@ -155,6 +293,18 @@ std::string	Parsing::extractQuoteContent(std::string& string, char quote, size_t
 
 	return (extracted);
 }
+
+
+/**
+ * Checks if a given character is a special character.
+ *
+ * @param c The character to check.
+ * @return True if the character is a special character, false otherwise.
+ *
+ * This function checks if the given character is one of the special characters defined in the `SPECIALS`
+ * constant string. The special characters are '{', '}', '\n', ''', and '\"'. If the character is found in
+ * the `SPECIALS` string, the function returns true. Otherwise, it returns false.
+ */
 
 bool	Parsing::isSpecialChar(char c) {
 	const std::string	SPECIALS = "{}\n'\"";
