@@ -9,6 +9,7 @@ set(CMAKE_CXX_STANDARD_REQUIRED True)
 
 # Add executable
 file(GLOB_RECURSE SOURCES
+        src/controller/*.cpp
         src/model/*.cpp
         src/util/*.cpp
 )
