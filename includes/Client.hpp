@@ -7,14 +7,15 @@
 
 #include <iostream>
 #include <arpa/inet.h>
+#include "HttpRequest.hpp"
 
 class Client {
 	private:
 		int			responseFd;
 		int			listeningSocket;
 		sockaddr_in	clientAddr;
-//		HttpRequest	request;
-//		HttpResponse	response;	
+		HttpRequest	req_class;
+//		HttpResponse	response;
 		std::string	request;
 	public:
 		Client();

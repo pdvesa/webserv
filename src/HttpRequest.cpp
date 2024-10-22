@@ -1,7 +1,22 @@
 #include "HttpRequest.hpp"
 #include <iostream>
-HttpRequest::HttpRequest(std::string req){
+HttpRequest::HttpRequest(std::string req)
+{
 	fillRequest(req);
+}
+
+HttpRequest::HttpRequest(int socket)
+{
+	readSocket(socket);
+}
+
+void HttpRequest::readSocket(int socket)
+{
+	int rv;
+	 while ((rv = recv(socket,fullRequest.data(), 1024, 0)) > 0)
+		 ;
+	if (rv == -1)
+		throw std::runtime_error("failed to read from socket");
 }
 
 HttpRequest::~HttpRequest(){}
@@ -24,7 +39,7 @@ void	HttpRequest::fillRequest(std::string req)
 	requestVersion = mtv[2]; // check if version is correct one
 	req.erase(0, req.find("\r\n") + 2); // need to make scalable just testing
 	fillHeaders(req);
-	fillBody(req);
+	fillRawBody(req);
 	printElements(); // debug atm
 	// need to add status at some point
 }
@@ -54,9 +69,26 @@ void	HttpRequest::printElements() const
 		std::cout << "Vector element: " << i << std::endl;
 }
 
-void	HttpRequest::fillBody(std::string &req)
+void	HttpRequest::fillRawBody(std::string &req)
 {
 	rawBody.reserve(req.size());
 	for (const auto &i : req)
 		rawBody.push_back(i);
+}
+
+
+void	HttpRequest::populateChunks(std::vector<unsigned char>& vec)
+{
+	const char *eof = "\r\n\r\n";
+	// get size_str
+	// strtol hexadecimal into a long, using strtol(str, NULL, 16);
+	// skip \r\n\r\n after size, then read size amount of bytes as body
+	// pass size and body into BodyChunk;
+	auto it = std::search(vec.begin(), vec.end(), eof, eof + strlen(eof));
+	std::string sizestr(vec.begin(), it);
+	long reqSize = strtol(sizestr.c_str(), NULL, 16);
+	// find new string until next eof str
+	std::string body_content = "placeholder";
+	requestBody.emplace_back(reqSize,body_content);
+	// need to find good way to loop thru vec
 }
