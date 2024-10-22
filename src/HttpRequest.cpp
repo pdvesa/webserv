@@ -1,5 +1,12 @@
 #include "HttpRequest.hpp"
 #include <iostream>
+#include <unistd.h>
+#include "Client.hpp"
+
+
+HttpRequest::HttpRequest() {
+}
+
 HttpRequest::HttpRequest(std::string req)
 {
 	fillRequest(req);
@@ -12,11 +19,21 @@ HttpRequest::HttpRequest(int socket)
 
 void HttpRequest::readSocket(int socket)
 {
-	int rv;
-	 while ((rv = recv(socket,fullRequest.data(), 1024, 0)) > 0)
-		 ;
+	int							rv;
+	std::vector<unsigned char>	buffer(BUF_SIZE);
+	fullRequest.resize(1);
+	while ((rv = recv(socket, buffer.data(), BUF_SIZE, 0)) > 0) {
+		buffer.resize(rv);
+		fullRequest.insert(fullRequest.end(), buffer.begin(), buffer.end()); // might read too much into buffer
+		if (rv < BUF_SIZE) // I DONT KNOW WHY WHILE LOOP DOESNT STOP IM DEBIL
+			break;
+	}
+	std::cout << "Size of fullreq: " << fullRequest.size() << std::endl;
+	write(1, fullRequest.data(), fullRequest.size());
 	if (rv == -1)
 		throw std::runtime_error("failed to read from socket");
+	std::string paska(fullRequest.begin(), fullRequest.end());
+	fillRequest(paska);
 }
 
 HttpRequest::~HttpRequest(){}
@@ -32,8 +49,8 @@ void	HttpRequest::fillRequest(std::string req)
 		mtv[i] = req_line.substr(0, pos);
 		req_line.erase(0, pos + 1);
 	}
-	if (mtv[0] != "GET" && mtv[0] != "POST" && mtv[0] != "DELETE")
-		throw std::runtime_error("Request method not supported"); // this needs to update status, not just throw exception
+	// if (mtv[0] != "GET" && mtv[0] != "POST" && mtv[0] != "DELETE")
+		// throw std::runtime_error("Request method not supported"); // this needs to update status, not just throw exception
 	requestMethod = mtv[0];
 	requestTarget = mtv[1]; // check if target is valid
 	requestVersion = mtv[2]; // check if version is correct one

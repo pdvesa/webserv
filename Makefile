@@ -21,6 +21,7 @@ SRCS = $(SRCDIR)/main.cpp \
 		$(SRCDIR)/Socket.cpp \
 		$(SRCDIR)/Client.cpp \
 		$(SRCDIR)/HttpRequest.cpp \
+		$(SRCDIR)/BodyChunk.cpp \
 
 OBJS =  $(patsubst $(SRCDIR)/%.cpp, $(OBJDIR)/%.o, $(SRCS))
 

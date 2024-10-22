@@ -3,6 +3,9 @@
 BodyChunk::BodyChunk(int size, std::string content): chunkSize(size), chunkContent(content){
 }
 
+BodyChunk::~BodyChunk() {	
+}
+
 int	BodyChunk::getSize() const
 {
 	return chunkSize;

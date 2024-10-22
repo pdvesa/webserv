@@ -18,9 +18,10 @@ class HttpRequest {
 		std::map<std::string, std::string>	requestHeader;
 		std::vector<unsigned char>			rawBody; // maybe not needed anymore
 		std::vector<unsigned char>			fullRequest;
-		bool								hasBody;
+//		bool								hasBody;
 		std::vector<BodyChunk>				requestBody; // more manageable body chunks
 	public:
+		HttpRequest();
 		HttpRequest(std::string req);
 		HttpRequest(int socket);
 		~HttpRequest();

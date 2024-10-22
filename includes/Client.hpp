@@ -2,7 +2,7 @@
 # define CLIENT_HPP
 
 #ifndef BUF_SIZE
-# define BUF_SIZE 4200
+# define BUF_SIZE 42
 #endif
 
 #include <iostream>
@@ -11,22 +11,21 @@
 
 class Client {
 	private:
-		int			responseFd;
+		int			responseFD;
 		int			listeningSocket;
 		sockaddr_in	clientAddr;
-		HttpRequest	req_class;
+		HttpRequest	request;
 //		HttpResponse	response;
-		std::string	request;
 	public:
-		Client();
+		Client(int socket);
 		~Client();
-		int getResponseFd() const;
+		int getResponseFD() const;
 		int getListening() const;
 		const sockaddr_in &getClientAddress() const;
-		const std::string &getRequest() const; //placeholder
-		void setResponseFd(int fd);
+		const HttpRequest &getRequest() const; //placeholder
+		void setResponseFD(int fd);
 		void setListening(int fd);
-		void saveRequest(); //placeholder
+		void setRequest(int socket);
 };
 
 #endif
