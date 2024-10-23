@@ -12,7 +12,7 @@
 
 class Socket {
 	private:
-		int			socketFd;
+		int			socketFD;
 		sockaddr_in	socketAddr;
 	public:
 		Socket(int domain, int type, int protocol, int port, std::string host);

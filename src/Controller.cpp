@@ -1,5 +1,5 @@
 #include <Controller.hpp>
-#include <algorithm> // idk
+#include <algorithm>
 
 # ifndef PORT_TEST //placeholder
 #  define PORT_TEST 8080 
@@ -37,13 +37,13 @@ void Controller::controlLoop() {
 	createSockets(AF_INET, SOCK_STREAM, 0, portVector, ADDR_TEST);
 	for (int i = 0; i < CONNECTIONS; i++) {
 		event[i].events = EPOLLIN;
-		event[i].data.fd = listenFds[i];
-		epoll_ctl(epollFd, EPOLL_CTL_ADD, listenFds[i], &event[i]);
+		event[i].data.fd = listenFDs[i];
+		epoll_ctl(epollFd, EPOLL_CTL_ADD, listenFDs[i], &event[i]);
 	}
 	while (true) {
 		eventsWaiting = epoll_wait(epollFd, eventQue, MAX_EVENTS, -1);
 		for (int j = 0; j < eventsWaiting; j++) {
-			if (std::find(listenFds.cbegin(), listenFds.cend(), eventQue[j].data.fd) != std::end(listenFds)) {
+			if (std::find(listenFDs.cbegin(), listenFDs.cend(), eventQue[j].data.fd) != std::end(listenFDs)) {
 				acceptConnection(eventQue[j].data.fd);
 				std::cout << "We connected from socket " << eventQue[j].data.fd << std::endl;
 			}
@@ -63,25 +63,23 @@ void Controller::createSockets(int domain, int type, int protocol, std::vector<i
 			Socket newInstance = Socket(domain, type, protocol, port, host);
 			newInstance.bindSocket();
 			newInstance.listenSocket(FD_SETSIZE);
-			listenFds.push_back((newInstance.getSocket()));
+			listenFDs.push_back((newInstance.getSocket()));
 		}
 	} catch (const std::runtime_error &err) {
 		errorHandler(err);
 	}
 }
 
-void Controller::acceptConnection(int listenFd) {
-	Client			client;
-	int				connectionFd;
+void Controller::acceptConnection(int listenFD) {
+	int				connectionFD;
 	sockaddr_in		clientLocal;
 	unsigned int	clientSize = sizeof(clientLocal);
 	std::memset(&clientLocal, 0 , clientSize);
-	if ((connectionFd = accept(listenFd, (sockaddr *)&clientLocal, &clientSize)) < 0)
+	if ((connectionFD = accept(listenFD, (sockaddr *)&clientLocal, &clientSize)) < 0)
 		throw std::runtime_error("Failed in accept connection");
-	client.setListening(listenFd);
-	client.setResponseFd(connectionFd);
-	clientVector.push_back(client);
-	std::cout << "Connection accepted for fd " << connectionFd << std::endl;
+	Client			client(listenFD, connectionFD);
+	clients.push_back(client);
+	std::cout << "Connection accepted for fd " << connectionFD << std::endl;
 }
 
 void Controller::errorHandler(const std::runtime_error &err) {
@@ -104,6 +102,6 @@ void Controller::errorLogger(const std::string &errMsg) {
 }
 
 void Controller::cleanResources() {
-	for (const int &fd : listenFds)
-		close (fd);
+	for (const int &fd : listenFDs)
+		close (fd); //close epoll list awaiting client fds also?
 }
