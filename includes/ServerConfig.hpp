@@ -27,7 +27,7 @@ class ServerConfig {
 		const std::vector<std::string>		names;
 		const std::map<u_int, std::string>	errorsPages;
 		const u_int							maxClientBodySize;
-		const std::vector<RouteConfig>			routes;
+		const std::vector<RouteConfig>		routes;
 
 		ServerConfig();
 		ServerConfig(const std::string& host, const u_int& port, const std::vector<std::string>& names,
@@ -64,7 +64,5 @@ class ServerConfig {
 			InvalidConfigFileException& operator=(const InvalidConfigFileException& other);
 	};
 };
-
-
 
 #endif
