@@ -27,13 +27,14 @@ class HttpRequest {
 		~HttpRequest();
 		void	readSocket(int socket);
 		void	fillRequest(std::string req);
+		void	fillRequest_vec(std::vector<unsigned char>& req);
 		void	fillHeaders(std::string &req);
 		void	printElements() const;
 		void	fillRawBody(std::string &req);
 		void	populateChunks(std::vector<unsigned char> &vec);
-		std::string getMethod() {return requestMethod;}// should these return const & to string or object????
-		std::string getTarget() {return requestTarget;}
-		std::string getVersion(){return requestVersion;}
+		const std::string& getMethod() {return requestMethod;}// should these return const & to string or object????
+		const std::string& getTarget() {return requestTarget;}
+		const std::string& getVersion(){return requestVersion;}
 };
 
 #endif

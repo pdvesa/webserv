@@ -21,7 +21,6 @@ void HttpRequest::readSocket(int socket)
 {
 	int							rv;
 	std::vector<unsigned char>	buffer(BUF_SIZE);
-	fullRequest.resize(1);
 	while ((rv = recv(socket, buffer.data(), BUF_SIZE, 0)) > 0) {
 		buffer.resize(rv);
 		fullRequest.insert(fullRequest.end(), buffer.begin(), buffer.end()); // might read too much into buffer
@@ -32,12 +31,44 @@ void HttpRequest::readSocket(int socket)
 	write(1, fullRequest.data(), fullRequest.size());
 	if (rv == -1)
 		throw std::runtime_error("failed to read from socket");
+//	fillRequest_vec(fullRequest);
 	std::string paska(fullRequest.begin(), fullRequest.end());
 	fillRequest(paska);
 }
 
 HttpRequest::~HttpRequest(){}
 
+void	HttpRequest::fillRequest_vec(std::vector<unsigned char>& req)
+{
+	unsigned char clrf[2] { '\r', '\n'};
+//	std::string line(req.begin(), std::find(req.begin(), req.end() - 1, '\r'));
+	std::cout << "testing begin and end of clrf array: -----------\n";
+	std::cout << "begin : " << *std::begin(clrf);
+	std::cout << "end : " << *(std::end(clrf) - 1);
+	std::string line(req.begin(),(std::search(req.begin(), req.end(), std::begin(clrf), std::end(clrf) - 1)));
+	std::cout << "line 1: " << line << std::endl;
+	std::string mtv[3];
+	int pos;
+	for (int i = 0; i < 3; i++)
+	{
+		pos = line.find(' ');
+		mtv[i] = line.substr(0, pos);
+		line.erase(0, pos + 1);
+		std::cout << "MTV at index " << i << " : " << mtv[i] << std::endl;
+	}
+	requestMethod = mtv[0];
+	requestTarget = mtv[1];
+	requestVersion = mtv[2];
+	printElements();
+	if (requestMethod == "GET ")
+		std::cout << "GET method called \n";
+	if (requestMethod == "POST")
+		std::cout << "POST method called \n";
+	if (requestMethod == "DELETE")
+		std::cout << "DELETE method called \n";
+
+	std::cout << requestMethod <<"abc" << std::endl;
+}
 void	HttpRequest::fillRequest(std::string req)
 {
 	std::string	req_line = req.substr(0, req.find("\r\n"));
@@ -49,16 +80,16 @@ void	HttpRequest::fillRequest(std::string req)
 		mtv[i] = req_line.substr(0, pos);
 		req_line.erase(0, pos + 1);
 	}
-	// if (mtv[0] != "GET" && mtv[0] != "POST" && mtv[0] != "DELETE")
-		// throw std::runtime_error("Request method not supported"); // this needs to update status, not just throw exception
 	requestMethod = mtv[0];
 	requestTarget = mtv[1]; // check if target is valid
 	requestVersion = mtv[2]; // check if version is correct one
 	req.erase(0, req.find("\r\n") + 2); // need to make scalable just testing
 	fillHeaders(req);
-	fillRawBody(req);
+
+//	fillRawBody(req);
 	printElements(); // debug atm
-	// need to add status at some point
+	if (mtv[0] != "GET" && mtv[0] != "POST" && mtv[0] != "DELETE")
+		throw std::runtime_error("405"); // this needs to update status, not just throw exception
 }
 
 void	HttpRequest::fillHeaders(std::string &req)
@@ -74,6 +105,13 @@ void	HttpRequest::fillHeaders(std::string &req)
 		req.erase(0, req.find("\r\n") + 2);
 		requestHeader.insert({key,value});
 	}
+	try{
+		 requestHeader.at("Host"); // checking that Host field exists in header
+	}
+	catch (std::exception &e) // just doing this until figure out how to handle errors
+	{
+		throw std::runtime_error("request needs \"Host\" Header"); 
+	}
 }
 void	HttpRequest::printElements() const
 {
@@ -81,9 +119,9 @@ void	HttpRequest::printElements() const
 	std::cout << "Request Target:" << requestTarget << std::endl;
 	std::cout << "Request Version:" << requestVersion << std::endl;
 	for (const auto &i : requestHeader)
-		std::cout << "Key: " << i.first << " Value: " << i.second << std::endl;
-	for (const auto &i : rawBody)
-		std::cout << "Vector element: " << i << std::endl;
+		std::cout << "Key:" << i.first << " Value:" << i.second << std::endl;
+//	for (const auto &i : rawBody)
+//		std::cout << "Vector element: " << i << std::endl;
 }
 
 void	HttpRequest::fillRawBody(std::string &req)

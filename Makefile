@@ -6,7 +6,7 @@
 #    By: dbarrene <dbarrene@student.hive.fi>        +#+  +:+       +#+         #
 #                                                 +#+#+#+#+#+   +#+            #
 #    Created: 2024/09/01 18:14:56 by dbarrene          #+#    #+#              #
-#    Updated: 2024/10/07 11:11:34 by dbarrene         ###   ########.fr        #
+#    Updated: 2024/10/23 15:59:58 by dbarrene         ###   ########.fr        #
 #                                                                              #
 # **************************************************************************** #
 
@@ -15,12 +15,13 @@ SRCDIR = src
 OBJDIR = obj
 INCDIR = includes
 CC = c++
-CFLAGS = -Wall -Wextra -Werror -pedantic -g
+CFLAGS = -Wall -Wextra -Werror -pedantic -g -fsanitize=address
 SRCS = $(SRCDIR)/main.cpp \
 		$(SRCDIR)/Controller.cpp \
 		$(SRCDIR)/Socket.cpp \
 		$(SRCDIR)/Client.cpp \
 		$(SRCDIR)/HttpRequest.cpp \
+		$(SRCDIR)/HttpResponse.cpp \
 		$(SRCDIR)/BodyChunk.cpp \
 
 OBJS =  $(patsubst $(SRCDIR)/%.cpp, $(OBJDIR)/%.o, $(SRCS))

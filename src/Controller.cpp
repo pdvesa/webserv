@@ -30,8 +30,8 @@ void Controller::controlLoop() {
 		//this will get listening socket fd from epoll maybe we create a instance of client with every epoll match?
 		acceptConnection(listenFD);
 		send(clientVector.back().getResponseFD(), response.c_str(), response.length(), 0);
-		for (auto &client : clientVector)
-			client.getRequest().printElements();
+//		for (auto &client : clientVector)
+//			client.getRequest().printElements();
 	}
 }
 

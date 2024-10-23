@@ -1,6 +1,6 @@
 #pragma once
 #include "HttpRequest.hpp"
-
+#include <iostream>
 
 enum e_code
 {
@@ -17,6 +17,8 @@ class HttpResponse
 {
 	public:
 		HttpResponse(HttpRequest req);
+		HttpResponse();
+		void	create_responseline(int);
 	private:
 		std::map<int, std::string> httpErrors = {
 			{400, "Bad Request"},
@@ -59,4 +61,7 @@ class HttpResponse
 			{510, "Not Extended"},
 			{511, "Network Authentication Required"}
 		};
+		std::map<std::string, std::string> m_Headers;
+		std::string							m_status_line = "HTTP/1.1";
+		int									m_status;
 };
