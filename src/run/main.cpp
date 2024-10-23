@@ -9,12 +9,7 @@ int main(int n, char* args[])
 	if (n != 2)
 		return (1);
 
-	try {
-		WebservController	controller(args[1]);
-		controller.run();
-		return (0);
-	} catch (...) {
-		return (1);
-	}
-
+	WebservController	controller(args[1]);
+	controller.run();
+	return (0);
 }

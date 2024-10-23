@@ -6,9 +6,13 @@
 
 
 WebservController::WebservController(const std::string& configFilePath) {
-	serverConfigs = ServerConfig::fromConfigFile(configFilePath);
+	try {
+		serverConfigs = ServerConfig::fromConfigFile(configFilePath);
+	} catch (...) {
+		exit(1);
+	}
 }
 
 void	WebservController::run() {
-	
+
 }
