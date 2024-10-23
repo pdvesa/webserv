@@ -13,7 +13,7 @@
 
 #include <IsBlank.hpp>
 #include <CppSplit.hpp>
-#include <Route.hpp>
+#include <RouteConfig.hpp>
 #include <Parsing.hpp>
 
 #ifndef CLIENT_MAX_BODY_SIZE_LIMIT
