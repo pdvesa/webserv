@@ -25,11 +25,11 @@ std::vector<ServerConfig> ServerConfig::fromConfigFile(const std::string& filePa
 }
 
 ServerConfig::ServerConfig(const std::string& host,
-				const u_int& port,
-				const std::vector<std::string>& names,
-				const std::map<u_int, std::string>& errorsPages,
-				const u_int& maxClientBodySize,
-				const std::vector<Route>& routes) :
+							const u_int& port,
+							const std::vector<std::string>& names,
+							const std::map<u_int, std::string>& errorsPages,
+							const u_int& maxClientBodySize,
+							const std::vector<RouteConfig>& routes) :
 	host(host),
 	port(port),
 	names(names),
@@ -49,7 +49,7 @@ ServerConfig ServerConfig::parseServer(std::string& content) {
 	std::vector<std::string>		parsedServerName = parseServerNames(serverBlock);
 	std::map<u_int, std::string>	parsedErrorPages = parseServerErrorsPages(serverBlock);
 	u_int							parsedBodySize = parseServerMaxClientBodySize(serverBlock);
-	std::vector<Route>				parsedRoutes = parseServerRoutes(serverBlock);
+	std::vector<RouteConfig>		parsedRoutes = parseServerRoutes(serverBlock);
 
 	return (ServerConfig(parsedHost, parsedPort, parsedServerName, parsedErrorPages, parsedBodySize, parsedRoutes));
 }
@@ -102,15 +102,29 @@ u_int ServerConfig::parseServerMaxClientBodySize(std::string& serverBlock) {
 	return (parsedBodySize);
 }
 
-std::vector<Route>	ServerConfig::parseServerRoutes(std::string& serverBlock) {
-	std::vector<Route> parsedRoutes;
+std::vector<RouteConfig>	ServerConfig::parseServerRoutes(std::string& serverBlock) {
+	std::vector<RouteConfig> parsedRoutes;
 	try {
 		while (true) {
 			std::list<std::string>	routeData = Parsing::extractVariableBlock(serverBlock, "location");
-			Route					route = Route::fromVariableBlock(routeData);
+			RouteConfig					route = RouteConfig::fromVariableBlock(routeData);
 
 			parsedRoutes.push_back(route);
 		}
 	} catch (Parsing::VariableNotFoundException&) { }
 	return (parsedRoutes);
+}
+
+ServerConfig::InvalidConfigFileException::InvalidConfigFileException() { }
+
+ServerConfig::InvalidConfigFileException::InvalidConfigFileException(const std::string& msg): message(msg) {}
+
+ServerConfig::InvalidConfigFileException::~InvalidConfigFileException() { }
+
+const char* ServerConfig::InvalidConfigFileException::what() const noexcept {
+	if (message.empty()) {
+		return "Invalid config file";
+	} else {
+		return message.c_str();
+	}
 }

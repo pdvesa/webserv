@@ -8,25 +8,34 @@
 #include <list>
 #include <map>
 #include <string>
+#include <vector>
 
-class Route {
+#include <CppSplit.hpp>
+#include <Parsing.hpp>
+#include <ServerConfig.hpp>
+
+class RouteConfig {
 	private:
 		const bool							GET;
 		const bool							POST;
 		const bool							DELETE;
-		std::map<std::string, std::string>	locations;
+		std::string							location;
 		const bool							listing;
-		const std::string					defaultFile;
+		const std::string					rootDir;
 
-		Route();
-		Route(const bool& GET, const bool& POST, const bool& DELETE, std::map<std::string, std::string> locations,
-			const bool& listing, const std::string& defaultFile);
-		Route(const Route& other);
+		RouteConfig();
+		RouteConfig(const bool& GET, const bool& POST, const bool& DELETE, const std::string & location,
+			const bool& listing, const std::string & rootDir);
+		RouteConfig(const RouteConfig& other);
 
-		Route& operator=(const Route& other);
+		RouteConfig& operator=(const RouteConfig& other);
+
+		static void			getMethods(bool& GET, bool& POST, bool& DELETE, std::string& locationBlock);
+		static std::string	getRootDir(std::string& locationBlock);
+		static bool			getListing(std::string& locationBlock);
 
 	public:
-		static Route	fromVariableBlock(const std::list<std::string>& routeBlock);
+		static RouteConfig	fromVariableBlock(std::list<std::string>& routeBlock);
 };
 
 #endif
