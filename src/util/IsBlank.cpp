@@ -5,7 +5,7 @@
 #include <IsBlank.hpp>
 
 bool IsBlank::isBlank(const std::string& string) {
-	for (int i = 0; i < string.length(); ++i) {
+	for (unsigned long int i = 0; i < string.length(); ++i) {
 		if (!isspace(string[i]) && string[i] != '\n')
 			return (false);
 	}

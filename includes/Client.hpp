@@ -10,22 +10,22 @@
 
 class Client {
 	private:
-		int			responseFd;
-		int			listeningSocket;
-		sockaddr_in	clientAddr;
-//		HttpRequest	request;
+		int				clientFD;
+		int				listeningSocket;
+		sockaddr_in		clientAddr;
+//		HttpRequest		request;
 //		HttpResponse	response;	
-		std::string	request;
+		std::string		request;
 	public:
 		Client();
 		~Client();
-		int getResponseFd() const;
+		int getClientFD() const;
 		int getListening() const;
 		const sockaddr_in &getClientAddress() const;
 		const std::string &getRequest() const; //placeholder
-		void setResponseFd(int fd);
+		void setClientFD(int fd);
 		void setListening(int fd);
-		void saveRequest(); //placeholder
+		void testPrintRequest(); //placeholder
 };
 
 #endif

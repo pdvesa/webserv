@@ -6,10 +6,10 @@
 
 int main(int n, char* args[])
 {
-	if (n != 2)
-		return (1);
-
-	WebservController	controller(args[1]);
+	if (n != 2 && !args)
+		return (EXIT_FAILURE);
+//	WebservController	controller(args[1]);
+	WebservController	controller;
 	controller.run();
-	return (0);
+	return (EXIT_SUCCESS);
 }
