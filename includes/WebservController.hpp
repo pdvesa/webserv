@@ -20,15 +20,15 @@ class WebservController {
 		std::vector<ServerConfig>	serverConfigs;
 		std::vector<int>			listenFDs;
 		std::vector<Client>			clients; //maybe not needed
-	public:
-		WebservController();
-//		WebservController(const std::string& configFilePath);
-		~WebservController();
 		void	createSockets(int domain, int type, int protocol, int port, std::vector<std::string> hosts);
 		void	acceptConnection(int listenFd);
 		void	errorHandler(const std::runtime_error &err);
 		void	errorLogger(const std::string &errMsg);
 		void	cleanResources();
+	public:
+		WebservController();
+//		WebservController(const std::string& configFilePath);
+		~WebservController();
 		void	run();
 };
 
