@@ -44,14 +44,14 @@ void RouteConfig::getMethods(bool& GET, bool& POST, bool& DELETE, std::string& l
 	if (methodsVector.empty())
 		throw ServerConfig::InvalidConfigFileException();
 
-	if (methodsVector.data()->contains("GET"))
+	if (std::find(methodsVector.cbegin(), methodsVector.cend(), "GET") != std::end(methodsVector))
 		GET = true;
-	if (methodsVector.data()->contains("POST"))
+	if (std::find(methodsVector.cbegin(), methodsVector.cend(), "POST") != std::end(methodsVector))
 		POST = true;
-	if (methodsVector.data()->contains("DELETE"))
+	if (std::find(methodsVector.cbegin(), methodsVector.cend(), "DELETE") != std::end(methodsVector))
 		DELETE = true;
 
-	if (methodsVector.size() != static_cast<int>(GET) + static_cast<int>(POST) + static_cast<int>(DELETE))
+	if (static_cast<int>(methodsVector.size()) != static_cast<int>(GET) + static_cast<int>(POST) + static_cast<int>(DELETE))
 		throw ServerConfig::InvalidConfigFileException();
 }
 

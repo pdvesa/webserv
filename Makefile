@@ -26,7 +26,7 @@ SRCS = $(SRCDIR)/run/main.cpp \
        $(SRCDIR)/util/Parsing.cpp \
        $(SRCDIR)/util/SpacesClean.cpp \
        $(SRCDIR)/util/StrictUtoi.cpp \
-#	   $(SRCDIR)/model/RouteConfig.cpp \
+	   $(SRCDIR)/model/RouteConfig.cpp \
        $(SRCDIR)/model/ServerConfig.cpp \
 
 OBJS = $(patsubst $(SRCDIR)/%.cpp, $(OBJDIR)/%.o, $(SRCS))

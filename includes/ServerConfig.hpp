@@ -20,6 +20,8 @@
 # define CLIENT_MAX_BODY_SIZE_LIMIT 8192
 #endif
 
+class RouteConfig;
+
 class ServerConfig {
 	private:
 		const std::string					host;
@@ -33,9 +35,6 @@ class ServerConfig {
 		ServerConfig(const std::string& host, const u_int& port, const std::vector<std::string>& names,
 				const std::map<u_int, std::string>& errorsPages, const u_int& maxClientBodySize,
 				const std::vector<RouteConfig>& routes);
-		ServerConfig(const ServerConfig& other);
-
-		ServerConfig& operator=(const ServerConfig& other);
 
 		static ServerConfig						parseServer(std::string& content);
 		static std::string					parseServerHostName(std::string& serverBlock);
