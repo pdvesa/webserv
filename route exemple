@@ -1,0 +1,6 @@
+location /saku/ {
+	methods GET POST (REQUIRED)
+	return 301 /new-path/
+	listing on
+	root /svesa/
+}
