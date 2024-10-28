@@ -214,8 +214,14 @@ size_t	Parsing::findInCurrentBlock(const std::string& string, const std::string&
 		else if (string[pos] == '}')
 			bracketLayer--;
 		else if (bracketLayer == 0) {
-			if (string.compare(pos, name.length(), name) == 0)
-				return (pos);
+			if (pos == 0 || string[pos - 1] == ' ' || isSpecialChar(string[pos - 1])) {
+				if (string.compare(pos, name.length(), name) == 0) {
+					if (pos + name.length() == string.length() ||
+						string[pos + name.length()] == ' ' ||
+						isSpecialChar(string[pos + name.length()]))
+						return (pos);
+				}
+			}
 		}
 		pos++;
 	}

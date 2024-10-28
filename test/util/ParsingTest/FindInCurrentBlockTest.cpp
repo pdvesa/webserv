@@ -29,3 +29,8 @@ TEST(ParsingFindInCurrentBlockTestSuite, VarAfterNewLine) {
 	std::string	testString = "ufaenj\nvar\nfyrv";
 	ASSERT_EQ(Parsing::findInCurrentBlock(testString, "var"), 7);
 }
+
+TEST(ParsingFindInCurrentBlockTestSuite, VarWithShit) {
+	std::string	testString = "ufaenj\nuewq\nfyrv\n{WEF\n ARgaf}vsrwr{fsdvsv{Vsf}}evar erwfva {wver}";
+	ASSERT_EQ(Parsing::findInCurrentBlock(testString, "var"), std::string::npos);
+}
