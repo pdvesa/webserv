@@ -36,16 +36,24 @@ class ServerConfig {
 				const std::map<u_int, std::string>& errorsPages, const u_int& maxClientBodySize,
 				const std::vector<RouteConfig>& routes);
 
-		static ServerConfig						parseServer(std::string& content);
 		static std::string					parseServerHostName(std::string& serverBlock);
 		static u_int						parseServerPort(std::string& serverBlock);
 		static std::vector<std::string>		parseServerNames(std::string& serverBlock);
 		static std::map<u_int, std::string>	parseServerErrorsPages(std::string& serverBlock);
 		static u_int						parseServerMaxClientBodySize(std::string& serverBlock);
-		static std::vector<RouteConfig>			parseServerRoutes(std::string& serverBlock);
+		static std::vector<RouteConfig>		parseServerRoutes(std::string& serverBlock);
 
 	public:
 		static std::vector<ServerConfig>	fromConfigFile(const std::string&);
+		static ServerConfig					parseServer(std::string& content);
+
+		std::string						getHost() const;
+    	u_int							getPort() const;
+    	std::vector<std::string>		getNames() const;
+    	std::map<u_int, std::string>	getErrorsPages() const;
+    	u_int							getMaxClientBodySize() const;
+    	std::vector<RouteConfig>		getRoutes() const;
+
 
 	class InvalidConfigFileException : public std::exception {
 		std::string	message;

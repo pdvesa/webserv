@@ -278,13 +278,13 @@ std::string	Parsing::extractQuoteContent(std::string& string, char quote, size_t
 	if (start >= string.length())
 		throw std::out_of_range("Start must be inferior to string.length()");
 	if (string[pos] != quote)
-		throw InvalidFileFormatException("Argument string must start with " + quote);
+		throw InvalidFileFormatException("Argument string must start with quote");
 	while (++pos < string.length()) {
 		if (string[pos] == quote)
 			break ;
 	}
 	if (pos >= string.length())
-		throw InvalidFileFormatException(quote + " must be closed");
+		throw InvalidFileFormatException("Quote must be closed");
 
 	std::string	extracted = string.substr(start + 1, pos - start - 1);
 

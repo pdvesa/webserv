@@ -79,7 +79,7 @@ std::map<u_int, std::string> ServerConfig::parseServerErrorsPages(std::string& s
 			Parsing::extractVariable(serverBlock, "error_page"), ' ');
 			if (errorPage.size() > 1) {
 				for (u_int i = 0; i < errorPage.size() - 1; i++) {
-					u_int	errorCode = Parsing::extractInteger(errorPage[i], "error_code");
+					u_int	errorCode = StrictUtoi::strictUtoi(errorPage[i]);
 					std::string errorPath = errorPage.back();
 					parsedErrorPages.insert({errorCode, errorPath});
 				}
@@ -111,8 +111,32 @@ std::vector<RouteConfig>	ServerConfig::parseServerRoutes(std::string& serverBloc
 
 			parsedRoutes.push_back(route);
 		}
-	} catch (Parsing::VariableNotFoundException&) { }
+	} catch (Parsing::BlockNotFoundException&) { }
 	return (parsedRoutes);
+}
+
+std::string ServerConfig::getHost() const {
+    return (host);
+}
+
+u_int ServerConfig::getPort() const {
+    return (port);
+}
+
+std::vector<std::string> ServerConfig::getNames() const {
+    return (names);
+}
+
+std::map<u_int, std::string> ServerConfig::getErrorsPages() const {
+    return (errorsPages);
+}
+
+u_int ServerConfig::getMaxClientBodySize() const {
+    return (maxClientBodySize);
+}
+
+std::vector<RouteConfig> ServerConfig::getRoutes() const {
+    return (routes);
 }
 
 ServerConfig::InvalidConfigFileException::InvalidConfigFileException() { }
