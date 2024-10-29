@@ -10,7 +10,8 @@ std::vector<std::string> CppSplit::cppSplit(const std::string& string, char deli
 	std::string item;
 
 	while (std::getline(stream, item, delim)) {
-		result.push_back(item);
+		if (!item.empty())
+			result.push_back(item);
 	}
 	return (result);
 }
