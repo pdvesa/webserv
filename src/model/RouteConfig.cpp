@@ -68,3 +68,28 @@ bool RouteConfig::getListing(std::string& locationBlock) {
 		return (false);
 	throw ServerConfig::InvalidConfigFileException();
 }
+
+
+bool RouteConfig::getGET() const {
+    return (GET);
+}
+
+bool RouteConfig::getPOST() const {
+    return (POST);
+}
+
+bool RouteConfig::getDELETE() const {
+    return (DELETE);
+}
+
+std::string RouteConfig::getLocation() const {
+    return (location);
+}
+
+bool RouteConfig::getListing() const {
+    return (listing);
+}
+
+std::string RouteConfig::getRootDir() const {
+    return (rootDir);
+}

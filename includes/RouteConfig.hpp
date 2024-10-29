@@ -36,6 +36,13 @@ class RouteConfig {
 
 	public:
 		static RouteConfig	fromVariableBlock(std::list<std::string>& routeBlock);
+
+		bool		getGET() const;
+		bool		getPOST() const;
+		bool		getDELETE() const;
+		std::string	getLocation() const;
+		bool		getListing() const;
+		std::string	getRootDir() const;
 };
 
 #endif

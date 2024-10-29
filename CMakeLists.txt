@@ -9,13 +9,12 @@ set(CMAKE_CXX_STANDARD_REQUIRED True)
 
 # Add executable
 file(GLOB_RECURSE SOURCES
-        src/run/main.cpp
         src/controller/*.cpp
         src/model/*.cpp
         src/util/*.cpp
 )
 
-add_executable(webserv ${SOURCES})
+add_executable(webserv ${SOURCES} src/run/main.cpp)
 
 # Include directories
 target_include_directories(webserv PRIVATE includes)
@@ -48,7 +47,7 @@ add_subdirectory(${CMAKE_BINARY_DIR}/googletest-src
 
 # Test sources files
 file(GLOB_RECURSE TEST_SOURCES
-        test/model/*/*.cpp
+        test/model/*.cpp
         test/util/*/*.cpp
 )
 

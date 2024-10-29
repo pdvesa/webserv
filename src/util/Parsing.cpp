@@ -214,8 +214,14 @@ size_t	Parsing::findInCurrentBlock(const std::string& string, const std::string&
 		else if (string[pos] == '}')
 			bracketLayer--;
 		else if (bracketLayer == 0) {
-			if (string.compare(pos, name.length(), name) == 0)
-				return (pos);
+			if (pos == 0 || string[pos - 1] == ' ' || isSpecialChar(string[pos - 1])) {
+				if (string.compare(pos, name.length(), name) == 0) {
+					if (pos + name.length() == string.length() ||
+						string[pos + name.length()] == ' ' ||
+						isSpecialChar(string[pos + name.length()]))
+						return (pos);
+				}
+			}
 		}
 		pos++;
 	}
@@ -278,13 +284,13 @@ std::string	Parsing::extractQuoteContent(std::string& string, char quote, size_t
 	if (start >= string.length())
 		throw std::out_of_range("Start must be inferior to string.length()");
 	if (string[pos] != quote)
-		throw InvalidFileFormatException("Argument string must start with " + quote);
+		throw InvalidFileFormatException("Argument string must start with quote");
 	while (++pos < string.length()) {
 		if (string[pos] == quote)
 			break ;
 	}
 	if (pos >= string.length())
-		throw InvalidFileFormatException(quote + " must be closed");
+		throw InvalidFileFormatException("Quote must be closed");
 
 	std::string	extracted = string.substr(start + 1, pos - start - 1);
 
