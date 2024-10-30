@@ -17,9 +17,9 @@ class Socket {
 	public:
 		Socket(int domain, int type, int protocol, int port, std::string host);
 		~Socket();
-		int getSocket() const;
-		void bindSocket();
-		void listenSocket(int backlog);
+		Socket&		bindSocket();
+		Socket&		listenSocket(int backlog);
+		int			getSocketFD();
 };
 
 #endif
