@@ -25,7 +25,6 @@ class Client {
 		const std::string &getRequest() const; //placeholder
 		void setClientFD(int fd);
 		void setListening(int fd);
-		void testPrintRequest(); //placeholder
 };
 
 #endif

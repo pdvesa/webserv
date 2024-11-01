@@ -20,7 +20,7 @@ WebservController::~WebservController() {
 
 void	WebservController::run() {
 	/*test variables*/
-	std::vector<std::string> addresses = {"127.0.0.1", "127.0.0.2", "127.0.0.3", "127.0.0.4"};
+	std::vector<std::string> addresses = {"127.0.0.1", "127.0.0.1", "127.0.0.1", "127.0.0.1"};
 	std::string response;
 	response = "HTTP/1.1 200 OK\r\n"
             "Content-Type: text/plain\r\n"
@@ -36,23 +36,49 @@ void	WebservController::run() {
 		eventsWaiting = epoll_wait(epollFD, eventWaitlist, MAX_EVENTS, -1);
 		for (int i = 0; i < eventsWaiting; i++) {
 			if (std::find(listenFDs.cbegin(), listenFDs.cend(), eventWaitlist[i].data.fd) != std::end(listenFDs)) {
-				acceptConnection(eventWaitlist[i].data.fd);
+				acceptConnection(eventWaitlist[i].data.fd); 
 				std::cout << "We connected from socket " << eventWaitlist[i].data.fd << std::endl;
-				clients.back().testPrintRequest(); //test
-				send(clients.back().getClientFD(), response.c_str(), response.length(), 0); //test
+			} else if (eventWaitlist[i].events & EPOLLIN) {
+				testPrintRequest(eventWaitlist[i].data.fd);
+				int toFind = eventWaitlist[i].data.fd;
+				auto found = std::find_if(clients.cbegin(), clients.cend(), [toFind](const Client &client) {
+        			return client.getClientFD() == toFind;
+    		});
+				if (found != clients.cend()) {
+        			int currentFD = found->getClientFD();
+        		epollModify(epollFD, currentFD);
+			}} else if (eventWaitlist[i].events & EPOLLOUT) {
+				send(eventWaitlist[i].data.fd, response.c_str(), response.length(), 0); //test
+				epollDelete(epollFD, eventWaitlist[i].data.fd);
+				close(eventWaitlist[i].data.fd);
 			}
 		}
 	}
 }
 
+void WebservController::testPrintRequest(int fd) {
+	int		recBytes;
+	char	buffer[BUF_SIZE];
+	while ((recBytes = recv(fd, buffer, (BUF_SIZE - 1), 0)) > 0) { 
+		buffer[recBytes] = '\0';
+		request.append(buffer);
+		if (recBytes < (BUF_SIZE - 1))
+			break;
+	} if (recBytes < 0)
+		throw std::runtime_error("Failed reading the request");
+	std::cout << request << std::endl;
+}
+
 void WebservController::createSockets(int domain, int type, int protocol, int port, std::vector<std::string> hosts) {
 	try {
+		int i = 0; // test, other localhosts seem to loop to .1
 		for (auto &host : hosts) {
-			listenFDs.push_back(Socket(domain, type, protocol, port, host)
+			listenFDs.push_back(Socket(domain, type, protocol, port + i, host)
 				.bindSocket()
 				.listenSocket(FD_SETSIZE)
 				.getSocketFD());
-			addToEpoll(listenFDs.back(), true); //hmmh
+			epollAdd(epollFD, listenFDs.back(), true); //hmmh
+			i++;
 		}
 	} catch (const std::runtime_error &err) {
 		errorHandler(err);
@@ -62,38 +88,17 @@ void WebservController::createSockets(int domain, int type, int protocol, int po
 void WebservController::acceptConnection(int listenFD) {
 	Client			client;
 	int				connectionFD;
-	sockaddr_in		clientTemp = client.getClientAddress();
+	sockaddr_in		clientTemp;
 	unsigned int	clientSize = sizeof(clientTemp);
 	std::memset(&clientTemp, 0 , clientSize);
 	if ((connectionFD = accept(listenFD, (sockaddr *)&clientTemp, &clientSize)) == -1)
 		throw std::runtime_error("Failed in accept connection");
 	client.setListening(listenFD); // make it do this in constructor :)()()()()
 	client.setClientFD(connectionFD);
-	clients.push_back(client);
+	clients.push_back(client); //if needed save addr
+	epollAdd(epollFD, connectionFD, true);
 	std::cout << "Connection accepted for fd " << connectionFD << std::endl;
 }
-
-void WebservController::addToEpoll(int fd, bool in) {
-	epoll_event	temp;
-	if (in)
-		temp.events = EPOLLIN;
-	else 
-		temp.events = EPOLLOUT;
-	temp.data.fd = fd;
-	if (epoll_ctl(epollFD, EPOLL_CTL_ADD, fd, &temp) == -1) //i hope temp gets copied by kernel otherwise we are d00med
-		throw std::runtime_error("Adding socket to epoll failed"); //think about error handling monke like sys_err 
-	setNonBlocking(fd);
-	epollSize++; // maybe we need, could also add the vector sizes, idk
-}
-
-void WebservController::setNonBlocking(int fd) {
-	int	flags;
-	if ((flags = fcntl(fd, F_GETFL)) == -1)
-		throw std::runtime_error("FCUNT CAN'T GET THE FLAGS");
-	flags = flags | O_NONBLOCK;
-	if (fcntl(fd, F_SETFL, flags) == -1)
-		throw std::runtime_error("FCUNT CAN'T SET THE FLAGS");
-} //loaned straight from stackoverflow
 
 void WebservController::errorHandler(const std::runtime_error &err) {
 	errorLogger(err.what());
