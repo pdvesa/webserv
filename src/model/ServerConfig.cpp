@@ -60,12 +60,12 @@ ServerConfig ServerConfig::parseServer(std::string& content) {
 	} catch (Parsing::BlockNotFoundException&) {
 		throw InvalidConfigFileException();
 	}
-	std::string						parsedHost = parseServerHostName(serverBlock);
-	u_int							parsedPort = parseServerPort(serverBlock);
-	std::vector<std::string>		parsedServerName = parseServerNames(serverBlock);
-	std::map<u_int, std::string>	parsedErrorPages = parseServerErrorsPages(serverBlock);
-	u_int							parsedBodySize = parseServerMaxClientBodySize(serverBlock);
-	std::vector<RouteConfig>		parsedRoutes = parseServerRoutes(serverBlock);
+	const std::string					parsedHost = parseServerHostName(serverBlock);
+	const u_int							parsedPort = parseServerPort(serverBlock);
+	const std::vector<std::string>		parsedServerName = parseServerNames(serverBlock);
+	const std::map<u_int, std::string>	parsedErrorPages = parseServerErrorsPages(serverBlock);
+	const u_int							parsedBodySize = parseServerMaxClientBodySize(serverBlock);
+	const std::vector<RouteConfig>		parsedRoutes = parseServerRoutes(serverBlock);
 
 	return (ServerConfig(parsedHost, parsedPort, parsedServerName, parsedErrorPages, parsedBodySize, parsedRoutes));
 }
@@ -75,9 +75,8 @@ std::string ServerConfig::parseServerHostName(std::string& serverBlock) {
 }
 
 u_int ServerConfig::parseServerPort(std::string& serverBlock) {
-	u_int	port;
+	const u_int port = Parsing::extractInteger(serverBlock, "port");
 
-	port = Parsing::extractInteger(serverBlock, "port");
 	if (port == 0 || port > 65535)
 		throw InvalidConfigFileException();
 	return (port);
@@ -162,7 +161,7 @@ std::vector<RouteConfig> ServerConfig::getRoutes() const {
 
 ServerConfig::InvalidConfigFileException::InvalidConfigFileException() { }
 
-ServerConfig::InvalidConfigFileException::InvalidConfigFileException(const std::string& msg): message(msg) {}
+ServerConfig::InvalidConfigFileException::InvalidConfigFileException(const std::string& msg): message(msg) { }
 
 ServerConfig::InvalidConfigFileException::~InvalidConfigFileException() { }
 

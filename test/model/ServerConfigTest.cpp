@@ -39,6 +39,7 @@ const std::string VALID_CONFIG_FILE_CONTENT = "server { hostname www.alpaca.com\
 						   "    listing on\n"
 						   "    root /svesa/\n"
 						   "}}\n";
+
 const std::string INVALID_PORT_CONTENT = "server { hostname www.alpaca.com\n"
 						   "port 0\n\n"
 						   "server_name alpaca lama\n"
@@ -49,6 +50,17 @@ const std::string INVALID_PORT_CONTENT = "server { hostname www.alpaca.com\n"
 						   "    listing on\n"
 						   "    root /svesa/\n"
 						   "}}\n";
+
+const std::string NO_SERVER_BLOCK = "hostname www.alpaca.com\n"
+						   "port 0\n\n"
+						   "server_name alpaca lama\n"
+						   "error_page 404 405 /error/general.html\n\n"
+						   "client_max_body_size 2\n\n"
+						   "location /saku/ {\n"
+						   "    methods GET POST\n"
+						   "    listing on\n"
+						   "    root /svesa/\n"
+						   "}\n";
 
 void createConfigFile(const std::string& filePath, const std::string& content) {
 	std::ofstream file(filePath);
@@ -95,6 +107,12 @@ TEST(ServerConfigFromConfigFileTestSuite, SimpleConfigFile) {
 
 TEST(ServerConfigFromConfigFileTestSuite, InvalidPort) {
 	createConfigFile(CONFIG_FILE_NAME, INVALID_PORT_CONTENT);
+	ASSERT_THROW(ServerConfig::fromConfigFile(CONFIG_FILE_NAME), ServerConfig::InvalidConfigFileException);
+	removeConfigFile(CONFIG_FILE_NAME);
+}
+
+TEST(ServerConfigFromConfigFileTestSuite, NoServerBlock) {
+	createConfigFile(CONFIG_FILE_NAME, NO_SERVER_BLOCK);
 	ASSERT_THROW(ServerConfig::fromConfigFile(CONFIG_FILE_NAME), ServerConfig::InvalidConfigFileException);
 	removeConfigFile(CONFIG_FILE_NAME);
 }
