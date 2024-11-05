@@ -12,6 +12,7 @@
 class HttpRequest {
 	private:
 		// need to add statuscode somewhere, could throw and just catch & print it;
+		int									requestStatus;
 		std::string							requestMethod;
 		std::string							requestTarget;
 		std::string							requestVersion;
@@ -35,6 +36,7 @@ class HttpRequest {
 		const std::string& getMethod() {return requestMethod;}// should these return const & to string or object????
 		const std::string& getTarget() {return requestTarget;}
 		const std::string& getVersion(){return requestVersion;}
+		int					getStatus(){return requestStatus;}
 };
 
 #endif

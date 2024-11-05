@@ -12,7 +12,7 @@ HttpRequest::HttpRequest(std::string req)
 	fillRequest(req);
 }
 
-HttpRequest::HttpRequest(int socket)
+HttpRequest::HttpRequest(int socket) : requestStatus(200)
 {
 	readSocket(socket);
 }
@@ -59,6 +59,7 @@ void	HttpRequest::fillRequest_vec(std::vector<unsigned char>& req)
 	requestMethod = mtv[0];
 	requestTarget = mtv[1];
 	requestVersion = mtv[2];
+
 	printElements();
 	if (requestMethod == "GET ")
 		std::cout << "GET method called \n";
@@ -81,15 +82,29 @@ void	HttpRequest::fillRequest(std::string req)
 		req_line.erase(0, pos + 1);
 	}
 	requestMethod = mtv[0];
+	if (mtv[0] != "GET" && mtv[0] != "POST" && mtv[0] != "DELETE")
+	{
+		requestStatus = 405; // METHOD NOT ALLOWED
+		return ;
+	}
 	requestTarget = mtv[1]; // check if target is valid
+	// some sort of :
+	// if (requestTarget != validTarget)
+	// {
+	//	requestStatus = 404;
+	//	return ;
+	//	}
 	requestVersion = mtv[2]; // check if version is correct one
+	if (requestVersion != "HTTP/1.1")
+	{
+		requestStatus = 505; // HTTP VERSION NOT SUPPORTED
+		return ;
+	}
 	req.erase(0, req.find("\r\n") + 2); // need to make scalable just testing
 	fillHeaders(req);
 
 //	fillRawBody(req);
 	printElements(); // debug atm
-	if (mtv[0] != "GET" && mtv[0] != "POST" && mtv[0] != "DELETE")
-		throw std::runtime_error("405"); // this needs to update status, not just throw exception
 }
 
 void	HttpRequest::fillHeaders(std::string &req)
@@ -110,7 +125,8 @@ void	HttpRequest::fillHeaders(std::string &req)
 	}
 	catch (std::exception &e) // just doing this until figure out how to handle errors
 	{
-		throw std::runtime_error("request needs \"Host\" Header"); 
+		requestStatus = 400;
+		return ;
 	}
 }
 void	HttpRequest::printElements() const

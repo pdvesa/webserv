@@ -5,6 +5,12 @@ HttpResponse::HttpResponse()
 {
 };
 
+
+HttpResponse::HttpResponse(HttpRequest req)
+{
+	create_responseline(req.getStatus());
+};
+
 void	HttpResponse::create_responseline(int code)
 {
 	std::string message = httpErrors.at(code);
