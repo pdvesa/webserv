@@ -4,6 +4,15 @@
 
 #include <RouteConfig.hpp>
 
+bool RouteConfig::operator==(const RouteConfig& other) const {
+	return (GET == other.GET &&
+				POST == other.POST &&
+				DELETE == other.DELETE &&
+				location == other.location &&
+				listing == other.listing &&
+				rootDir == other.rootDir);
+}
+
 RouteConfig RouteConfig::fromVariableBlock(std::list<std::string>& routeVariableBlock) {
 	std::string	location = routeVariableBlock.front();
 	std::string	locationBlock = routeVariableBlock.back();
@@ -36,6 +45,15 @@ RouteConfig::RouteConfig(const bool& GET,
 	location(location),
 	listing(listing),
 	rootDir(rootDir) { }
+
+RouteConfig::RouteConfig(const RouteConfig& other): GET(other.GET),
+	POST(other.POST),
+	DELETE(other.DELETE),
+	location(other.location),
+	listing(other.listing),
+	rootDir(other.rootDir) { }
+
+RouteConfig::~RouteConfig() { }
 
 void RouteConfig::getMethods(bool& GET, bool& POST, bool& DELETE, std::string& locationBlock) {
 	std::vector<std::string>	methodsVector = CppSplit::cppSplit(

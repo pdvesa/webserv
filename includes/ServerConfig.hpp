@@ -32,10 +32,10 @@ class ServerConfig {
 		const std::vector<RouteConfig>		routes;
 
 		ServerConfig();
-		ServerConfig(const std::string& host, const u_int& port, const std::vector<std::string>& names,
-				const std::map<u_int, std::string>& errorsPages, const u_int& maxClientBodySize,
-				const std::vector<RouteConfig>& routes);
 
+		ServerConfig& operator=(const ServerConfig&);
+
+		static ServerConfig					parseServer(std::string& content);
 		static std::string					parseServerHostName(std::string& serverBlock);
 		static u_int						parseServerPort(std::string& serverBlock);
 		static std::vector<std::string>		parseServerNames(std::string& serverBlock);
@@ -44,8 +44,15 @@ class ServerConfig {
 		static std::vector<RouteConfig>		parseServerRoutes(std::string& serverBlock);
 
 	public:
+		ServerConfig(const std::string& host, const u_int& port, const std::vector<std::string>& names,
+				const std::map<u_int, std::string>& errorsPages, const u_int& maxClientBodySize,
+				const std::vector<RouteConfig>& routes);
+		ServerConfig(const ServerConfig&);
+		~ServerConfig();
+
+		bool	operator==(const ServerConfig&) const;
+
 		static std::vector<ServerConfig>	fromConfigFile(const std::string&);
-		static ServerConfig					parseServer(std::string& content);
 
 		std::string						getHost() const;
     	u_int							getPort() const;

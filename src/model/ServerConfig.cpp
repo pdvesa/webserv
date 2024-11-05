@@ -4,6 +4,15 @@
 
 #include <ServerConfig.hpp>
 
+bool ServerConfig::operator==(const ServerConfig& other) const {
+	return (host == other.host &&
+				port == other.port &&
+				names == other.names &&
+				errorsPages == other.errorsPages &&
+				maxClientBodySize == other.maxClientBodySize &&
+				routes == other.routes);
+}
+
 std::vector<ServerConfig> ServerConfig::fromConfigFile(const std::string& filePath) {
 	std::ifstream	configFile(filePath);
 
@@ -37,6 +46,13 @@ ServerConfig::ServerConfig(const std::string& host,
 	maxClientBodySize(maxClientBodySize),
 	routes(routes) { }
 
+ServerConfig::ServerConfig(const ServerConfig& other) : host(other.host),
+	port(other.port),
+	names(other.names),
+	errorsPages(other.errorsPages),
+	maxClientBodySize(other.getMaxClientBodySize()),
+	routes(other.routes) { }
+
 ServerConfig ServerConfig::parseServer(std::string& content) {
 	std::string serverBlock;
 	try {
@@ -59,7 +75,12 @@ std::string ServerConfig::parseServerHostName(std::string& serverBlock) {
 }
 
 u_int ServerConfig::parseServerPort(std::string& serverBlock) {
-	return (Parsing::extractInteger(serverBlock, "port"));
+	u_int	port;
+
+	port = Parsing::extractInteger(serverBlock, "port");
+	if (port == 0 || port > 65535)
+		throw InvalidConfigFileException();
+	return (port);
 }
 
 std::vector<std::string> ServerConfig::parseServerNames(std::string& serverBlock) {
@@ -152,3 +173,5 @@ const char* ServerConfig::InvalidConfigFileException::what() const noexcept {
 		return message.c_str();
 	}
 }
+
+ServerConfig::~ServerConfig() { }

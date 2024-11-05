@@ -27,14 +27,21 @@ class RouteConfig {
 		const std::string					rootDir;
 
 		RouteConfig();
-		RouteConfig(const bool& GET, const bool& POST, const bool& DELETE, const std::string & location,
-			const bool& listing, const std::string & rootDir);
+
+		RouteConfig& operator=(const RouteConfig& other);
 
 		static void			getMethods(bool& GET, bool& POST, bool& DELETE, std::string& locationBlock);
 		static std::string	getRootDir(std::string& locationBlock);
 		static bool			getListing(std::string& locationBlock);
 
 	public:
+		RouteConfig(const bool& GET, const bool& POST, const bool& DELETE, const std::string & location,
+			const bool& listing, const std::string & rootDir);
+		RouteConfig(const RouteConfig& other);
+		~RouteConfig();
+
+		bool	operator==(const RouteConfig&) const;
+
 		static RouteConfig	fromVariableBlock(std::list<std::string>& routeBlock);
 
 		bool		getGET() const;
