@@ -60,12 +60,12 @@ ServerConfig ServerConfig::parseServer(std::string& content) {
 	} catch (Parsing::BlockNotFoundException&) {
 		throw InvalidConfigFileException();
 	}
-	const std::string					parsedHost = parseServerHostName(serverBlock);
-	const u_int							parsedPort = parseServerPort(serverBlock);
-	const std::vector<std::string>		parsedServerName = parseServerNames(serverBlock);
-	const std::map<u_int, std::string>	parsedErrorPages = parseServerErrorsPages(serverBlock);
-	const u_int							parsedBodySize = parseServerMaxClientBodySize(serverBlock);
-	const std::vector<RouteConfig>		parsedRoutes = parseServerRoutes(serverBlock);
+	const std::string					parsedHost = parseServerHostName(serverBlock); //Mandatory
+	const u_int							parsedPort = parseServerPort(serverBlock); //Mandatory
+	const std::vector<std::string>		parsedServerName = parseServerNames(serverBlock); //Optional
+	const std::map<u_int, std::string>	parsedErrorPages = parseServerErrorsPages(serverBlock); //Mandatory
+	const u_int							parsedBodySize = parseServerMaxClientBodySize(serverBlock); //Optional
+	const std::vector<RouteConfig>		parsedRoutes = parseServerRoutes(serverBlock); //Mandatory
 
 	return (ServerConfig(parsedHost, parsedPort, parsedServerName, parsedErrorPages, parsedBodySize, parsedRoutes));
 }
@@ -107,6 +107,8 @@ std::map<u_int, std::string> ServerConfig::parseServerErrorsPages(std::string& s
 				throw std::runtime_error("");
 		}
 	} catch (Parsing::VariableNotFoundException&) {}
+	if (parsedErrorPages.empty())
+		throw InvalidConfigFileException("No error pages");
 	return (parsedErrorPages);
 }
 
@@ -132,6 +134,8 @@ std::vector<RouteConfig>	ServerConfig::parseServerRoutes(std::string& serverBloc
 			parsedRoutes.push_back(route);
 		}
 	} catch (Parsing::BlockNotFoundException&) { }
+	if (parsedRoutes.empty())
+		throw InvalidConfigFileException("No route found");
 	return (parsedRoutes);
 }
 

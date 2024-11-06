@@ -1,6 +1,6 @@
 server {
 	hostname www.alpaca.com
-	port 1
+	port 15
 
 	server_name alpaca lama
 	error_page 404 405 /error/general.html
@@ -8,7 +8,7 @@ server {
 	client_max_body_size 2
 
 	location /saku/ {
-    	methods GET POST (REQUIRED)
+    	methods GET POST
     	return 301 /new-path/
     	listing on
     	root /svesa/
