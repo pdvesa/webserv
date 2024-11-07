@@ -22,14 +22,13 @@ class RouteConfig {
 	public:
 		struct t_redirection {
 			std::string	path;
-			u_int		code; //0 mean no redirection
+			u_int		code;
 		};
 
 	private:
 		const bool			GET;
 		const bool			POST;
 		const bool			DELETE;
-		const std::string	location;
 		const std::string	index;
 		const bool			listing;
 		const std::string	rootDir;
@@ -46,22 +45,18 @@ class RouteConfig {
 		static t_redirection	extractRedirection(std::string& locationBlock);
 
 	public:
-		RouteConfig(const bool& GET, const bool& POST, const bool& DELETE, const std::string& location,
-				const std::string& index, const bool& listing, const std::string& rootDir,
-				const t_redirection& redirection);
+		RouteConfig(const bool& GET, const bool& POST, const bool& DELETE, const std::string& index,
+			const bool& listing, const std::string& rootDir, const t_redirection& redirection);
 		RouteConfig(const RouteConfig& other);
 		~RouteConfig();
 
 		bool	operator==(const RouteConfig&) const;
 
-		static RouteConfig	fromVariableBlock(std::list<std::string>& routeBlock);
-
-
+		static RouteConfig	fromLocationBlock(std::string& locationBlock);
 
 		bool		getGET() const;
 		bool		getPOST() const;
 		bool		getDELETE() const;
-		std::string	getLocation() const;
 		std::string getIndex() const;
 		bool		getListing() const;
 		std::string	getRootDir() const;

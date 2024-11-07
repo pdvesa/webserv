@@ -38,7 +38,7 @@ ServerConfig::ServerConfig(const std::string& host,
 							const std::vector<std::string>& names,
 							const std::map<u_int, std::string>& errorsPages,
 							const u_int& maxClientBodySize,
-							const std::vector<RouteConfig>& routes) :
+							const std::map<std::string, RouteConfig>& routes) :
 	host(host),
 	port(port),
 	names(names),
@@ -60,12 +60,12 @@ ServerConfig ServerConfig::parseServer(std::string& content) {
 	} catch (Parsing::BlockNotFoundException&) {
 		throw InvalidConfigFileException();
 	}
-	const std::string					parsedHost = parseServerHostName(serverBlock); //Mandatory
-	const u_int							parsedPort = parseServerPort(serverBlock); //Mandatory
-	const std::vector<std::string>		parsedServerName = parseServerNames(serverBlock); //Optional
-	const std::map<u_int, std::string>	parsedErrorPages = parseServerErrorsPages(serverBlock); //Mandatory
-	const u_int							parsedBodySize = parseServerMaxClientBodySize(serverBlock); //Optional
-	const std::vector<RouteConfig>		parsedRoutes = parseServerRoutes(serverBlock); //Mandatory
+	const std::string							parsedHost = parseServerHostName(serverBlock); //Mandatory
+	const u_int									parsedPort = parseServerPort(serverBlock); //Mandatory
+	const std::vector<std::string>				parsedServerName = parseServerNames(serverBlock); //Optional
+	const std::map<u_int, std::string>			parsedErrorPages = parseServerErrorsPages(serverBlock); //Mandatory
+	const u_int									parsedBodySize = parseServerMaxClientBodySize(serverBlock); //Optional
+	const std::map<std::string, RouteConfig>	parsedRoutes = parseServerRoutes(serverBlock); //Mandatory
 
 	return (ServerConfig(parsedHost, parsedPort, parsedServerName, parsedErrorPages, parsedBodySize, parsedRoutes));
 }
@@ -124,14 +124,14 @@ u_int ServerConfig::parseServerMaxClientBodySize(std::string& serverBlock) {
 	return (parsedBodySize);
 }
 
-std::vector<RouteConfig>	ServerConfig::parseServerRoutes(std::string& serverBlock) {
-	std::vector<RouteConfig> parsedRoutes;
+std::map<std::string, RouteConfig> ServerConfig::parseServerRoutes(std::string& serverBlock) {
+	std::map<std::string, RouteConfig>	parsedRoutes;
 	try {
 		while (true) {
 			std::list<std::string>	routeData = Parsing::extractVariableBlock(serverBlock, "location");
-			RouteConfig					route = RouteConfig::fromVariableBlock(routeData);
+			RouteConfig					route = RouteConfig::fromLocationBlock(routeData.back());
 
-			parsedRoutes.push_back(route);
+			parsedRoutes.emplace(routeData.front(), route);
 		}
 	} catch (Parsing::BlockNotFoundException&) { }
 	if (parsedRoutes.empty())
@@ -159,7 +159,7 @@ u_int ServerConfig::getMaxClientBodySize() const {
     return (maxClientBodySize);
 }
 
-std::vector<RouteConfig> ServerConfig::getRoutes() const {
+std::map<std::string, RouteConfig> ServerConfig::getRoutes() const {
     return (routes);
 }
 

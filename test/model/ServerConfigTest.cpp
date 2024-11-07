@@ -90,7 +90,8 @@ TEST(ServerConfigFromConfigFileTestSuite, SimpleConfigFile) {
 		std::vector<std::string>{"alpaca", "lama"},
 		std::map<u_int, std::string>{{404, "/error/general.html"}, {405, "/error/general.html"}},
 		2,
-		std::vector{RouteConfig(true, true, false, "/saku/", "index.html",true, "/svesa/", {"", 0})});
+		std::map<std::string, RouteConfig> {{"/saku/", RouteConfig(true, true, false,
+			"index.html", true, "/svesa/", {"", 0})}});
 	ASSERT_EQ(serverConfigs[0], excepted);
 	ServerConfig excepted1 = ServerConfig(
 		"www.lama.com",
@@ -98,7 +99,8 @@ TEST(ServerConfigFromConfigFileTestSuite, SimpleConfigFile) {
 		std::vector<std::string>{"alpaca", "lama"},
 		std::map<u_int, std::string>{ {405, "/error/general.html"}},
 		8,
-		std::vector{RouteConfig(true, false, true, "/saku/", "index.html", true, "/svesa/", {"", 0})});
+		std::map<std::string, RouteConfig> {{"/saku/", RouteConfig(true, false, true,
+			"index.html", true, "/svesa/", {"", 0})}});
 	ASSERT_EQ(serverConfigs[1], excepted1);
 	ServerConfig excepted2 = ServerConfig(
 		"www.peru.com",
@@ -106,7 +108,8 @@ TEST(ServerConfigFromConfigFileTestSuite, SimpleConfigFile) {
 		std::vector<std::string>{"lama"},
 		std::map<u_int, std::string>{ {405, "/error/general.html"}},
 		59,
-		std::vector{RouteConfig(true, true, false, "/saku/", "index.html", true, "/svesa/", {"", 0})});
+		std::map<std::string, RouteConfig> {{"/saku/", RouteConfig(true, true, false,
+			"index.html", true, "/svesa/", {"", 0})}});
 	ASSERT_EQ(serverConfigs[2], excepted2);
 	removeConfigFile(CONFIG_FILE_NAME);
 }

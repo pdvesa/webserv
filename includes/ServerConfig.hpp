@@ -24,29 +24,29 @@ class RouteConfig;
 
 class ServerConfig {
 	private:
-		const std::string					host;
-		const u_int							port;
-		const std::vector<std::string>		names;
-		const std::map<u_int, std::string>	errorsPages;
-		const u_int							maxClientBodySize;
-		const std::vector<RouteConfig>		routes;
+		const std::string							host;
+		const u_int									port;
+		const std::vector<std::string>				names;
+		const std::map<u_int, std::string>			errorsPages;
+		const u_int									maxClientBodySize;
+		const std::map<std::string ,RouteConfig>	routes;
 
 		ServerConfig();
 
 		ServerConfig& operator=(const ServerConfig&);
 
-		static ServerConfig					parseServer(std::string& content);
-		static std::string					parseServerHostName(std::string& serverBlock);
-		static u_int						parseServerPort(std::string& serverBlock);
-		static std::vector<std::string>		parseServerNames(std::string& serverBlock);
-		static std::map<u_int, std::string>	parseServerErrorsPages(std::string& serverBlock);
-		static u_int						parseServerMaxClientBodySize(std::string& serverBlock);
-		static std::vector<RouteConfig>		parseServerRoutes(std::string& serverBlock);
+		static ServerConfig							parseServer(std::string& content);
+		static std::string							parseServerHostName(std::string& serverBlock);
+		static u_int								parseServerPort(std::string& serverBlock);
+		static std::vector<std::string>				parseServerNames(std::string& serverBlock);
+		static std::map<u_int, std::string>			parseServerErrorsPages(std::string& serverBlock);
+		static u_int								parseServerMaxClientBodySize(std::string& serverBlock);
+		static std::map<std::string, RouteConfig>	parseServerRoutes(std::string& serverBlock);
 
 	public:
 		ServerConfig(const std::string& host, const u_int& port, const std::vector<std::string>& names,
 				const std::map<u_int, std::string>& errorsPages, const u_int& maxClientBodySize,
-				const std::vector<RouteConfig>& routes);
+				const std::map<std::string, RouteConfig>& routes);
 		ServerConfig(const ServerConfig&);
 		~ServerConfig();
 
@@ -54,12 +54,12 @@ class ServerConfig {
 
 		static std::vector<ServerConfig>	fromConfigFile(const std::string&);
 
-		std::string						getHost() const;
-    	u_int							getPort() const;
-    	std::vector<std::string>		getNames() const;
-    	std::map<u_int, std::string>	getErrorsPages() const;
-    	u_int							getMaxClientBodySize() const;
-    	std::vector<RouteConfig>		getRoutes() const;
+		std::string							getHost() const;
+    	u_int								getPort() const;
+    	std::vector<std::string>			getNames() const;
+    	std::map<u_int, std::string>		getErrorsPages() const;
+    	u_int								getMaxClientBodySize() const;
+    	std::map<std::string, RouteConfig>	getRoutes() const;
 
 
 	class InvalidConfigFileException : public std::exception {

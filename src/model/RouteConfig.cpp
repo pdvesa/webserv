@@ -8,14 +8,14 @@ bool RouteConfig::operator==(const RouteConfig& other) const {
 	return (GET == other.GET &&
 				POST == other.POST &&
 				DELETE == other.DELETE &&
-				location == other.location &&
+				index == other.index &&
 				listing == other.listing &&
-				rootDir == other.rootDir);
+				rootDir == other.rootDir &&
+				redirection.code == other.redirection.code &&
+				redirection.path == other.redirection.path);
 }
 
-RouteConfig RouteConfig::fromVariableBlock(std::list<std::string>& routeVariableBlock) {
-	const std::string&	location = routeVariableBlock.front();
-	std::string			locationBlock = routeVariableBlock.back();
+RouteConfig RouteConfig::fromLocationBlock(std::string& locationBlock) {
 
 	bool			GET = false;
 	bool			POST = false;
@@ -37,13 +37,12 @@ RouteConfig RouteConfig::fromVariableBlock(std::list<std::string>& routeVariable
 	if (!IsBlank::isBlank(locationBlock))
 		throw ServerConfig::InvalidConfigFileException();
 
-	return (RouteConfig(GET, POST, DELETE, location, index, listing, rootDir, redirection));
+	return (RouteConfig(GET, POST, DELETE, index, listing, rootDir, redirection));
 }
 
 RouteConfig::RouteConfig(const bool& GET,
 	const bool& POST,
 	const bool& DELETE,
-	const std::string& location,
 	const std::string& index,
 	const bool& listing,
 	const std::string& rootDir,
@@ -51,7 +50,6 @@ RouteConfig::RouteConfig(const bool& GET,
 	GET(GET),
 	POST(POST),
 	DELETE(DELETE),
-	location(location),
 	index(index),
 	listing(listing),
 	rootDir(rootDir),
@@ -60,7 +58,6 @@ RouteConfig::RouteConfig(const bool& GET,
 RouteConfig::RouteConfig(const RouteConfig& other): GET(other.GET),
 													POST(other.POST),
 													DELETE(other.DELETE),
-													location(other.location),
 													index(other.index),
 													listing(other.listing),
 													rootDir(other.rootDir),
@@ -131,10 +128,6 @@ bool RouteConfig::getPOST() const {
 
 bool RouteConfig::getDELETE() const {
     return (DELETE);
-}
-
-std::string RouteConfig::getLocation() const {
-    return (location);
 }
 
 std::string RouteConfig::getIndex() const {
