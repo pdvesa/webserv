@@ -7,60 +7,66 @@
 #include <ServerConfig.hpp>
 
 const std::string CONFIG_FILE_NAME = "configfile.example";
-const std::string VALID_CONFIG_FILE_CONTENT = "server { hostname www.alpaca.com\n"
-						   "port 98\n\n"
-						   "server_name alpaca lama\n"
-						   "error_page 404 405 /error/general.html\n\n"
-						   "client_max_body_size 2\n\n"
-						   "location /saku/ {\n"
-						   "    methods GET POST\n"
-						   "    listing on\n"
-						   "    root /svesa/\n"
-						   "}}\n"
+const std::string VALID_CONFIG_FILE_CONTENT =
+"server { hostname www.alpaca.com\n"
+"port 98\n\n"
+"server_name alpaca lama\n"
+"error_page 404 405 /error/general.html\n\n"
+"client_max_body_size 2\n\n"
+"location /saku/ {\n"
+"	methods GET POST\n"
+"	listing on\n"
+"	index index.html\n"
+"	root /svesa/\n"
+"}}\n"
 
 "server { hostname www.lama.com\n"
-						   "port 56\n\n"
-						   "server_name alpaca lama\n"
-						   "error_page 405 /error/general.html\n\n"
-						   "client_max_body_size 8\n\n"
-						   "location /saku/ {\n"
-						   "    methods GET DELETE\n"
-						   "    listing on\n"
-						   "    root /svesa/\n"
-						   "}}\n"
+"port 56\n\n"
+"server_name alpaca lama\n"
+"error_page 405 /error/general.html\n\n"
+"client_max_body_size 8\n\n"
+"location /saku/ {\n"
+"	methods GET DELETE\n"
+"	listing on\n"
+"	index index.html\n"
+"	root /svesa/\n"
+"}}\n"
 
 "server { hostname www.peru.com\n"
-						   "port 8080\n\n"
-						   "server_name lama\n"
-						   "error_page 405 /error/general.html\n\n"
-						   "client_max_body_size 59\n\n"
-						   "location /saku/ {\n"
-						   "    methods GET POST\n"
-						   "    listing on\n"
-						   "    root /svesa/\n"
-						   "}}\n";
+"port 8080\n\n"
+"server_name lama\n"
+"error_page 405 /error/general.html\n\n"
+"client_max_body_size 59\n\n"
+"location /saku/ {\n"
+"	methods GET POST\n"
+"	index index.html\n"
+"	listing on\n"
+"	root /svesa/\n"
+"}}\n";
 
-const std::string INVALID_PORT_CONTENT = "server { hostname www.alpaca.com\n"
-						   "port 0\n\n"
-						   "server_name alpaca lama\n"
-						   "error_page 404 405 /error/general.html\n\n"
-						   "client_max_body_size 2\n\n"
-						   "location /saku/ {\n"
-						   "    methods GET POST\n"
-						   "    listing on\n"
-						   "    root /svesa/\n"
-						   "}}\n";
+const std::string INVALID_PORT_CONTENT =
+"server { hostname www.alpaca.com\n"
+"port 0\n\n"
+"server_name alpaca lama\n"
+"error_page 404 405 /error/general.html\n\n"
+"client_max_body_size 2\n\n"
+"location /saku/ {\n"
+"    methods GET POST\n"
+"    listing on\n"
+"    root /svesa/\n"
+"}}\n";
 
-const std::string NO_SERVER_BLOCK = "hostname www.alpaca.com\n"
-						   "port 0\n\n"
-						   "server_name alpaca lama\n"
-						   "error_page 404 405 /error/general.html\n\n"
-						   "client_max_body_size 2\n\n"
-						   "location /saku/ {\n"
-						   "    methods GET POST\n"
-						   "    listing on\n"
-						   "    root /svesa/\n"
-						   "}\n";
+const std::string NO_SERVER_BLOCK =
+"hostname www.alpaca.com\n"
+"port 0\n\n"
+"server_name alpaca lama\n"
+"error_page 404 405 /error/general.html\n\n"
+"client_max_body_size 2\n\n"
+"location /saku/ {\n"
+"    methods GET POST\n"
+"    listing on\n"
+"    root /svesa/\n"
+"}\n";
 
 void createConfigFile(const std::string& filePath, const std::string& content) {
 	std::ofstream file(filePath);
@@ -84,7 +90,7 @@ TEST(ServerConfigFromConfigFileTestSuite, SimpleConfigFile) {
 		std::vector<std::string>{"alpaca", "lama"},
 		std::map<u_int, std::string>{{404, "/error/general.html"}, {405, "/error/general.html"}},
 		2,
-		std::vector<RouteConfig>{RouteConfig(true, true, false, "/saku/", true, "/svesa/")});
+		std::vector{RouteConfig(true, true, false, "/saku/", "index.html",true, "/svesa/", {"", 0})});
 	ASSERT_EQ(serverConfigs[0], excepted);
 	ServerConfig excepted1 = ServerConfig(
 		"www.lama.com",
@@ -92,7 +98,7 @@ TEST(ServerConfigFromConfigFileTestSuite, SimpleConfigFile) {
 		std::vector<std::string>{"alpaca", "lama"},
 		std::map<u_int, std::string>{ {405, "/error/general.html"}},
 		8,
-		std::vector<RouteConfig>{RouteConfig(true, false, true, "/saku/", true, "/svesa/")});
+		std::vector{RouteConfig(true, false, true, "/saku/", "index.html", true, "/svesa/", {"", 0})});
 	ASSERT_EQ(serverConfigs[1], excepted1);
 	ServerConfig excepted2 = ServerConfig(
 		"www.peru.com",
@@ -100,7 +106,7 @@ TEST(ServerConfigFromConfigFileTestSuite, SimpleConfigFile) {
 		std::vector<std::string>{"lama"},
 		std::map<u_int, std::string>{ {405, "/error/general.html"}},
 		59,
-		std::vector<RouteConfig>{RouteConfig(true, true, false, "/saku/", true, "/svesa/")});
+		std::vector{RouteConfig(true, true, false, "/saku/", "index.html", true, "/svesa/", {"", 0})});
 	ASSERT_EQ(serverConfigs[2], excepted2);
 	removeConfigFile(CONFIG_FILE_NAME);
 }

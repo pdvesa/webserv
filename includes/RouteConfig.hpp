@@ -19,10 +19,11 @@ class ServerConfig;
 
 class RouteConfig {
 
-	struct t_redirection {
-		std::string	path;
-		u_int		code;
-	};
+	public:
+		struct t_redirection {
+			std::string	path;
+			u_int		code; //0 mean no redirection
+		};
 
 	private:
 		const bool			GET;
@@ -38,10 +39,11 @@ class RouteConfig {
 
 		RouteConfig& operator=(const RouteConfig& other);
 
-		static void				getMethods(bool& GET, bool& POST, bool& DELETE, std::string& locationBlock);
-		static std::string		getRootDir(std::string& locationBlock);
-		static t_redirection	getRedirection(std::string& locationBlock);
-		static bool				getListing(std::string& locationBlock);
+		static void				extractMethods(bool& GET, bool& POST, bool& DELETE, std::string& locationBlock);
+		static std::string		extractIndex(std::string& locationBlock);
+		static bool				extractListing(std::string& locationBlock);
+		static std::string		extractRootDir(std::string& locationBlock);
+		static t_redirection	extractRedirection(std::string& locationBlock);
 
 	public:
 		RouteConfig(const bool& GET, const bool& POST, const bool& DELETE, const std::string& location,
@@ -56,12 +58,14 @@ class RouteConfig {
 
 
 
-	bool		getGET() const;
+		bool		getGET() const;
 		bool		getPOST() const;
 		bool		getDELETE() const;
 		std::string	getLocation() const;
+		std::string getIndex() const;
 		bool		getListing() const;
 		std::string	getRootDir() const;
+		t_redirection getRedirection() const;
 };
 
 #endif
