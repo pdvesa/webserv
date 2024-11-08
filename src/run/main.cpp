@@ -8,8 +8,7 @@ int main(int n, char* args[])
 {
 	if (n != 2 && !args)
 		return (EXIT_FAILURE);
-//	WebservController	controller(args[1]);
-	WebservController	controller;
+	WebservController	controller(args[1]);
 	controller.run();
 	return (EXIT_SUCCESS);
 }

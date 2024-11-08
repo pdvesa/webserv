@@ -20,6 +20,7 @@
 #include <Client.hpp>
 #include <Socket.hpp>
 #include <EpollUtils.hpp>
+#include <Server.hpp>
 
 class WebservController {
 	private:
@@ -27,12 +28,13 @@ class WebservController {
 		std::vector<ServerConfig>	serverConfigs;
 		std::vector<int>			listenFDs;
 		std::vector<Client>			clients; //maybe not needed
+		std::vector<Server>			servers;
 		int 						epollFD;
 		int							eventsWaiting;
 //		int							epollSize; not used atm
 //		epoll_event					tempEvent;
 		epoll_event					eventWaitlist[MAX_EVENTS];
-		void	createSockets(int domain, int type, int protocol, int port, std::vector<std::string> hosts);
+		void	createSockets(int domain, int type, int protocol);
 		void	acceptConnection(int listenFd);
 		void	errorHandler(const std::runtime_error &err);
 		void	errorLogger(const std::string &errMsg);
@@ -40,7 +42,7 @@ class WebservController {
 		void	testPrintRequest(int fd);
 	public:
 		WebservController();
-//		WebservController(const std::string& configFilePath);
+		WebservController(const std::string& configFilePath);
 		~WebservController();
 		void	run();
 };

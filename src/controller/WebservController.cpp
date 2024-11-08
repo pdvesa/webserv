@@ -10,17 +10,12 @@ WebservController::WebservController() {
 WebservController::~WebservController() {	
 }
 
-/*WebservController::WebservController(const std::string& configFilePath) {
-	try {
+WebservController::WebservController(const std::string& configFilePath) {
 		serverConfigs = ServerConfig::fromConfigFile(configFilePath);
-	} catch (...) {
-		exit(EXIT_FAILURE);
-	}
-}*/
+}
 
 void	WebservController::run() {
 	/*test variables*/
-	std::vector<std::string> addresses = {"127.0.0.1", "127.0.0.1", "127.0.0.1", "127.0.0.1"};
 	std::string response;
 	response = "HTTP/1.1 200 OK\r\n"
             "Content-Type: text/plain\r\n"
@@ -31,26 +26,25 @@ void	WebservController::run() {
 	epollFD = epoll_create1(0);
 	if (epollFD == -1)
 		throw std::runtime_error("Initializing epoll failed, idk :("); //maybe handling needs change
-	createSockets(AF_INET, SOCK_STREAM, 0, 8080, addresses); //make into socket class
+	createSockets(AF_INET, SOCK_STREAM, 0); //make into socket class
 	while (true) {
 		eventsWaiting = epoll_wait(epollFD, eventWaitlist, MAX_EVENTS, -1);
 		for (int i = 0; i < eventsWaiting; i++) {
-			if (std::find(listenFDs.cbegin(), listenFDs.cend(), eventWaitlist[i].data.fd) != std::end(listenFDs)) {
-				acceptConnection(eventWaitlist[i].data.fd); 
-				std::cout << "We connected from socket " << eventWaitlist[i].data.fd << std::endl;
+			int currentFD = eventWaitlist[i].data.fd;
+			if (std::find(listenFDs.cbegin(), listenFDs.cend(), currentFD) != std::end(listenFDs)) {
+				acceptConnection(currentFD); 
+				std::cout << "We connected from socket " << currentFD << std::endl;
 			} else if (eventWaitlist[i].events & EPOLLIN) {
-				testPrintRequest(eventWaitlist[i].data.fd);
-				int toFind = eventWaitlist[i].data.fd;
-				auto found = std::find_if(clients.cbegin(), clients.cend(), [toFind](const Client &client) {
-        			return client.getClientFD() == toFind;
-    		});
-				if (found != clients.cend()) {
-        			int currentFD = found->getClientFD();
-        		epollModify(epollFD, currentFD);
-			}} else if (eventWaitlist[i].events & EPOLLOUT) {
-				send(eventWaitlist[i].data.fd, response.c_str(), response.length(), 0); //test
-				epollDelete(epollFD, eventWaitlist[i].data.fd);
-				close(eventWaitlist[i].data.fd);
+				testPrintRequest(currentFD);
+				auto found = std::find_if(clients.cbegin(), clients.cend(),
+					[currentFD](const Client &client)
+					{ return client.getClientFD() == currentFD; });
+				if (found != clients.cend()) 
+        			epollModify(epollFD, found->getClientFD());
+			} else if (eventWaitlist[i].events & EPOLLOUT) {
+				send(currentFD, response.c_str(), response.length(), 0); //test
+				epollDelete(epollFD, currentFD);
+				close(currentFD);
 			}
 		}
 	}
@@ -69,16 +63,15 @@ void WebservController::testPrintRequest(int fd) {
 	std::cout << request << std::endl;
 }
 
-void WebservController::createSockets(int domain, int type, int protocol, int port, std::vector<std::string> hosts) {
+void WebservController::createSockets(int domain, int type, int protocol) {
 	try {
-		int i = 0; // test, other localhosts seem to loop to .1
-		for (auto &host : hosts) {
-			listenFDs.push_back(Socket(domain, type, protocol, port + i, host)
+		for (auto &server : serverConfigs) {
+			listenFDs.push_back(Socket(domain, type, protocol, server.getPort(), server.getHost())
 				.bindSocket()
 				.listenSocket(FD_SETSIZE)
 				.getSocketFD());
-			epollAdd(epollFD, listenFDs.back(), true); //hmmh
-			i++;
+			servers.push_back(Server(server, listenFDs.back()));
+			epollAdd(epollFD, listenFDs.back(), true); 
 		}
 	} catch (const std::runtime_error &err) {
 		errorHandler(err);

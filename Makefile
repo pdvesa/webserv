@@ -29,6 +29,7 @@ SRCS = $(SRCDIR)/run/main.cpp \
 	   $(SRCDIR)/util/EpollUtils.cpp \
 	   $(SRCDIR)/model/RouteConfig.cpp \
        $(SRCDIR)/model/ServerConfig.cpp \
+	   $(SRCDIR)/model/Server.cpp \
 
 OBJS = $(patsubst $(SRCDIR)/%.cpp, $(OBJDIR)/%.o, $(SRCS))
 
