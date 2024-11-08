@@ -18,31 +18,49 @@
 class ServerConfig;
 
 class RouteConfig {
-	private:
-		const bool							GET;
-		const bool							POST;
-		const bool							DELETE;
-		std::string							location;
-		const bool							listing;
-		const std::string					rootDir;
-
-		RouteConfig();
-		RouteConfig(const bool& GET, const bool& POST, const bool& DELETE, const std::string & location,
-			const bool& listing, const std::string & rootDir);
-
-		static void			getMethods(bool& GET, bool& POST, bool& DELETE, std::string& locationBlock);
-		static std::string	getRootDir(std::string& locationBlock);
-		static bool			getListing(std::string& locationBlock);
 
 	public:
-		static RouteConfig	fromVariableBlock(std::list<std::string>& routeBlock);
+		struct t_redirection {
+			std::string	path;
+			u_int		code;
+		};
+
+	private:
+		const bool			GET;
+		const bool			POST;
+		const bool			DELETE;
+		const std::string	index;
+		const bool			listing;
+		const std::string	rootDir;
+		const t_redirection	redirection;
+
+		RouteConfig();
+
+		RouteConfig& operator=(const RouteConfig& other);
+
+		static void				extractMethods(bool& GET, bool& POST, bool& DELETE, std::string& locationBlock);
+		static std::string		extractIndex(std::string& locationBlock);
+		static bool				extractListing(std::string& locationBlock);
+		static std::string		extractRootDir(std::string& locationBlock);
+		static t_redirection	extractRedirection(std::string& locationBlock);
+
+	public:
+		RouteConfig(const bool& GET, const bool& POST, const bool& DELETE, const std::string& index,
+			const bool& listing, const std::string& rootDir, const t_redirection& redirection);
+		RouteConfig(const RouteConfig& other);
+		~RouteConfig();
+
+		bool	operator==(const RouteConfig&) const;
+
+		static RouteConfig	fromLocationBlock(std::string& locationBlock);
 
 		bool		getGET() const;
 		bool		getPOST() const;
 		bool		getDELETE() const;
-		std::string	getLocation() const;
+		std::string getIndex() const;
 		bool		getListing() const;
 		std::string	getRootDir() const;
+		t_redirection getRedirection() const;
 };
 
 #endif

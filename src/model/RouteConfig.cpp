@@ -4,40 +4,69 @@
 
 #include <RouteConfig.hpp>
 
-RouteConfig RouteConfig::fromVariableBlock(std::list<std::string>& routeVariableBlock) {
-	std::string	location = routeVariableBlock.front();
-	std::string	locationBlock = routeVariableBlock.back();
+bool RouteConfig::operator==(const RouteConfig& other) const {
+	return (GET == other.GET &&
+				POST == other.POST &&
+				DELETE == other.DELETE &&
+				index == other.index &&
+				listing == other.listing &&
+				rootDir == other.rootDir &&
+				redirection.code == other.redirection.code &&
+				redirection.path == other.redirection.path);
+}
 
-	bool	GET = false;
-	bool	POST = false;
-	bool	DELETE = false;
+RouteConfig RouteConfig::fromLocationBlock(std::string& locationBlock) {
 
-	getMethods(GET, POST, DELETE, locationBlock);
+	bool			GET = false;
+	bool			POST = false;
+	bool			DELETE = false;
+	std::string		index;
+	bool			listing = false;
+	std::string		rootDir;
+	t_redirection	redirection = {"", 0};
 
-	std::string	rootDir = getRootDir(locationBlock);
-
-	bool listing = getListing(locationBlock);
+	try {
+		redirection = extractRedirection(locationBlock);
+	} catch (Parsing::VariableNotFoundException&) {
+		extractMethods(GET, POST, DELETE, locationBlock);
+		index = extractIndex(locationBlock);
+		listing = extractListing(locationBlock);
+		rootDir = extractRootDir(locationBlock);
+	}
 
 	if (!IsBlank::isBlank(locationBlock))
 		throw ServerConfig::InvalidConfigFileException();
 
-	return (RouteConfig(GET, POST, DELETE, location, listing, rootDir));
+	return (RouteConfig(GET, POST, DELETE, index, listing, rootDir, redirection));
 }
 
 RouteConfig::RouteConfig(const bool& GET,
 	const bool& POST,
 	const bool& DELETE,
-	const std::string& location,
+	const std::string& index,
 	const bool& listing,
-	const std::string& rootDir):
+	const std::string& rootDir,
+	const t_redirection& redirection):
 	GET(GET),
 	POST(POST),
 	DELETE(DELETE),
-	location(location),
+	index(index),
 	listing(listing),
-	rootDir(rootDir) { }
+	rootDir(rootDir),
+	redirection(redirection) { }
 
-void RouteConfig::getMethods(bool& GET, bool& POST, bool& DELETE, std::string& locationBlock) {
+RouteConfig::RouteConfig(const RouteConfig& other): GET(other.GET),
+													POST(other.POST),
+													DELETE(other.DELETE),
+													index(other.index),
+													listing(other.listing),
+													rootDir(other.rootDir),
+													redirection(other.redirection) {
+}
+
+RouteConfig::~RouteConfig() { }
+
+void RouteConfig::extractMethods(bool& GET, bool& POST, bool& DELETE, std::string& locationBlock) {
 	std::vector<std::string>	methodsVector = CppSplit::cppSplit(
 		Parsing::extractVariable(locationBlock,"methods"), ' ');
 
@@ -55,11 +84,11 @@ void RouteConfig::getMethods(bool& GET, bool& POST, bool& DELETE, std::string& l
 		throw ServerConfig::InvalidConfigFileException();
 }
 
-std::string RouteConfig::getRootDir(std::string& locationBlock) {
-	return (Parsing::extractVariable(locationBlock, "root"));
+std::string RouteConfig::extractIndex(std::string& locationBlock) {
+	return (Parsing::extractVariable(locationBlock, "index"));
 }
 
-bool RouteConfig::getListing(std::string& locationBlock) {
+bool RouteConfig::extractListing(std::string& locationBlock) {
 	std::string	listing	= Parsing::extractVariable(locationBlock, "listing");
 
 	if (listing == "on")
@@ -69,6 +98,25 @@ bool RouteConfig::getListing(std::string& locationBlock) {
 	throw ServerConfig::InvalidConfigFileException();
 }
 
+std::string RouteConfig::extractRootDir(std::string& locationBlock) {
+	return (Parsing::extractVariable(locationBlock, "root"));
+}
+
+RouteConfig::t_redirection RouteConfig::extractRedirection(std::string& locationBlock) {
+	t_redirection				redirection = {"", 0};
+	std::string					redirection_string = Parsing::extractVariable(locationBlock, "return");
+	std::vector<std::string>	methodsVector = CppSplit::cppSplit(redirection_string, ' ');
+
+	if (methodsVector.size() != 2)
+		throw ServerConfig::InvalidConfigFileException();
+
+	redirection.code = StrictUtoi::strictUtoi(methodsVector.front());
+	if (redirection.code < 300 || redirection.code > 399)
+		throw ServerConfig::InvalidConfigFileException();
+	redirection.path = methodsVector.back();
+
+	return (redirection);
+}
 
 bool RouteConfig::getGET() const {
     return (GET);
@@ -82,8 +130,8 @@ bool RouteConfig::getDELETE() const {
     return (DELETE);
 }
 
-std::string RouteConfig::getLocation() const {
-    return (location);
+std::string RouteConfig::getIndex() const {
+	return index;
 }
 
 bool RouteConfig::getListing() const {
@@ -92,4 +140,8 @@ bool RouteConfig::getListing() const {
 
 std::string RouteConfig::getRootDir() const {
     return (rootDir);
+}
+
+RouteConfig::t_redirection RouteConfig::getRedirection() const {
+	return redirection;
 }
