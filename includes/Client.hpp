@@ -7,24 +7,21 @@
 
 #include <iostream>
 #include <arpa/inet.h>
+#include <ServerConfig.hpp>
 
 class Client {
 	private:
 		int				clientFD;
 		int				listeningSocket;
-		sockaddr_in		clientAddr;
+		ServerConfig	config;
 //		HttpRequest		request;
 //		HttpResponse	response;	
-		std::string		request;
 	public:
-		Client();
+		Client(int connection, int listen, ServerConfig conf);
 		~Client();
 		int getClientFD() const;
 		int getListening() const;
-		const sockaddr_in &getClientAddress() const;
-		const std::string &getRequest() const; //placeholder
-		void setClientFD(int fd);
-		void setListening(int fd);
+		ServerConfig &getConfig();
 };
 
 #endif

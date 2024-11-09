@@ -1,6 +1,6 @@
 #include <Client.hpp>
 
-Client::Client() {
+Client::Client(int connection, int listen, ServerConfig conf) : clientFD(connection), listeningSocket(listen), config(conf) {
 }
 
 Client::~Client() {
@@ -14,18 +14,8 @@ int Client::getListening() const {
 	return (listeningSocket);
 }
 
-const sockaddr_in &Client::getClientAddress() const {
-	return (clientAddr);
+ServerConfig &Client::getConfig() {
+	return (config);
 }
 
-const std::string &Client::getRequest() const {
-	return (request);
-}
 
-void Client::setClientFD(int fd) {
-	clientFD = fd;
-}
-
-void Client::setListening(int fd) {
-	listeningSocket = fd;
-}

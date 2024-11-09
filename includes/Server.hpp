@@ -10,8 +10,8 @@ class Server { //wrapper class for david
 	public:
 		Server(ServerConfig data, int fd);
 		~Server();
-		int getServerFD();
-		ServerConfig &getServerData();
+		int getServerFD() const;
+		ServerConfig getServerData() const;
 };
 
 #endif

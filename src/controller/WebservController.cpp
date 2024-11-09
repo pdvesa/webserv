@@ -35,13 +35,13 @@ void	WebservController::run() {
 				acceptConnection(currentFD); 
 				std::cout << "We connected from socket " << currentFD << std::endl;
 			} else if (eventWaitlist[i].events & EPOLLIN) {
-				testPrintRequest(currentFD);
 				auto found = std::find_if(clients.cbegin(), clients.cend(),
 					[currentFD](const Client &client)
 					{ return client.getClientFD() == currentFD; });
-				if (found != clients.cend()) 
-        			epollModify(epollFD, found->getClientFD());
-			} else if (eventWaitlist[i].events & EPOLLOUT) {
+				if (found != clients.cend()) {
+        			testPrintRequest(currentFD); // your request handler here with functionName(found) or (*found), SHOUL work :()()()
+					epollModify(epollFD, found->getClientFD());
+			}} else if (eventWaitlist[i].events & EPOLLOUT) {
 				send(currentFD, response.c_str(), response.length(), 0); //test
 				epollDelete(epollFD, currentFD);
 				close(currentFD);
@@ -79,18 +79,22 @@ void WebservController::createSockets(int domain, int type, int protocol) {
 }
 
 void WebservController::acceptConnection(int listenFD) {
-	Client			client;
 	int				connectionFD;
 	sockaddr_in		clientTemp;
 	unsigned int	clientSize = sizeof(clientTemp);
 	std::memset(&clientTemp, 0 , clientSize);
 	if ((connectionFD = accept(listenFD, (sockaddr *)&clientTemp, &clientSize)) == -1)
 		throw std::runtime_error("Failed in accept connection");
-	client.setListening(listenFD); // make it do this in constructor :)()()()()
-	client.setClientFD(connectionFD);
-	clients.push_back(client); //if needed save addr
-	epollAdd(epollFD, connectionFD, true);
-	std::cout << "Connection accepted for fd " << connectionFD << std::endl;
+	auto found = std::find_if(servers.cbegin(), servers.cend(),
+	[listenFD](const Server &server)
+	{ return server.getServerFD() == listenFD; });
+	if (found != servers.cend()) {
+		ServerConfig config = found->getServerData();
+		Client client(connectionFD, listenFD, config);
+		clients.push_back(client); //if needed save addr
+		epollAdd(epollFD, connectionFD, true);
+		std::cout << "Connection accepted for fd " << connectionFD << std::endl;
+	}
 }
 
 void WebservController::errorHandler(const std::runtime_error &err) {
