@@ -7,7 +7,7 @@ HttpResponse::HttpResponse(HttpRequest request) {
 	connectionLine = createConnectionLine();
 }
 
-HttpResponse::HttpResponse(HttpResponse& other) {
+HttpResponse::HttpResponse(const HttpResponse& other) {
 	*this = other;
 }
 

@@ -26,7 +26,7 @@ class HttpResponse
 
 	public:
 		HttpResponse(HttpRequest request);
-		HttpResponse(HttpResponse& other);
+		HttpResponse(const HttpResponse& other);
 		~HttpResponse();
 
 		HttpResponse& operator=(const HttpResponse& other);
