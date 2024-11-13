@@ -1,6 +1,9 @@
 #pragma once
 #include "HttpRequest.hpp"
 #include <iostream>
+#include <fstream>
+#include <sstream>
+
 
 enum e_code
 {
@@ -15,11 +18,32 @@ enum e_code
 };
 class HttpResponse
 {
-	public:
-		HttpResponse(HttpRequest req);
-		HttpResponse();
-		void	create_responseline(int);
 	private:
+		std::string	responseStatusLine;
+		std::string	contentLengthLine;
+		std::string	connectionLine;
+		std::string	responseBody;
+
+	public:
+		HttpResponse(HttpRequest request);
+		HttpResponse(HttpResponse& other);
+		~HttpResponse();
+
+		HttpResponse& operator=(const HttpResponse& other);
+
+		std::string	toString() const;
+
+	private:
+		std::string	createResponseStatusLine(int code) const;
+		std::string	getResponseBody(const std::string& target) const;
+		std::string	createContentLengthLine() const;
+		std::string	createConnectionLine() const;
+
+		HttpResponse();
+
+		const std::string	HTTP_VERSION = "HTTP/1.1";
+		const std::string	CONTENT_LENGTH = "Content-Length";
+		const std::string	CONNECTION = "Connection";
 		std::map<int, std::string> httpErrors = {
 			{400, "Bad Request"},
 			{401, "Unauthorized"},
@@ -61,7 +85,4 @@ class HttpResponse
 			{510, "Not Extended"},
 			{511, "Network Authentication Required"}
 		};
-		std::map<std::string, std::string> m_Headers;
-		std::string							m_status_line = "HTTP/1.1";
-		int									m_status;
 };

@@ -12,6 +12,7 @@ file(GLOB_RECURSE SOURCES
         src/controller/*.cpp
         src/model/*.cpp
         src/util/*.cpp
+        src/*.cpp
 )
 
 add_executable(webserv ${SOURCES} src/run/main.cpp)
