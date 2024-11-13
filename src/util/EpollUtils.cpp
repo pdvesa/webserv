@@ -4,9 +4,11 @@
 void epollAdd(int epollFD, int addFD, bool in) {
 	epoll_event	temp;
 	if (in) 
-		temp.events = EPOLLIN;
+		temp.events = EPOLLIN | EPOLLRDHUP;
 	else 
-		temp.events = EPOLLOUT;
+		temp.events = EPOLLOUT | EPOLLRDHUP;
+	temp.events = 0;
+	temp.events = EPOLLIN | EPOLLOUT | EPOLLRDHUP;
 	temp.data.fd = addFD;
 	if (epoll_ctl(epollFD, EPOLL_CTL_ADD, addFD, &temp) == -1) //i hope temp gets copied by kernel otherwise we are d00med
 		throw std::runtime_error("Adding FD to epoll failed"); //think about error handling monke like sys_err 

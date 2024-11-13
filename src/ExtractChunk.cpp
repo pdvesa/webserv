@@ -22,7 +22,7 @@ std::string ExtractChunk::remove_chunk(std::vector<unsigned char> &body)
 	body.erase(body.begin(), endit);
 	return targetChunk;
 }
-
+/*
 int	main(void)
 {
 	std::string testreq = "0\r\ni love baboons,they are my favorite animal\r\n3\r\nhey\r\n0\r\n";
@@ -33,4 +33,4 @@ int	main(void)
 //	for (const auto i : baboon)
 //		std::cout << i;
 //	std::cout << std::endl;
-}
+}*/

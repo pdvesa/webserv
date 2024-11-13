@@ -21,7 +21,7 @@ class Client {
 		~Client();
 		int getClientFD() const;
 		int getListening() const;
-		ServerConfig &getConfig();
+		const ServerConfig &getConfig() const;
 };
 
 #endif

@@ -3,7 +3,7 @@
 //
 
 #include <WebservController.hpp>
-
+#include "HttpRequest.hpp"
 WebservController::WebservController() {	
 }
 
@@ -27,24 +27,39 @@ void	WebservController::run() {
 	if (epollFD == -1)
 		throw std::runtime_error("Initializing epoll failed, idk :("); //maybe handling needs change
 	createSockets(AF_INET, SOCK_STREAM, 0); //make into socket class
-	while (true) {
+	while (true) 
+	{
 		eventsWaiting = epoll_wait(epollFD, eventWaitlist, MAX_EVENTS, -1);
-		for (int i = 0; i < eventsWaiting; i++) {
+		for (int i = 0; i < eventsWaiting; i++) 
+		{
 			int currentFD = eventWaitlist[i].data.fd;
-			if (std::find(listenFDs.cbegin(), listenFDs.cend(), currentFD) != std::end(listenFDs)) {
+			if (std::find(listenFDs.cbegin(), listenFDs.cend(), currentFD) != std::end(listenFDs)) 
+			{
 				acceptConnection(currentFD); 
 				std::cout << "We connected from socket " << currentFD << std::endl;
-			} else if (eventWaitlist[i].events & EPOLLIN) {
-				auto found = std::find_if(clients.cbegin(), clients.cend(),
-					[currentFD](const Client &client)
-					{ return client.getClientFD() == currentFD; });
-				if (found != clients.cend()) {
-        			testPrintRequest(currentFD); // your request handler here with functionName(found) or (*found), SHOUL work :()()()
-					epollModify(epollFD, found->getClientFD());
-			}} else if (eventWaitlist[i].events & EPOLLOUT) {
-				send(currentFD, response.c_str(), response.length(), 0); //test
+			} 
+			else if (eventWaitlist[i].events & EPOLLRDHUP)
+			{
 				epollDelete(epollFD, currentFD);
 				close(currentFD);
+			}
+			else if (eventWaitlist[i].events & EPOLLIN)
+			{
+				auto found = std::find_if(clients.cbegin(), clients.cend(),
+						[currentFD](const Client &client)
+						{ return client.getClientFD() == currentFD; });
+				if (found != clients.cend()) 
+				{
+					HttpRequest req(*found);
+//					if (req.getStatus())
+//						epollModify(epollFD, found->getClientFD());
+				}
+			}
+			else if (eventWaitlist[i].events & EPOLLOUT) 
+			{
+				send(currentFD, response.c_str(), response.length(), 0); //test
+//				epollDelete(epollFD, currentFD);
+//				close(currentFD);
 			}
 		}
 	}

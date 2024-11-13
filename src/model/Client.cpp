@@ -14,7 +14,7 @@ int Client::getListening() const {
 	return (listeningSocket);
 }
 
-ServerConfig &Client::getConfig() {
+const ServerConfig &Client::getConfig() const {
 	return (config);
 }
 

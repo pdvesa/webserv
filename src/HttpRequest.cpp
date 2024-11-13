@@ -3,7 +3,7 @@
 #include <unistd.h>
 #include "Client.hpp"
 
-
+/*
 HttpRequest::HttpRequest() {
 }
 
@@ -11,17 +11,24 @@ HttpRequest::HttpRequest(std::string req)
 {
 	fillRequest(req);
 }
-
-HttpRequest::HttpRequest(int socket) : requestStatus(200)
+*/
+HttpRequest::HttpRequest(const Client &client) : serv(client.getConfig()), requestStatus(200)
 {
-	readSocket(socket);
+	readSocket(client.getClientFD());
 }
 
 void HttpRequest::readSocket(int socket)
 {
 	int							rv;
 	std::vector<unsigned char>	buffer(BUF_SIZE);
+	/*
 	while ((rv = recv(socket, buffer.data(), BUF_SIZE, 0)) > 0) {
+		buffer.resize(rv);
+		fullRequest.insert(fullRequest.end(), buffer.begin(), buffer.end()); // might read too much into buffer
+		if (rv < BUF_SIZE) // I DONT KNOW WHY WHILE LOOP DOESNT STOP IM DEBIL
+			break;
+	}*/
+	while ((rv = read(socket, buffer.data(), BUF_SIZE)) > 0) {
 		buffer.resize(rv);
 		fullRequest.insert(fullRequest.end(), buffer.begin(), buffer.end()); // might read too much into buffer
 		if (rv < BUF_SIZE) // I DONT KNOW WHY WHILE LOOP DOESNT STOP IM DEBIL
@@ -104,7 +111,7 @@ void	HttpRequest::fillRequest(std::string req)
 	fillHeaders(req);
 
 //	fillRawBody(req);
-	printElements(); // debug atm
+//	printElements(); // debug atm
 }
 
 void	HttpRequest::fillHeaders(std::string &req)
@@ -128,6 +135,7 @@ void	HttpRequest::fillHeaders(std::string &req)
 		requestStatus = 400;
 		return ;
 	}
+	validateRequest();
 }
 void	HttpRequest::printElements() const
 {
@@ -162,4 +170,24 @@ void	HttpRequest::populateChunks(std::vector<unsigned char>& vec)
 	std::string body_content = "placeholder";
 	requestBody.emplace_back(reqSize,body_content);
 	// need to find good way to loop thru vec
+}
+
+
+void	HttpRequest::validateRequest()
+{
+	std::string path;
+//	std::string allowedMethods[3] {"GET", "POST", "DELETE"};
+	try{
+		std::cout << "Checking path exception -----------------\n\n\n";
+		std::cout << "Current target is: " << requestTarget << std::endl;
+		path = serv.getRoutes().at(requestTarget).getRootDir();
+//		path + requestTarget;
+		std::cout << "Path in request validation: " << path << std::endl;
+	}
+	catch (std::exception &e)
+	{
+		std::cout << "Exception thrown in setting path" << std::endl;
+		requestStatus = 404;
+		return ;
+	}
 }

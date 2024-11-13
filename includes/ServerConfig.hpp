@@ -73,7 +73,7 @@ class ServerConfig {
 			const char* what() const noexcept override;
 
 		private:
-			InvalidConfigFileException(const InvalidConfigFileException& other);
+//			InvalidConfigFileException(const InvalidConfigFileException& other);
 
 			InvalidConfigFileException& operator=(const InvalidConfigFileException& other);
 	};

@@ -8,11 +8,13 @@
 #include "BodyChunk.hpp"
 #include <cstring>
 #include <sys/socket.h>
-
+#include "ServerConfig.hpp"
+#include <filesystem>
+#include "Client.hpp"
+class ServerConfig;
 class HttpRequest {
 	private:
 		// need to add statuscode somewhere, could throw and just catch & print it;
-		int									requestStatus;
 		std::string							requestMethod;
 		std::string							requestTarget;
 		std::string							requestVersion;
@@ -20,11 +22,13 @@ class HttpRequest {
 		std::vector<unsigned char>			rawBody; // maybe not needed anymore
 		std::vector<unsigned char>			fullRequest;
 //		bool								hasBody;
+		const ServerConfig&					serv;
 		std::vector<BodyChunk>				requestBody; // more manageable body chunks
+		int									requestStatus;
 	public:
-		HttpRequest();
-		HttpRequest(std::string req);
-		HttpRequest(int socket);
+//		HttpRequest();
+//		HttpRequest(std::string req);
+		HttpRequest(const Client &client);
 		~HttpRequest();
 		void	readSocket(int socket);
 		void	fillRequest(std::string req);
@@ -33,6 +37,8 @@ class HttpRequest {
 		void	printElements() const;
 		void	fillRawBody(std::string &req);
 		void	populateChunks(std::vector<unsigned char> &vec);
+		void	validateRequest();
+		void	fulfillRequest();
 		const std::string& getMethod() {return requestMethod;}// should these return const & to string or object????
 		const std::string& getTarget() {return requestTarget;}
 		const std::string& getVersion(){return requestVersion;}
