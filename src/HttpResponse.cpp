@@ -1,10 +1,10 @@
 #include "HttpResponse.hpp"
 
-HttpResponse::HttpResponse(HttpRequest request) {
-	responseStatusLine = createResponseStatusLine(request.getStatus());
-	responseBody = getResponseBody(request.getTarget());
-	contentLengthLine = createContentLengthLine();
-	connectionLine = createConnectionLine();
+HttpResponse::HttpResponse(HttpRequest request, const std::string& responseBody) {
+	this->responseStatusLine = createResponseStatusLine(request.getStatus());
+	this->responseBody = responseBody;
+	this->contentLengthLine = createContentLengthLine();
+	this->connectionLine = createConnectionLine();
 }
 
 HttpResponse::HttpResponse(const HttpResponse& other) {
@@ -33,16 +33,6 @@ std::string HttpResponse::toString() const {
 std::string	HttpResponse::createResponseStatusLine(const int code) const {
 	const std::string message = httpErrors.at(code);
 	return (HTTP_VERSION + ' ' + std::to_string(code) + ' ' + message);
-}
-
-std::string HttpResponse::getResponseBody(const std::string& target) const {
-	std::ifstream	targetFile(target);
-
-	if (!targetFile.is_open())
-		throw std::runtime_error("File not found"); //TODO TO HANDLE SOMEWHERE !!! :<
-	std::stringstream buffer;
-	buffer << targetFile.rdbuf();
-	return (buffer.str());
 }
 
 std::string HttpResponse::createContentLengthLine() const {

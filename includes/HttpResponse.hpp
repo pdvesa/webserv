@@ -25,7 +25,7 @@ class HttpResponse
 		std::string	responseBody;
 
 	public:
-		HttpResponse(HttpRequest request);
+		HttpResponse(HttpRequest request, const std::string& responseBody);
 		HttpResponse(const HttpResponse& other);
 		~HttpResponse();
 
@@ -35,7 +35,6 @@ class HttpResponse
 
 	private:
 		std::string	createResponseStatusLine(int code) const;
-		std::string	getResponseBody(const std::string& target) const;
 		std::string	createContentLengthLine() const;
 		std::string	createConnectionLine() const;
 
