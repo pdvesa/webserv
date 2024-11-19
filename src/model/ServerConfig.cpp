@@ -4,6 +4,15 @@
 
 #include <ServerConfig.hpp>
 
+bool ServerConfig::operator==(const ServerConfig& other) const {
+	return (host == other.host &&
+				port == other.port &&
+				names == other.names &&
+				errorsPages == other.errorsPages &&
+				maxClientBodySize == other.maxClientBodySize &&
+				routes == other.routes);
+}
+
 std::vector<ServerConfig> ServerConfig::fromConfigFile(const std::string& filePath) {
 	std::ifstream	configFile(filePath);
 
@@ -29,13 +38,20 @@ ServerConfig::ServerConfig(const std::string& host,
 							const std::vector<std::string>& names,
 							const std::map<u_int, std::string>& errorsPages,
 							const u_int& maxClientBodySize,
-							const std::vector<RouteConfig>& routes) :
+							const std::map<std::string, RouteConfig>& routes) :
 	host(host),
 	port(port),
 	names(names),
 	errorsPages(errorsPages),
 	maxClientBodySize(maxClientBodySize),
 	routes(routes) { }
+
+ServerConfig::ServerConfig(const ServerConfig& other) : host(other.host),
+	port(other.port),
+	names(other.names),
+	errorsPages(other.errorsPages),
+	maxClientBodySize(other.getMaxClientBodySize()),
+	routes(other.routes) { }
 
 ServerConfig ServerConfig::parseServer(std::string& content) {
 	std::string serverBlock;
@@ -44,12 +60,12 @@ ServerConfig ServerConfig::parseServer(std::string& content) {
 	} catch (Parsing::BlockNotFoundException&) {
 		throw InvalidConfigFileException();
 	}
-	std::string						parsedHost = parseServerHostName(serverBlock);
-	u_int							parsedPort = parseServerPort(serverBlock);
-	std::vector<std::string>		parsedServerName = parseServerNames(serverBlock);
-	std::map<u_int, std::string>	parsedErrorPages = parseServerErrorsPages(serverBlock);
-	u_int							parsedBodySize = parseServerMaxClientBodySize(serverBlock);
-	std::vector<RouteConfig>		parsedRoutes = parseServerRoutes(serverBlock);
+	const std::string							parsedHost = parseServerHostName(serverBlock); //Mandatory
+	const u_int									parsedPort = parseServerPort(serverBlock); //Mandatory
+	const std::vector<std::string>				parsedServerName = parseServerNames(serverBlock); //Optional
+	const std::map<u_int, std::string>			parsedErrorPages = parseServerErrorsPages(serverBlock); //Mandatory
+	const u_int									parsedBodySize = parseServerMaxClientBodySize(serverBlock); //Optional
+	const std::map<std::string, RouteConfig>	parsedRoutes = parseServerRoutes(serverBlock); //Mandatory
 
 	return (ServerConfig(parsedHost, parsedPort, parsedServerName, parsedErrorPages, parsedBodySize, parsedRoutes));
 }
@@ -59,7 +75,11 @@ std::string ServerConfig::parseServerHostName(std::string& serverBlock) {
 }
 
 u_int ServerConfig::parseServerPort(std::string& serverBlock) {
-	return (Parsing::extractInteger(serverBlock, "port"));
+	const u_int port = Parsing::extractInteger(serverBlock, "port");
+
+	if (port == 0 || port > 65535)
+		throw InvalidConfigFileException();
+	return (port);
 }
 
 std::vector<std::string> ServerConfig::parseServerNames(std::string& serverBlock) {
@@ -87,6 +107,8 @@ std::map<u_int, std::string> ServerConfig::parseServerErrorsPages(std::string& s
 				throw std::runtime_error("");
 		}
 	} catch (Parsing::VariableNotFoundException&) {}
+	if (parsedErrorPages.empty())
+		throw InvalidConfigFileException("No error pages");
 	return (parsedErrorPages);
 }
 
@@ -102,16 +124,18 @@ u_int ServerConfig::parseServerMaxClientBodySize(std::string& serverBlock) {
 	return (parsedBodySize);
 }
 
-std::vector<RouteConfig>	ServerConfig::parseServerRoutes(std::string& serverBlock) {
-	std::vector<RouteConfig> parsedRoutes;
+std::map<std::string, RouteConfig> ServerConfig::parseServerRoutes(std::string& serverBlock) {
+	std::map<std::string, RouteConfig>	parsedRoutes;
 	try {
 		while (true) {
 			std::list<std::string>	routeData = Parsing::extractVariableBlock(serverBlock, "location");
-			RouteConfig					route = RouteConfig::fromVariableBlock(routeData);
+			RouteConfig					route = RouteConfig::fromLocationBlock(routeData.back());
 
-			parsedRoutes.push_back(route);
+			parsedRoutes.emplace(routeData.front(), route);
 		}
 	} catch (Parsing::BlockNotFoundException&) { }
+	if (parsedRoutes.empty())
+		throw InvalidConfigFileException("No route found");
 	return (parsedRoutes);
 }
 
@@ -135,13 +159,13 @@ u_int ServerConfig::getMaxClientBodySize() const {
     return (maxClientBodySize);
 }
 
-std::vector<RouteConfig> ServerConfig::getRoutes() const {
+std::map<std::string, RouteConfig> ServerConfig::getRoutes() const {
     return (routes);
 }
 
 ServerConfig::InvalidConfigFileException::InvalidConfigFileException() { }
 
-ServerConfig::InvalidConfigFileException::InvalidConfigFileException(const std::string& msg): message(msg) {}
+ServerConfig::InvalidConfigFileException::InvalidConfigFileException(const std::string& msg): message(msg) { }
 
 ServerConfig::InvalidConfigFileException::~InvalidConfigFileException() { }
 
@@ -152,3 +176,5 @@ const char* ServerConfig::InvalidConfigFileException::what() const noexcept {
 		return message.c_str();
 	}
 }
+
+ServerConfig::~ServerConfig() { }

@@ -6,7 +6,7 @@
 #    By: dbarrene <dbarrene@student.hive.fi>        +#+  +:+       +#+         #
 #                                                 +#+#+#+#+#+   +#+            #
 #    Created: 2024/09/01 18:14:56 by dbarrene          #+#    #+#              #
-#    Updated: 2024/09/12 17:11:30 by dbarrene         ###   ########.fr        #
+#    Updated: 2024/11/13 15:25:48 by dbarrene         ###   ########.fr        #
 #                                                                              #
 # **************************************************************************** #
 
@@ -15,7 +15,7 @@ SRCDIR = src
 OBJDIR = obj
 INCDIR = includes
 CC = c++
-CFLAGS = -Wall -Wextra -Werror -pedantic -g
+CFLAGS = -Wall -Wextra -Werror -pedantic -g -std=c++17
 
 SRCS = $(SRCDIR)/run/main.cpp \
        $(SRCDIR)/controller/WebservController.cpp \
@@ -26,8 +26,14 @@ SRCS = $(SRCDIR)/run/main.cpp \
        $(SRCDIR)/util/Parsing.cpp \
        $(SRCDIR)/util/SpacesClean.cpp \
        $(SRCDIR)/util/StrictUtoi.cpp \
+	   $(SRCDIR)/util/EpollUtils.cpp \
 	   $(SRCDIR)/model/RouteConfig.cpp \
        $(SRCDIR)/model/ServerConfig.cpp \
+	   $(SRCDIR)/model/Server.cpp \
+       $(SRCDIR)/HttpRequest.cpp \
+       $(SRCDIR)/HttpResponse.cpp \
+       $(SRCDIR)/BodyChunk.cpp \
+       $(SRCDIR)/ExtractChunk.cpp \
 
 OBJS = $(patsubst $(SRCDIR)/%.cpp, $(OBJDIR)/%.o, $(SRCS))
 
@@ -42,6 +48,16 @@ $(NAME): $(OBJS)
 	@echo "Compiling $(NAME)"
 	@echo "Compilation finished :)"
 
+
+debug:
+	make
+	valgrind --leak-check=full ./$(NAME) configs/sampleconf
+
+test:
+	make
+	./$(NAME) configs/sampleconf
+
+
 clean:
 	@echo "Removing objects"
 	@rm -f $(OBJS)
@@ -53,3 +69,4 @@ fclean: clean
 
 re: fclean all
 
+.PHONY: test

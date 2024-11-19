@@ -5,29 +5,44 @@
 #ifndef WEBSERVCONTROLLER_HPP
 #define WEBSERVCONTROLLER_HPP
 
+#ifndef MAX_EVENTS
+#define MAX_EVENTS 128
+#endif
+
 #include <vector>
 #include <fstream>
 #include <chrono>
 #include <sys/epoll.h>
 #include <unistd.h>
+#include <fcntl.h>
 
 #include <ServerConfig.hpp>
 #include <Client.hpp>
 #include <Socket.hpp>
+#include <EpollUtils.hpp>
+#include <Server.hpp>
 
 class WebservController {
 	private:
+		std::string					request; //test
 		std::vector<ServerConfig>	serverConfigs;
 		std::vector<int>			listenFDs;
 		std::vector<Client>			clients; //maybe not needed
-		void	createSockets(int domain, int type, int protocol, int port, std::vector<std::string> hosts);
+		std::vector<Server>			servers;
+		int 						epollFD;
+		int							eventsWaiting;
+//		int							epollSize; not used atm
+//		epoll_event					tempEvent;
+		epoll_event					eventWaitlist[MAX_EVENTS];
+		void	createSockets(int domain, int type, int protocol);
 		void	acceptConnection(int listenFd);
 		void	errorHandler(const std::runtime_error &err);
 		void	errorLogger(const std::string &errMsg);
 		void	cleanResources();
+		void	testPrintRequest(int fd);
 	public:
 		WebservController();
-//		WebservController(const std::string& configFilePath);
+		WebservController(const std::string& configFilePath);
 		~WebservController();
 		void	run();
 };
