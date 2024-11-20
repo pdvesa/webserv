@@ -12,9 +12,15 @@ HttpRequest::HttpRequest(std::string req)
 	fillRequest(req);
 }
 */
-HttpRequest::HttpRequest(const Client &client) : serv(client.getConfig()), requestStatus(200)
+//HttpRequest::HttpRequest(const Client &client) : serv(client.getConfig()), requestStatus(200)
+//{
+//	readSocket(client.getClientFD());
+//}
+
+
+HttpRequest::HttpRequest(const ServerConfig &cfg, int fd) : serv(cfg)
 {
-	readSocket(client.getClientFD());
+	readSocket(fd);
 }
 
 void HttpRequest::readSocket(int socket)

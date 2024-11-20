@@ -1,12 +1,12 @@
 #include <Client.hpp>
 
-Client::Client(int connection, int listen, ServerConfig conf) : clientFD(connection), listeningSocket(listen), config(conf) {
+Client::Client(int connection, int listen, ServerConfig conf) : clientFD(connection), listeningSocket(listen), config(conf), request(), response() {
 }
 
 Client::~Client() {
 }
 
-int Client::getClientFD() const {
+int Client::getClientFD() {
 	return (clientFD);
 }
 
@@ -18,4 +18,7 @@ const ServerConfig &Client::getConfig() const {
 	return (config);
 }
 
-
+void	Client::buildRequest()
+{
+	request.emplace(HttpRequest(getConfig(), getClientFD()));
+}

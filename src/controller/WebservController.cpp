@@ -4,6 +4,10 @@
 
 #include <WebservController.hpp>
 #include "HttpRequest.hpp"
+#include "HttpResponse.hpp"
+#include "HandleRequest.hpp"
+#include <optional>
+
 WebservController::WebservController() {	
 }
 
@@ -45,18 +49,22 @@ void	WebservController::run() {
 			}
 			else if (eventWaitlist[i].events & EPOLLIN)
 			{
-				auto found = std::find_if(clients.cbegin(), clients.cend(),
-						[currentFD](const Client &client)
+				std::vector<Client>::iterator found = std::find_if(clients.begin(), clients.end(),
+						[currentFD](Client &client)
 						{ return client.getClientFD() == currentFD; });
-				if (found != clients.cend()) 
+				if (found != clients.end()) 
 				{
-					HttpRequest req(*found);
+
+					found->buildRequest();
+//					HttpRequest req(found->getConfig(), found->getClientFD());
+//					request.emplace(
 //					if (req.getStatus())
 //						epollModify(epollFD, found->getClientFD());
 				}
 			}
 			else if (eventWaitlist[i].events & EPOLLOUT) 
 			{
+//				HttpResponse resp(req, HandleRequest::handleGet(req.requestTarget);
 				send(currentFD, response.c_str(), response.length(), 0); //test
 //				epollDelete(epollFD, currentFD);
 //				close(currentFD);
