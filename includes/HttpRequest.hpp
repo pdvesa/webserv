@@ -21,7 +21,7 @@ class HttpRequest {
 		std::map<std::string, std::string>	requestHeader;
 		std::vector<unsigned char>			rawBody; // maybe not needed anymore
 		std::vector<unsigned char>			fullRequest;
-		ServerConfig&					serv;
+		const ServerConfig&					serv;
 		std::vector<BodyChunk>				requestBody; // more manageable body chunks
 		int									requestStatus;
 	public:
