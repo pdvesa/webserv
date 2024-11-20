@@ -19,14 +19,6 @@ WebservController::WebservController(const std::string& configFilePath) {
 }
 
 void	WebservController::run() {
-	/*test variables*/
-	std::string response;
-	response = "HTTP/1.1 200 OK\r\n"
-            "Content-Type: text/plain\r\n"
-            "Content-Length: 5\r\n"
-            "\r\n"
-            "OKMEN";
-	/*test variables*/
 	epollFD = epoll_create1(0);
 	if (epollFD == -1)
 		throw std::runtime_error("Initializing epoll failed, idk :("); //maybe handling needs change
@@ -49,29 +41,40 @@ void	WebservController::run() {
 			}
 			else if (eventWaitlist[i].events & EPOLLIN)
 			{
-				std::vector<Client>::iterator found = std::find_if(clients.begin(), clients.end(),
-						[currentFD](Client &client)
-						{ return client.getClientFD() == currentFD; });
-				if (found != clients.end()) 
-				{
-
-					found->buildRequest();
-//					HttpRequest req(found->getConfig(), found->getClientFD());
-//					request.emplace(
-//					if (req.getStatus())
-//						epollModify(epollFD, found->getClientFD());
-				}
+					try{
+						m_clients.at(currentFD).buildRequest();
+					}
+					catch (std::exception &e)
+					{
+//						std::cout << e.what() << std::endl;
+						continue; 
+					}
 			}
 			else if (eventWaitlist[i].events & EPOLLOUT) 
 			{
-//				HttpResponse resp(req, HandleRequest::handleGet(req.requestTarget);
-				send(currentFD, response.c_str(), response.length(), 0); //test
-//				epollDelete(epollFD, currentFD);
-//				close(currentFD);
+//				std::vector<Client>::iterator found = std::find_if(clients.begin(), clients.end(),
+//						[currentFD](Client &client)
+//						{ return client.getClientFD() == currentFD; });
+//				if (found != clients.end()) 
+//				{
+					try{
+						m_clients.at(currentFD).buildResponse(); // only works for GET atm;
+//						send(currentFD, found->getResponse().toString().c_str(), found->getResponse().toString().length(), 0);
+						write(currentFD, m_clients.at(currentFD).getResponse().toString().c_str(), m_clients.at(currentFD).getResponse().toString().length());
+						write(1, m_clients.at(currentFD).getResponse().toString().c_str(), m_clients.at(currentFD).getResponse().toString().length());
+						epollDelete(epollFD, currentFD);
+						close(currentFD);
+//						std::cout << "size of client vec: " << clients.size() << std::endl;
+					}
+					catch (std::exception &e)
+					{
+//						std::cout << e.what() << std::endl;
+						continue ;
+					}
+				}
 			}
 		}
 	}
-}
 
 void WebservController::testPrintRequest(int fd) {
 	int		recBytes;
@@ -114,7 +117,9 @@ void WebservController::acceptConnection(int listenFD) {
 	if (found != servers.cend()) {
 		ServerConfig config = found->getServerData();
 		Client client(connectionFD, listenFD, config);
-		clients.push_back(client); //if needed save addr
+//		clients.push_back(client); //if needed save addr
+		m_clients.insert({connectionFD, client});
+		std::cout << "Added client to the map with FD: " << listenFD << std::endl;
 		epollAdd(epollFD, connectionFD, true);
 		std::cout << "Connection accepted for fd " << connectionFD << std::endl;
 	}

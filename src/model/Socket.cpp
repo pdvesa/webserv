@@ -15,9 +15,13 @@ Socket::~Socket() {
 }
 
 Socket &Socket::bindSocket() {
+	int sock_opts = 1;
+	if (setsockopt(socketFD, SOL_SOCKET, SO_REUSEADDR, &sock_opts, sizeof(int)) < 0)
+		throw std::runtime_error ("Failed to set socket options");
 	if ((bind(socketFD, (sockaddr *)&socketAddr, sizeof(socketAddr))) == -1)
 		throw std::runtime_error("Failed in bind socket");
 	std::cout << "Socket bound" << std::endl;
+
 	return (*this);
 }
 

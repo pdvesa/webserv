@@ -22,6 +22,7 @@ class HttpRequest {
 		std::vector<unsigned char>			rawBody; // maybe not needed anymore
 		std::vector<unsigned char>			fullRequest;
 		const ServerConfig&					serv;
+		std::string							requestPath;
 		std::vector<BodyChunk>				requestBody; // more manageable body chunks
 		int									requestStatus;
 	public:
@@ -43,6 +44,7 @@ class HttpRequest {
 		const std::string& getMethod() {return requestMethod;}// should these return const & to string or object????
 		const std::string& getTarget() {return requestTarget;}
 		const std::string& getVersion(){return requestVersion;}
+		const std::string& getPath(){return requestPath;}
 		int					getStatus(){return requestStatus;}
 };
 

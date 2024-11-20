@@ -27,7 +27,8 @@ class WebservController {
 		std::string					request; //test
 		std::vector<ServerConfig>	serverConfigs;
 		std::vector<int>			listenFDs;
-		std::vector<Client>			clients; //maybe not needed
+//		std::vector<Client>			clients; //maybe not needed
+		std::unordered_map<int, Client>  m_clients;
 		std::vector<Server>			servers;
 		int 						epollFD;
 		int							eventsWaiting;
