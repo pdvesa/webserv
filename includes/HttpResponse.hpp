@@ -44,6 +44,7 @@ class HttpResponse
 		const std::string	CONTENT_LENGTH = "Content-Length";
 		const std::string	CONNECTION = "Connection";
 		std::map<int, std::string> httpErrors = {
+			{200, "OK"},
 			{400, "Bad Request"},
 			{401, "Unauthorized"},
 			{402, "Payment Required"},

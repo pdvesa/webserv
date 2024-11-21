@@ -46,8 +46,8 @@ void	WebservController::run() {
 					clients.at(currentFD).buildResponse(); // only works for GET atm;
 					write(currentFD, clients.at(currentFD).getResponse().toString().c_str(), clients.at(currentFD).getResponse().toString().length());
 					write(1, clients.at(currentFD).getResponse().toString().c_str(), clients.at(currentFD).getResponse().toString().length());
-					epollDelete(epollFD, currentFD);
-					close(currentFD);
+//					epollDelete(epollFD, currentFD);
+//					close(currentFD);
 				}
 				catch (std::exception &e) {
 					continue ;
