@@ -23,71 +23,40 @@ void	WebservController::run() {
 	if (epollFD == -1)
 		throw std::runtime_error("Initializing epoll failed, idk :("); //maybe handling needs change
 	createSockets(AF_INET, SOCK_STREAM, 0); //make into socket class
-	while (true) 
-	{
+	while (true) {
 		eventsWaiting = epoll_wait(epollFD, eventWaitlist, MAX_EVENTS, -1);
-		for (int i = 0; i < eventsWaiting; i++) 
-		{
+		for (int i = 0; i < eventsWaiting; i++) {
 			int currentFD = eventWaitlist[i].data.fd;
 			if (std::find(listenFDs.cbegin(), listenFDs.cend(), currentFD) != std::end(listenFDs)) 
-			{
 				acceptConnection(currentFD); 
-				std::cout << "We connected from socket " << currentFD << std::endl;
-			} 
-			else if (eventWaitlist[i].events & EPOLLRDHUP)
-			{
+			else if (eventWaitlist[i].events & EPOLLRDHUP) {
 				epollDelete(epollFD, currentFD);
 				close(currentFD);
 			}
-			else if (eventWaitlist[i].events & EPOLLIN)
-			{
-					try{
-						m_clients.at(currentFD).buildRequest();
-					}
-					catch (std::exception &e)
-					{
-//						std::cout << e.what() << std::endl;
-						continue; 
-					}
+			else if (eventWaitlist[i].events & EPOLLIN) {
+				try {
+					clients.at(currentFD).buildRequest();
+				}
+				catch (std::exception &e) {
+					continue; 
+				}
 			}
-			else if (eventWaitlist[i].events & EPOLLOUT) 
-			{
-//				std::vector<Client>::iterator found = std::find_if(clients.begin(), clients.end(),
-//						[currentFD](Client &client)
-//						{ return client.getClientFD() == currentFD; });
-//				if (found != clients.end()) 
-//				{
-					try{
-						m_clients.at(currentFD).buildResponse(); // only works for GET atm;
-//						send(currentFD, found->getResponse().toString().c_str(), found->getResponse().toString().length(), 0);
-						write(currentFD, m_clients.at(currentFD).getResponse().toString().c_str(), m_clients.at(currentFD).getResponse().toString().length());
-						write(1, m_clients.at(currentFD).getResponse().toString().c_str(), m_clients.at(currentFD).getResponse().toString().length());
-						epollDelete(epollFD, currentFD);
-						close(currentFD);
-//						std::cout << "size of client vec: " << clients.size() << std::endl;
-					}
-					catch (std::exception &e)
-					{
-//						std::cout << e.what() << std::endl;
-						continue ;
-					}
+			else if (eventWaitlist[i].events & EPOLLOUT) {
+				try {
+					clients.at(currentFD).buildResponse(); // only works for GET atm;
+					write(currentFD, clients.at(currentFD).getResponse().toString().c_str(), clients.at(currentFD).getResponse().toString().length());
+					write(1, clients.at(currentFD).getResponse().toString().c_str(), clients.at(currentFD).getResponse().toString().length());
+					epollDelete(epollFD, currentFD);
+					close(currentFD);
+				}
+				catch (std::exception &e) {
+					continue ;
 				}
 			}
 		}
 	}
-
-void WebservController::testPrintRequest(int fd) {
-	int		recBytes;
-	char	buffer[BUF_SIZE];
-	while ((recBytes = recv(fd, buffer, (BUF_SIZE - 1), 0)) > 0) { 
-		buffer[recBytes] = '\0';
-		request.append(buffer);
-		if (recBytes < (BUF_SIZE - 1))
-			break;
-	} if (recBytes < 0)
-		throw std::runtime_error("Failed reading the request");
-	std::cout << request << std::endl;
 }
+
 
 void WebservController::createSockets(int domain, int type, int protocol) {
 	try {
@@ -118,7 +87,7 @@ void WebservController::acceptConnection(int listenFD) {
 		ServerConfig config = found->getServerData();
 		Client client(connectionFD, listenFD, config);
 //		clients.push_back(client); //if needed save addr
-		m_clients.insert({connectionFD, client});
+		clients.insert({connectionFD, client});
 		std::cout << "Added client to the map with FD: " << listenFD << std::endl;
 		epollAdd(epollFD, connectionFD, true);
 		std::cout << "Connection accepted for fd " << connectionFD << std::endl;
