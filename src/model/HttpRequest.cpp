@@ -26,7 +26,7 @@ void HttpRequest::readSocket(int socket)
 			break;
 	}
 	std::cout << "Size of fullreq: " << fullRequest.size() << std::endl;
-//	write(1, fullRequest.data(), fullRequest.size());
+	write(1, fullRequest.data(), fullRequest.size());
 	if (rv == -1)
 		throw std::runtime_error("failed to read from socket");
 	std::string reqstr(fullRequest.begin(), fullRequest.end());
@@ -90,10 +90,13 @@ void	HttpRequest::fillHeaders(std::string &req)
 	}
 	catch (std::exception &e) // just doing this until figure out how to handle errors
 	{
-		requestStatus = 400;
+		requestStatus = 404; // change to correct error status
+		requestPath = serv.getErrorsPages().at(requestStatus);
+		requestPath = "." + requestPath;
 		return ;
 	}
 	validateRequest();
+	std::cout << "Path in fillHeaders: " << requestPath << std::endl;
 }
 void	HttpRequest::printElements() const
 {
@@ -135,18 +138,33 @@ void	HttpRequest::validateRequest()
 {
 	std::string path;
 	std::string index;
+
+	std::cout << "Size of the map: " << serv.getRoutes().size() << std::endl;
+	for (const auto &pair : serv.getRoutes())
+	{
+		std::cout << "Key: "<< pair.first << std::endl;
+	}
+
+	std::string loc = requestTarget.substr(0, requestTarget.find_last_of('/') + 1);
+	std::cout << "request target " << requestTarget << std::endl;
+	std::cout << "loc target " << loc << std::endl;
 //	std::string allowedMethods[3] {"GET", "POST", "DELETE"};
 	try{
-		path = serv.getRoutes().at(requestTarget).getRootDir();
-		index = serv.getRoutes().at(requestTarget).getIndex();
-		path += requestTarget.substr(1);
+		path = serv.getRoutes().at(loc).getRootDir(); // hould only access location even if there are things after
+	
+		if (requestTarget == loc)
+			index = serv.getRoutes().at(requestTarget).getIndex();
+		else
+			index = requestTarget.substr(requestTarget.find_last_of('/') + 1);
 		path += index;
 		path = "." + path;
 		requestPath = path;
+		std::cout << "path before checking if exists: " << requestPath << std::endl;
 		if (!std::filesystem::exists(requestPath))
 		{
 			requestStatus = 404;
 			requestPath = serv.getErrorsPages().at(requestStatus);
+			requestPath = "." + requestPath;
 		}
 		std::cout << "Path in request validation: " << requestPath << std::endl;
 	}
