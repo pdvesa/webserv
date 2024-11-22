@@ -10,25 +10,27 @@
 #include <sys/socket.h>
 #include "ServerConfig.hpp"
 #include <filesystem>
-#include "Client.hpp"
+//#include "Client.hpp"
 class ServerConfig;
+class Client;
 class HttpRequest {
 	private:
-		// need to add statuscode somewhere, could throw and just catch & print it;
 		std::string							requestMethod;
 		std::string							requestTarget;
 		std::string							requestVersion;
 		std::map<std::string, std::string>	requestHeader;
 		std::vector<unsigned char>			rawBody; // maybe not needed anymore
 		std::vector<unsigned char>			fullRequest;
-//		bool								hasBody;
 		const ServerConfig&					serv;
+		std::string							requestPath;
 		std::vector<BodyChunk>				requestBody; // more manageable body chunks
 		int									requestStatus;
 	public:
 //		HttpRequest();
 //		HttpRequest(std::string req);
-		HttpRequest(const Client &client);
+//		HttpRequest(const Client &client);
+//		HttpRequest& operator=(const HttpRequest& other);
+		HttpRequest(const ServerConfig& cfg, int fd);
 		~HttpRequest();
 		void	readSocket(int socket);
 		void	fillRequest(std::string req);
@@ -42,6 +44,7 @@ class HttpRequest {
 		const std::string& getMethod() {return requestMethod;}// should these return const & to string or object????
 		const std::string& getTarget() {return requestTarget;}
 		const std::string& getVersion(){return requestVersion;}
+		const std::string& getPath(){return requestPath;}
 		int					getStatus(){return requestStatus;}
 };
 

@@ -33,7 +33,7 @@ class ServerConfig {
 
 		ServerConfig();
 
-		ServerConfig& operator=(const ServerConfig&);
+//		ServerConfig& operator=(const ServerConfig&);
 
 		static ServerConfig							parseServer(std::string& content);
 		static std::string							parseServerHostName(std::string& serverBlock);

@@ -6,7 +6,7 @@
 #    By: dbarrene <dbarrene@student.hive.fi>        +#+  +:+       +#+         #
 #                                                 +#+#+#+#+#+   +#+            #
 #    Created: 2024/09/01 18:14:56 by dbarrene          #+#    #+#              #
-#    Updated: 2024/11/13 15:25:48 by dbarrene         ###   ########.fr        #
+#    Updated: 2024/11/20 11:25:00 by dbarrene         ###   ########.fr        #
 #                                                                              #
 # **************************************************************************** #
 
@@ -30,10 +30,11 @@ SRCS = $(SRCDIR)/run/main.cpp \
 	   $(SRCDIR)/model/RouteConfig.cpp \
        $(SRCDIR)/model/ServerConfig.cpp \
 	   $(SRCDIR)/model/Server.cpp \
-       $(SRCDIR)/HttpRequest.cpp \
-       $(SRCDIR)/HttpResponse.cpp \
-       $(SRCDIR)/BodyChunk.cpp \
-       $(SRCDIR)/ExtractChunk.cpp \
+       $(SRCDIR)/model/HttpRequest.cpp \
+       $(SRCDIR)/model/HttpResponse.cpp \
+       $(SRCDIR)/util/BodyChunk.cpp \
+       $(SRCDIR)/util/ExtractChunk.cpp \
+       $(SRCDIR)/model/HandleRequest.cpp \
 
 OBJS = $(patsubst $(SRCDIR)/%.cpp, $(OBJDIR)/%.o, $(SRCS))
 

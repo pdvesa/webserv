@@ -3,80 +3,38 @@
 #include <unistd.h>
 #include "Client.hpp"
 
-/*
-HttpRequest::HttpRequest() {
-}
+//HttpRequest::HttpRequest(const Client &client) : serv(client.getConfig()), requestStatus(200)
+//{
+//	readSocket(client.getClientFD());
+//}
 
-HttpRequest::HttpRequest(std::string req)
+
+HttpRequest::HttpRequest(const ServerConfig &cfg, int fd) : serv(cfg), requestStatus(200)
 {
-	fillRequest(req);
-}
-*/
-HttpRequest::HttpRequest(const Client &client) : serv(client.getConfig()), requestStatus(200)
-{
-	readSocket(client.getClientFD());
+	readSocket(fd);
 }
 
 void HttpRequest::readSocket(int socket)
 {
 	int							rv;
 	std::vector<unsigned char>	buffer(BUF_SIZE);
-	/*
-	while ((rv = recv(socket, buffer.data(), BUF_SIZE, 0)) > 0) {
-		buffer.resize(rv);
-		fullRequest.insert(fullRequest.end(), buffer.begin(), buffer.end()); // might read too much into buffer
-		if (rv < BUF_SIZE) // I DONT KNOW WHY WHILE LOOP DOESNT STOP IM DEBIL
-			break;
-	}*/
+	std::cout << "buffer size: " << BUF_SIZE << std::endl;
 	while ((rv = read(socket, buffer.data(), BUF_SIZE)) > 0) {
 		buffer.resize(rv);
 		fullRequest.insert(fullRequest.end(), buffer.begin(), buffer.end()); // might read too much into buffer
-		if (rv < BUF_SIZE) // I DONT KNOW WHY WHILE LOOP DOESNT STOP IM DEBIL
+		if (rv < BUF_SIZE) 
 			break;
 	}
 	std::cout << "Size of fullreq: " << fullRequest.size() << std::endl;
-	write(1, fullRequest.data(), fullRequest.size());
+//	write(1, fullRequest.data(), fullRequest.size());
 	if (rv == -1)
 		throw std::runtime_error("failed to read from socket");
-//	fillRequest_vec(fullRequest);
-	std::string paska(fullRequest.begin(), fullRequest.end());
-	fillRequest(paska);
+	std::string reqstr(fullRequest.begin(), fullRequest.end());
+	fillRequest(reqstr);
 }
 
 HttpRequest::~HttpRequest(){}
 
-void	HttpRequest::fillRequest_vec(std::vector<unsigned char>& req)
-{
-	unsigned char clrf[2] { '\r', '\n'};
-//	std::string line(req.begin(), std::find(req.begin(), req.end() - 1, '\r'));
-	std::cout << "testing begin and end of clrf array: -----------\n";
-	std::cout << "begin : " << *std::begin(clrf);
-	std::cout << "end : " << *(std::end(clrf) - 1);
-	std::string line(req.begin(),(std::search(req.begin(), req.end(), std::begin(clrf), std::end(clrf) - 1)));
-	std::cout << "line 1: " << line << std::endl;
-	std::string mtv[3];
-	int pos;
-	for (int i = 0; i < 3; i++)
-	{
-		pos = line.find(' ');
-		mtv[i] = line.substr(0, pos);
-		line.erase(0, pos + 1);
-		std::cout << "MTV at index " << i << " : " << mtv[i] << std::endl;
-	}
-	requestMethod = mtv[0];
-	requestTarget = mtv[1];
-	requestVersion = mtv[2];
-
-	printElements();
-	if (requestMethod == "GET ")
-		std::cout << "GET method called \n";
-	if (requestMethod == "POST")
-		std::cout << "POST method called \n";
-	if (requestMethod == "DELETE")
-		std::cout << "DELETE method called \n";
-
-	std::cout << requestMethod <<"abc" << std::endl;
-}
 void	HttpRequest::fillRequest(std::string req)
 {
 	std::string	req_line = req.substr(0, req.find("\r\n"));
@@ -176,18 +134,28 @@ void	HttpRequest::populateChunks(std::vector<unsigned char>& vec)
 void	HttpRequest::validateRequest()
 {
 	std::string path;
+	std::string index;
 //	std::string allowedMethods[3] {"GET", "POST", "DELETE"};
 	try{
-		std::cout << "Checking path exception -----------------\n\n\n";
-		std::cout << "Current target is: " << requestTarget << std::endl;
 		path = serv.getRoutes().at(requestTarget).getRootDir();
-//		path + requestTarget;
-		std::cout << "Path in request validation: " << path << std::endl;
+		index = serv.getRoutes().at(requestTarget).getIndex();
+		path += requestTarget.substr(1);
+		path += index;
+		path = "." + path;
+		requestPath = path;
+		if (!std::filesystem::exists(requestPath))
+		{
+			requestStatus = 404;
+			requestPath = serv.getErrorsPages().at(requestStatus);
+		}
+		std::cout << "Path in request validation: " << requestPath << std::endl;
 	}
 	catch (std::exception &e)
 	{
-		std::cout << "Exception thrown in setting path" << std::endl;
 		requestStatus = 404;
+		requestPath = serv.getErrorsPages().at(requestStatus);
+		requestPath = "." + requestPath;
+		std::cout << "Error path is now: " << requestPath << std::endl;
 		return ;
 	}
 }
