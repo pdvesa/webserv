@@ -51,7 +51,7 @@ void	WebservController::run() {
 				try {
 					clients.at(currentFD).buildResponse(); // only works for GET atm;
 					write(currentFD, clients.at(currentFD).getResponse().toString().c_str(), clients.at(currentFD).getResponse().toString().length()); //maybe we need checker if we actually sent everything
-					write(1, clients.at(currentFD).getResponse().toString().c_str(), clients.at(currentFD).getResponse().toString().length()); //debug
+					//write(1, clients.at(currentFD).getResponse().toString().c_str(), clients.at(currentFD).getResponse().toString().length()); //debug
 					epollDelete(epollFD, currentFD); //needed with this version of sending
 					close(currentFD);
 				}
@@ -115,7 +115,7 @@ void WebservController::errorLogger(const std::string &errMsg) {
 	std::cerr << "ERROR: " << errMsg << ": "<< strerror(errno) << std::endl;
     errorLog.open("error.log", std::ios::app);
     if (errorLog.is_open()) {
-        errorLog << std::ctime(&timestamp) << " ERROR: " << strerror(errno) << std::endl;
+        errorLog << std::ctime(&timestamp) << " ERROR: " << strerror(errno) << " : " << errMsg << std::endl;
         errorLog.close();
     } else 
         std::cerr << "ERROR: Could not open error.log, consider total annihilation of computers!" << std::endl;

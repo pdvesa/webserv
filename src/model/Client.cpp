@@ -42,6 +42,8 @@ void	Client::buildResponse()
 {
 	if (request.has_value())
 		response.emplace(HttpResponse(*request, HandleRequest::handleGet(request->getPath())));
+	else 
+		throw std::runtime_error("Request not ready");
 }
 /*
 void	Client::buildResponse()
