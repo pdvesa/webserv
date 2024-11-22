@@ -6,7 +6,6 @@
 #include "HttpRequest.hpp"
 #include "HttpResponse.hpp"
 #include "HandleRequest.hpp"
-#include <optional>
 
 WebservController::WebservController() {	
 }
@@ -27,8 +26,14 @@ void	WebservController::run() {
 		eventsWaiting = epoll_wait(epollFD, eventWaitlist, MAX_EVENTS, -1);
 		for (int i = 0; i < eventsWaiting; i++) {
 			int currentFD = eventWaitlist[i].data.fd;
-			if (std::find(listenFDs.cbegin(), listenFDs.cend(), currentFD) != std::end(listenFDs)) 
-				acceptConnection(currentFD); 
+			if (std::find(listenFDs.cbegin(), listenFDs.cend(), currentFD) != std::end(listenFDs)) {
+				try {
+					acceptConnection(currentFD); 
+				}
+				catch (const std::runtime_error &e) {
+					errorHandler(e, true); //might need some changes
+				}
+			}
 			else if (eventWaitlist[i].events & EPOLLRDHUP) {
 				epollDelete(epollFD, currentFD);
 				close(currentFD);
@@ -37,20 +42,22 @@ void	WebservController::run() {
 				try {
 					clients.at(currentFD).buildRequest();
 				}
-				catch (std::exception &e) {
+				catch (const std::runtime_error &e) {
+					errorHandler(e, false);
 					continue; 
 				}
 			}
 			else if (eventWaitlist[i].events & EPOLLOUT) {
 				try {
 					clients.at(currentFD).buildResponse(); // only works for GET atm;
-					write(currentFD, clients.at(currentFD).getResponse().toString().c_str(), clients.at(currentFD).getResponse().toString().length());
-					write(1, clients.at(currentFD).getResponse().toString().c_str(), clients.at(currentFD).getResponse().toString().length());
-//					epollDelete(epollFD, currentFD);
-//					close(currentFD);
+					write(currentFD, clients.at(currentFD).getResponse().toString().c_str(), clients.at(currentFD).getResponse().toString().length()); //maybe we need checker if we actually sent everything
+					write(1, clients.at(currentFD).getResponse().toString().c_str(), clients.at(currentFD).getResponse().toString().length()); //debug
+					epollDelete(epollFD, currentFD); //needed with this version of sending
+					close(currentFD);
 				}
-				catch (std::exception &e) {
-					continue ;
+				catch (const std::runtime_error &e) { //make sure its consistent with davids
+					errorHandler(e, false);
+					continue;
 				}
 			}
 		}
@@ -69,7 +76,7 @@ void WebservController::createSockets(int domain, int type, int protocol) {
 			epollAdd(epollFD, listenFDs.back(), true); 
 		}
 	} catch (const std::runtime_error &err) {
-		errorHandler(err);
+		errorHandler(err, true);
 	}
 }
 
@@ -86,19 +93,19 @@ void WebservController::acceptConnection(int listenFD) {
 	if (found != servers.cend()) {
 		ServerConfig config = found->getServerData();
 		Client client(connectionFD, listenFD, config);
-//		clients.push_back(client); //if needed save addr
 		clients.insert({connectionFD, client});
-		std::cout << "Added client to the map with FD: " << listenFD << std::endl;
 		epollAdd(epollFD, connectionFD, true);
 		std::cout << "Connection accepted for fd " << connectionFD << std::endl;
 	}
 }
 
-void WebservController::errorHandler(const std::runtime_error &err) {
+void WebservController::errorHandler(const std::runtime_error &err, bool ifExit) {
 	errorLogger(err.what());
+	if (ifExit) {
 //	epoll_ctl(EPOLL_CTL_DEL) remember
 	cleanResources();
 	exit(EXIT_FAILURE); //maybe needs rework
+	}
 } // make work with other err types monke
 
 void WebservController::errorLogger(const std::string &errMsg) {
@@ -118,3 +125,4 @@ void WebservController::cleanResources() {
 	for (const int &fd : listenFDs)
 		close (fd);
 }
+

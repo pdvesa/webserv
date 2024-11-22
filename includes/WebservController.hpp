@@ -35,7 +35,7 @@ class WebservController {
 		epoll_event						eventWaitlist[MAX_EVENTS];
 		void	createSockets(int domain, int type, int protocol);
 		void	acceptConnection(int listenFd);
-		void	errorHandler(const std::runtime_error &err);
+		void	errorHandler(const std::runtime_error &err, bool ifExit);
 		void	errorLogger(const std::string &errMsg);
 		void	cleanResources();
 	public:

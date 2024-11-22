@@ -30,11 +30,11 @@ SRCS = $(SRCDIR)/run/main.cpp \
 	   $(SRCDIR)/model/RouteConfig.cpp \
        $(SRCDIR)/model/ServerConfig.cpp \
 	   $(SRCDIR)/model/Server.cpp \
-       $(SRCDIR)/HttpRequest.cpp \
-       $(SRCDIR)/HttpResponse.cpp \
-       $(SRCDIR)/BodyChunk.cpp \
-       $(SRCDIR)/ExtractChunk.cpp \
-       $(SRCDIR)/HandleRequest.cpp \
+       $(SRCDIR)/model/HttpRequest.cpp \
+       $(SRCDIR)/model/HttpResponse.cpp \
+       $(SRCDIR)/util/BodyChunk.cpp \
+       $(SRCDIR)/util/ExtractChunk.cpp \
+       $(SRCDIR)/model/HandleRequest.cpp \
 
 OBJS = $(patsubst $(SRCDIR)/%.cpp, $(OBJDIR)/%.o, $(SRCS))
 
