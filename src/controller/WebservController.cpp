@@ -112,11 +112,12 @@ void WebservController::errorLogger(const std::string &errMsg) {
 	std::ofstream		errorLog;
 	const auto			now = std::chrono::system_clock::now();
 	const std::time_t	timestamp = std::chrono::system_clock::to_time_t(now);
-	std::cerr << "ERROR: " << errMsg << ": "<< strerror(errno) << std::endl;
+	std::cerr << "ERROR: " << strerror(errno) << ": "<< errMsg << std::endl;
     errorLog.open("error.log", std::ios::app);
-    if (errorLog.is_open()) {
-        errorLog << std::ctime(&timestamp) << " ERROR: " << strerror(errno) << " : " << errMsg << std::endl;
+    if (errorLog.is_open() && errno) {
+        errorLog << std::ctime(&timestamp) << " ERROR: " << "From system: "<< strerror(errno) << ". From program: " << errMsg << std::endl;
         errorLog.close();
+		errno = 0; //we technically check errno after read() :) 
     } else 
         std::cerr << "ERROR: Could not open error.log, consider total annihilation of computers!" << std::endl;
 }
