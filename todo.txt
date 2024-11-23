@@ -8,15 +8,15 @@ POST
 DELETE
 IMPLEMENT CGI
 
-Request:
+Request & response:
 FIX root directory issues
 implement max body size and chunked encoding that works
+listing and error page
+respond to redirections with proper code and path to resource
 
 Epoll:
-maybe epoll blocking bug?
 IMPLEMENT TIMEOUT
-make sure epoll works with chunked bodies and low body size!
-respond to redirections with proper code and path to resource
+make sure epoll works with chunked bodies
 epoll might prematurely delete FD even though it's keep alive.
 
 ALL:

@@ -2,10 +2,10 @@ server {
 hostname 127.0.0.1
 port 8080
 server_name alpaca_lama
-error_page 404 405 /error/general.html
+error_page 404 405 /www/error/general.html
 client_max_body_size 2
 
-location /saku/ {
+location /home/ {
     methods GET POST DELETE
     listing on
     index index.html
@@ -16,10 +16,10 @@ server {
 hostname 127.0.0.1
 port 8081
 server_name lama
-error_page 404 405 /error/general.html
+error_page 404 405 /www/error/general.html
 client_max_body_size 2
 
-location /saku/ {
+location /home/ {
     methods GET POST
     listing on
     index index.html
@@ -30,10 +30,10 @@ server {
 hostname 127.0.0.1
 port 8082
 server_name alpaca
-error_page 404 405 /error/general.html
+error_page 404 405 /www/error/general.html
 client_max_body_size 2
 
-location /saku/ {
+location /home/ {
     methods GET POST
     listing on
     index index.html
@@ -44,10 +44,10 @@ server {
 hostname 127.42.42.42
 port 8083
 server_name lama_alpaca
-error_page 404 405 /error/general.html
+error_page 404 405 /www/error/general.html
 client_max_body_size 2
 
-location / {
+location /home/ {
     methods GET POST
     listing on
     index index.html
