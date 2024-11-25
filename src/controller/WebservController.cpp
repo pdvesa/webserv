@@ -118,7 +118,7 @@ void WebservController::errorLogger(const std::string &errMsg) {
         errorLog << std::ctime(&timestamp) << " ERROR: " << "From system: "<< strerror(errno) << ". From program: " << errMsg << std::endl;
         errorLog.close();
 		errno = 0; //we technically check errno after read() :) 
-    } else 
+    } else if (errno) //kek
         std::cerr << "ERROR: Could not open error.log, consider total annihilation of computers!" << std::endl;
 }
 
