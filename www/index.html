@@ -3,24 +3,51 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Saku's Website</title>
+    <title>Basic Web Server</title>
     <style>
+        /* Apply background image and style the content */
         body {
             font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 0;
+            height: 100vh;
             display: flex;
             justify-content: center;
             align-items: center;
-            height: 100vh;
-            margin: 0;
-            background-color: #f0f8ff;
+            color: white;
+            background-image: url('./images/rainforest.jpg');
+            background-size: cover;
+            background-position: center;
         }
+
+        .container {
+            text-align: center;
+            background-color: rgba(0, 0, 0, 0.6); /* Dark overlay for readability */
+            padding: 30px;
+            border-radius: 15px;
+        }
+
         h1 {
-            color: #333;
+            font-size: 2.5em;
+            margin-bottom: 20px;
+        }
+
+        p {
+            font-size: 1.5em;
+        }
+
+        .monkey-emoji {
+            font-size: 3em;
+            margin-top: 20px;
         }
     </style>
 </head>
 <body>
-    <h1>This is Saku's website :)</h1>
+    <div class="container">
+        <h1>Welcome to our basic lightweight webserver!</h1>
+        <p>Serving multiple clients efficiently.</p>
+        <p>Also... we really like monkeys!</p>
+        <div class="monkey-emoji">🐒🌴</div>
+    </div>
 </body>
 </html>
-
