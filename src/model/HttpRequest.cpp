@@ -9,6 +9,24 @@
 //}
 
 
+HttpRequest& HttpRequest::operator=(const HttpRequest& other)
+{
+	if (this != &other)
+	{
+		requestMethod = other.requestMethod;
+		requestTarget = other.requestTarget;
+		requestVersion = other.requestVersion;
+		requestHeader = other.requestHeader;
+		rawBody = other.rawBody;
+		fullRequest = other.fullRequest;
+		requestPath = other.requestPath;
+		requestBody = other.requestBody;
+		requestStatus = other.requestStatus;
+	}
+	return (*this);
+}
+
+
 HttpRequest::HttpRequest(const ServerConfig &cfg, int fd) : serv(cfg), requestStatus(200)
 {
 	readSocket(fd);

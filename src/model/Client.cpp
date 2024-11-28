@@ -45,8 +45,9 @@ void	Client::buildResponse()
 	else 
 		throw std::runtime_error("Request not ready");
 }
-/*
-void	Client::buildResponse()
+
+void	Client::clearClear()
 {
-	response.emplace(HttpResponse(request, HandleRequest::handleGet(request.getMethod())));
-}*/
+	request.reset();
+	response.reset();
+}

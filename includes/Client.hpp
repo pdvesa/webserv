@@ -29,6 +29,7 @@ class Client {
 		const ServerConfig &getConfig() const;
 		void		buildRequest();
 		void		buildResponse();
+		void		clearClear();
 };
 
 #endif

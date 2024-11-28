@@ -6,6 +6,7 @@
 #include "HttpRequest.hpp"
 #include "HttpResponse.hpp"
 #include "HandleRequest.hpp"
+#include <unordered_map>
 
 WebservController::WebservController() {	
 }
@@ -35,11 +36,14 @@ void	WebservController::run() {
 				}
 			}
 			else if (eventWaitlist[i].events & EPOLLRDHUP) {
+				std::cerr << "\n\n\nin RHDUP\n\n";
+				exit (0);
 				epollDelete(epollFD, currentFD);
 				close(currentFD);
 			}
 			else if (eventWaitlist[i].events & EPOLLIN) {
 				try {
+					std::cerr << "trying to build request for fd: " << currentFD << std::endl;
 					clients.at(currentFD).buildRequest();
 				}
 				catch (const std::runtime_error &e) {
@@ -51,12 +55,15 @@ void	WebservController::run() {
 				try {
 					clients.at(currentFD).buildResponse(); // only works for GET atm;
 					write(currentFD, clients.at(currentFD).getResponse().toString().c_str(), clients.at(currentFD).getResponse().toString().length()); //maybe we need checker if we actually sent everything
-					//write(1, clients.at(currentFD).getResponse().toString().c_str(), clients.at(currentFD).getResponse().toString().length()); //debug
+//					write(1, clients.at(currentFD).getResponse().toString().c_str(), clients.at(currentFD).getResponse().toString().length()); //debug
+					std::cerr << "\n\ndone writing response\n\n";
 					epollDelete(epollFD, currentFD); //needed with this version of sending
 					close(currentFD);
+//					clients.at(currentFD).clearClear();
+					std::cerr <<"\n\n request/response cleared\n\n";
 				}
 				catch (const std::runtime_error &e) { //make sure its consistent with davids
-					errorHandler(e, false);
+//					errorHandler(e, false);
 					continue;
 				}
 			}
@@ -93,7 +100,7 @@ void WebservController::acceptConnection(int listenFD) {
 	if (found != servers.cend()) {
 		ServerConfig config = found->getServerData();
 		Client client(connectionFD, listenFD, config);
-		clients.insert({connectionFD, client});
+		clients.insert_or_assign(connectionFD, client);
 		epollAdd(epollFD, connectionFD, true);
 		std::cout << "Connection accepted for fd " << connectionFD << std::endl;
 	}

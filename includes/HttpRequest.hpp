@@ -29,7 +29,7 @@ class HttpRequest {
 //		HttpRequest();
 //		HttpRequest(std::string req);
 //		HttpRequest(const Client &client);
-//		HttpRequest& operator=(const HttpRequest& other);
+		HttpRequest& operator=(const HttpRequest& other);
 		HttpRequest(const ServerConfig& cfg, int fd);
 		~HttpRequest();
 		void	readSocket(int socket);

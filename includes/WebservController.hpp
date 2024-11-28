@@ -21,6 +21,7 @@
 #include <Socket.hpp>
 #include <EpollUtils.hpp>
 #include <Server.hpp>
+#include <unordered_map>
 
 class WebservController {
 	private:

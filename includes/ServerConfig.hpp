@@ -24,16 +24,15 @@ class RouteConfig;
 
 class ServerConfig {
 	private:
-		const std::string							host;
-		const u_int									port;
-		const std::vector<std::string>				names;
-		const std::map<u_int, std::string>			errorsPages;
-		const u_int									maxClientBodySize;
-		const std::map<std::string ,RouteConfig>	routes;
+		std::string							host;
+		u_int									port;
+		std::vector<std::string>				names;
+		std::map<u_int, std::string>			errorsPages;
+		u_int									maxClientBodySize;
+		std::map<std::string ,RouteConfig>	routes;
 
 		ServerConfig();
 
-//		ServerConfig& operator=(const ServerConfig&);
 
 		static ServerConfig							parseServer(std::string& content);
 		static std::string							parseServerHostName(std::string& serverBlock);
@@ -44,6 +43,7 @@ class ServerConfig {
 		static std::map<std::string, RouteConfig>	parseServerRoutes(std::string& serverBlock);
 
 	public:
+		ServerConfig& operator=(const ServerConfig&);
 		ServerConfig(const std::string& host, const u_int& port, const std::vector<std::string>& names,
 				const std::map<u_int, std::string>& errorsPages, const u_int& maxClientBodySize,
 				const std::map<std::string, RouteConfig>& routes);
