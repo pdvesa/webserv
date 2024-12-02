@@ -9,6 +9,18 @@
 //}
 
 
+HttpRequest::HttpRequest(const HttpRequest& other) : serv(other.serv)
+{
+		requestMethod = other.requestMethod;
+		requestTarget = other.requestTarget;
+		requestVersion = other.requestVersion;
+		requestHeader = other.requestHeader;
+		rawBody = other.rawBody;
+		fullRequest = other.fullRequest;
+		requestPath = other.requestPath;
+		requestBody = other.requestBody;
+		requestStatus = other.requestStatus;
+}
 HttpRequest& HttpRequest::operator=(const HttpRequest& other)
 {
 	if (this != &other)
@@ -85,8 +97,7 @@ void	HttpRequest::fillRequest(std::string req)
 	}
 	req.erase(0, req.find("\r\n") + 2); // need to make scalable just testing
 	fillHeaders(req);
-
-//	fillRawBody(req);
+	fillRawBody(req);
 //	printElements(); // debug atm
 }
 
@@ -113,7 +124,8 @@ void	HttpRequest::fillHeaders(std::string &req)
 		requestPath = "." + requestPath;
 		return ;
 	}
-	validateRequest();
+	buildPath();
+//	validateRequest();
 	std::cout << "Path in fillHeaders: " << requestPath << std::endl;
 }
 void	HttpRequest::printElements() const
@@ -129,28 +141,102 @@ void	HttpRequest::printElements() const
 
 void	HttpRequest::fillRawBody(std::string &req)
 {
+	std::cout << "Body filled with content";
 	rawBody.reserve(req.size());
 	for (const auto &i : req)
+	{
 		rawBody.push_back(i);
+		std::cout << i;
+	}
+	std::cout << std::endl;
 }
 
 
 void	HttpRequest::populateChunks(std::vector<unsigned char>& vec)
 {
 	const char *eof = "\r\n\r\n";
-	// get size_str
-	// strtol hexadecimal into a long, using strtol(str, NULL, 16);
-	// skip \r\n\r\n after size, then read size amount of bytes as body
-	// pass size and body into BodyChunk;
 	auto it = std::search(vec.begin(), vec.end(), eof, eof + strlen(eof));
 	std::string sizestr(vec.begin(), it);
 	long reqSize = strtol(sizestr.c_str(), NULL, 16);
-	// find new string until next eof str
 	std::string body_content = "placeholder";
 	requestBody.emplace_back(reqSize,body_content);
-	// need to find good way to loop thru vec
 }
 
+static void prepPath(std::string& requestPath, std::string index, bool add_index)
+{
+	requestPath.insert(0, ".");
+	if (add_index)
+		requestPath += index;
+}
+
+
+static std::vector<std::string> splitURI(std::string URI)
+{
+	std::vector<std::string> result;
+	size_t start = 0;
+	size_t end = 0;
+	while ((end = URI.find('/', start + 1)) != std::string::npos)
+	{
+		result.push_back(URI.substr(start, end - start + 1));
+		start = end + 1;
+	}
+	if (start < URI.length())
+        result.push_back(URI.substr(start));
+	return result;
+}
+
+
+void HttpRequest::buildPath()
+{
+	std::string latestroot;
+	std::vector<std::string> paths = splitURI(requestTarget);
+	for (const auto &i : paths)
+		std::cout << "Path: " << i << std::endl;
+	std::string index;
+	bool add_index = 1;
+	std::cout << "Target URI: " << requestTarget << std::endl;
+	if (serv.getRoutes().count(requestTarget))
+	{
+		std::cout << "request with location match found!\n";
+		std::cout << requestTarget << std::endl;
+		requestPath = serv.getRoutes().at(requestTarget).getRootDir();
+		prepPath(requestPath, serv.getRoutes().at(requestTarget).getIndex(), add_index);
+//		serv.getRoutes().at(requestTarget).getRedirection()
+		// TODO: redirections and checking that method is allowed in that route
+		return ;
+	}
+//	std::vector<std::string> paths = CppSplit::cppSplit(requestTarget, '/');
+	for (auto &i : paths)
+	{
+		try {
+			requestPath = serv.getRoutes().at(i).getRootDir();
+			index = serv.getRoutes().at(i).getIndex();
+		}
+		catch (std::exception &e)
+		{
+			std::cerr << "Failed to find location : " << i << " in routesMap, appending to previous route\n";
+			requestPath += i;
+			add_index = 0;
+		}
+	}
+	std::cout << "final path in buildPath: " << requestPath << std::endl;
+	requestPath.insert(0, ".");
+	if (add_index)
+		requestPath += index;
+	else
+		requestPath = requestPath.substr(0, requestPath.size());
+	std::cout << "final path in buildPath with resource: " << requestPath << std::endl;
+		if (!std::filesystem::exists(requestPath))
+		{
+			requestStatus = 404;
+			requestPath = serv.getErrorsPages().at(requestStatus);
+			requestPath = "." + requestPath;
+			std::cerr << "404 in buildPath: \n";
+			return ;
+		}
+		// need to append index of latest location;
+
+}
 
 void	HttpRequest::validateRequest()
 {
