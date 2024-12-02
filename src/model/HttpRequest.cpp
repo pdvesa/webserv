@@ -141,7 +141,7 @@ void	HttpRequest::printElements() const
 
 void	HttpRequest::fillRawBody(std::string &req)
 {
-	std::cout << "Body filled with content";
+	std::cout << "Body filled with content :";
 	rawBody.reserve(req.size());
 	for (const auto &i : req)
 	{
@@ -190,14 +190,14 @@ void HttpRequest::buildPath()
 {
 	std::string latestroot;
 	std::vector<std::string> paths = splitURI(requestTarget);
-	for (const auto &i : paths)
-		std::cout << "Path: " << i << std::endl;
+//	for (const auto &i : paths)
+//		std::cout << "Path: " << i << std::endl;
 	std::string index;
 	bool add_index = 1;
-	std::cout << "Target URI: " << requestTarget << std::endl;
+//	std::cout << "Target URI: " << requestTarget << std::endl;
 	if (serv.getRoutes().count(requestTarget))
 	{
-		std::cout << "request with location match found!\n";
+//		std::cout << "request with location match found!\n";
 		std::cout << requestTarget << std::endl;
 		requestPath = serv.getRoutes().at(requestTarget).getRootDir();
 		prepPath(requestPath, serv.getRoutes().at(requestTarget).getIndex(), add_index);
@@ -214,26 +214,26 @@ void HttpRequest::buildPath()
 		}
 		catch (std::exception &e)
 		{
-			std::cerr << "Failed to find location : " << i << " in routesMap, appending to previous route\n";
+//			std::cerr << "Failed to find location : " << i << " in routesMap, appending to previous route\n";
 			requestPath += i;
 			add_index = 0;
 		}
 	}
-	std::cout << "final path in buildPath: " << requestPath << std::endl;
+//	std::cout << "final path in buildPath: " << requestPath << std::endl;
 	requestPath.insert(0, ".");
 	if (add_index)
 		requestPath += index;
 	else
 		requestPath = requestPath.substr(0, requestPath.size());
-	std::cout << "final path in buildPath with resource: " << requestPath << std::endl;
-		if (!std::filesystem::exists(requestPath))
-		{
-			requestStatus = 404;
-			requestPath = serv.getErrorsPages().at(requestStatus);
-			requestPath = "." + requestPath;
-			std::cerr << "404 in buildPath: \n";
-			return ;
-		}
+//	std::cout << "final path in buildPath with resource: " << requestPath << std::endl;
+	if (!std::filesystem::exists(requestPath))
+	{
+		requestStatus = 404;
+		requestPath = serv.getErrorsPages().at(requestStatus);
+		requestPath = "." + requestPath;
+		std::cerr << "404 in buildPath: \n";
+		return ;
+	}
 		// need to append index of latest location;
 
 }
@@ -243,15 +243,15 @@ void	HttpRequest::validateRequest()
 	std::string path;
 	std::string index;
 
-	std::cout << "Size of the map: " << serv.getRoutes().size() << std::endl;
-	for (const auto &pair : serv.getRoutes())
-	{
-		std::cout << "Key: "<< pair.first << std::endl;
-	}
+//	std::cout << "Size of the map: " << serv.getRoutes().size() << std::endl;
+//	for (const auto &pair : serv.getRoutes())
+//	{
+//		std::cout << "Key: "<< pair.first << std::endl;
+//	}
 
 	std::string loc = requestTarget.substr(0, requestTarget.find_last_of('/') + 1);
-	std::cout << "request target " << requestTarget << std::endl;
-	std::cout << "loc target " << loc << std::endl;
+//	std::cout << "request target " << requestTarget << std::endl;
+//	std::cout << "loc target " << loc << std::endl;
 //	std::string allowedMethods[3] {"GET", "POST", "DELETE"};
 	try{
 		path = serv.getRoutes().at(loc).getRootDir(); // hould only access location even if there are things after
@@ -263,21 +263,21 @@ void	HttpRequest::validateRequest()
 		path += index;
 		path = "." + path;
 		requestPath = path;
-		std::cout << "path before checking if exists: " << requestPath << std::endl;
+//		std::cout << "path before checking if exists: " << requestPath << std::endl;
 		if (!std::filesystem::exists(requestPath))
 		{
 			requestStatus = 404;
 			requestPath = serv.getErrorsPages().at(requestStatus);
 			requestPath = "." + requestPath;
 		}
-		std::cout << "Path in request validation: " << requestPath << std::endl;
+//		std::cout << "Path in request validation: " << requestPath << std::endl;
 	}
 	catch (std::exception &e)
 	{
 		requestStatus = 404;
 		requestPath = serv.getErrorsPages().at(requestStatus);
 		requestPath = "." + requestPath;
-		std::cout << "Error path is now: " << requestPath << std::endl;
+//		std::cout << "Error path is now: " << requestPath << std::endl;
 		return ;
 	}
 }
