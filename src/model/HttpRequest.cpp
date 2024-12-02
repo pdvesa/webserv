@@ -18,7 +18,7 @@ HttpRequest::HttpRequest(const HttpRequest& other) : serv(other.serv)
 		rawBody = other.rawBody;
 		fullRequest = other.fullRequest;
 		requestPath = other.requestPath;
-		requestBody = other.requestBody;
+//		requestBody = other.requestBody;
 		requestStatus = other.requestStatus;
 }
 HttpRequest& HttpRequest::operator=(const HttpRequest& other)
@@ -32,7 +32,7 @@ HttpRequest& HttpRequest::operator=(const HttpRequest& other)
 		rawBody = other.rawBody;
 		fullRequest = other.fullRequest;
 		requestPath = other.requestPath;
-		requestBody = other.requestBody;
+//		requestBody = other.requestBody;
 		requestStatus = other.requestStatus;
 	}
 	return (*this);
@@ -97,7 +97,7 @@ void	HttpRequest::fillRequest(std::string req)
 	}
 	req.erase(0, req.find("\r\n") + 2); // need to make scalable just testing
 	fillHeaders(req);
-	fillRawBody(req);
+//	fillRawBody(req);
 //	printElements(); // debug atm
 }
 
@@ -125,6 +125,7 @@ void	HttpRequest::fillHeaders(std::string &req)
 		return ;
 	}
 	buildPath();
+	fillRawBody(req);
 //	validateRequest();
 	std::cout << "Path in fillHeaders: " << requestPath << std::endl;
 }
@@ -151,7 +152,7 @@ void	HttpRequest::fillRawBody(std::string &req)
 	std::cout << std::endl;
 }
 
-
+/*
 void	HttpRequest::populateChunks(std::vector<unsigned char>& vec)
 {
 	const char *eof = "\r\n\r\n";
@@ -161,7 +162,7 @@ void	HttpRequest::populateChunks(std::vector<unsigned char>& vec)
 	std::string body_content = "placeholder";
 	requestBody.emplace_back(reqSize,body_content);
 }
-
+*/
 static void prepPath(std::string& requestPath, std::string index, bool add_index)
 {
 	requestPath.insert(0, ".");
@@ -175,7 +176,7 @@ static std::vector<std::string> splitURI(std::string URI)
 	std::vector<std::string> result;
 	size_t start = 0;
 	size_t end = 0;
-	while ((end = URI.find('/', start + 1)) != std::string::npos)
+	while ((end = URI.find('/', start)) != std::string::npos)
 	{
 		result.push_back(URI.substr(start, end - start + 1));
 		start = end + 1;
@@ -188,33 +189,55 @@ static std::vector<std::string> splitURI(std::string URI)
 
 void HttpRequest::buildPath()
 {
+//	if (requestTarget == "/")
+//		requestPath = serv.getRoutes().at(requestTarget).getRootDir();
 	std::string latestroot;
 	std::vector<std::string> paths = splitURI(requestTarget);
-//	for (const auto &i : paths)
-//		std::cout << "Path: " << i << std::endl;
+	for (const auto &i : paths)
+		std::cout << "Path: " << i << std::endl;
 	std::string index;
 	bool add_index = 1;
+	std::map<std::string ,RouteConfig>	routes = serv.getRoutes();
+	RouteConfig::t_redirection redir;
+	
 //	std::cout << "Target URI: " << requestTarget << std::endl;
-	if (serv.getRoutes().count(requestTarget))
+	if (routes.count(requestTarget))
 	{
-//		std::cout << "request with location match found!\n";
+		std::cout << "request with location match found!\n";
 		std::cout << requestTarget << std::endl;
-		requestPath = serv.getRoutes().at(requestTarget).getRootDir();
-		prepPath(requestPath, serv.getRoutes().at(requestTarget).getIndex(), add_index);
-//		serv.getRoutes().at(requestTarget).getRedirection()
+		requestPath = routes.at(requestTarget).getRootDir();
+		prepPath(requestPath, routes.at(requestTarget).getIndex(), add_index);
+		redir = routes.at(requestTarget).getRedirection(); // will return t_redirect struct;
+		if (!redir.path.empty())
+		{
+			requestPath = redir.path;
+			requestStatus = redir.code;
+		}
 		// TODO: redirections and checking that method is allowed in that route
+		// also add redirection to config file and test to see what syntax is in serverConfig!
 		return ;
 	}
 //	std::vector<std::string> paths = CppSplit::cppSplit(requestTarget, '/');
 	for (auto &i : paths)
 	{
 		try {
-			requestPath = serv.getRoutes().at(i).getRootDir();
-			index = serv.getRoutes().at(i).getIndex();
+			if (routes.count(i))
+			{
+				requestPath = routes.at(i).getRootDir();
+				index = routes.at(i).getIndex();
+				latestroot = requestPath;
+			}
+			else 
+			{
+				i.insert(0, "/");
+				requestPath = routes.at(i).getRootDir();
+				index = routes.at(i).getIndex();
+				latestroot = requestPath;
+			}
 		}
 		catch (std::exception &e)
 		{
-//			std::cerr << "Failed to find location : " << i << " in routesMap, appending to previous route\n";
+			std::cerr << "Failed to find location : " << i << " in routesMap, appending to previous route\n";
 			requestPath += i;
 			add_index = 0;
 		}
@@ -226,6 +249,7 @@ void HttpRequest::buildPath()
 	else
 		requestPath = requestPath.substr(0, requestPath.size());
 //	std::cout << "final path in buildPath with resource: " << requestPath << std::endl;
+	std::cerr << "Before checking if path exists: " << requestPath << std::endl;
 	if (!std::filesystem::exists(requestPath))
 	{
 		requestStatus = 404;
@@ -237,7 +261,7 @@ void HttpRequest::buildPath()
 		// need to append index of latest location;
 
 }
-
+/*
 void	HttpRequest::validateRequest()
 {
 	std::string path;
@@ -280,4 +304,4 @@ void	HttpRequest::validateRequest()
 //		std::cout << "Error path is now: " << requestPath << std::endl;
 		return ;
 	}
-}
+}*/
