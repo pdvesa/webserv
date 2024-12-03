@@ -3,6 +3,8 @@
 HttpResponse::HttpResponse(HttpRequest request, const std::string& responseBody) {
 	this->responseStatusLine = createResponseStatusLine(request.getStatus());
 	this->responseBody = responseBody;
+	if (request.getStatus() >= 400)
+		errorBuilder(this->responseBody, request.getStatus());
 	this->contentLengthLine = createContentLengthLine();
 	this->connectionLine = createConnectionLine();
 }
@@ -41,4 +43,14 @@ std::string HttpResponse::createContentLengthLine() const {
 
 std::string HttpResponse::createConnectionLine() const {
 	return (CONNECTION + ": " + "keep-alive"); //TODO No idea what to put
+}
+
+void HttpResponse::errorBuilder(std::string &response, const int status) {
+	std::cout << response << std::endl;
+	std::string errorStr = std::to_string(status) + " " + httpErrors[status]; //assuming everything here is correct as should :()()
+	int	index = response.find("{{{ERROR}}}");
+	if (index != (int)std::string::npos)
+		response.replace(index, 11, errorStr);
+	else
+		std::cout << "There is literally no reason I will ever print this, fix your shit" << std::endl;
 }
