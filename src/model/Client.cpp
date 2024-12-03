@@ -40,9 +40,14 @@ void	Client::buildRequest()
 }
 void	Client::buildResponse()
 {
-	if (request.has_value())
-		response.emplace(HttpResponse(*request, HandleRequest::handleGet(request->getPath())));
-	else 
+	if (request.has_value()) {
+		if (request->getMethod() == "GET")
+			response.emplace(HttpResponse(*request, HandleRequest::handleGet(request->getPath())));
+		else if (request->getMethod() == "POST")
+			response.emplace(HttpResponse(*request, HandleRequest::handlePost(request->getPath(), request->getBody())));
+		else if (request->getMethod() == "DELETE")
+			response.emplace(HttpResponse(*request, HandleRequest::handleDelete(request->getPath())));
+	} else
 		throw std::runtime_error("Request not ready");
 }
 

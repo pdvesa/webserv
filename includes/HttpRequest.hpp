@@ -23,14 +23,12 @@ class HttpRequest {
 		std::vector<unsigned char>			fullRequest;
 		const ServerConfig&					serv;
 		std::string							requestPath;
-		std::vector<BodyChunk>				requestBody; // more manageable body chunks
+//		std::vector<BodyChunk>				requestBody; // more manageable body chunks
 		int									requestStatus;
 	public:
-//		HttpRequest();
-//		HttpRequest(std::string req);
-//		HttpRequest(const Client &client);
 		HttpRequest& operator=(const HttpRequest& other);
 		HttpRequest(const ServerConfig& cfg, int fd);
+		HttpRequest(const HttpRequest& other);
 		~HttpRequest();
 		void	readSocket(int socket);
 		void	fillRequest(std::string req);
@@ -41,6 +39,8 @@ class HttpRequest {
 		void	populateChunks(std::vector<unsigned char> &vec);
 		void	validateRequest();
 		void	fulfillRequest();
+		void	buildPath();
+		std::vector<unsigned char>& getBody(){return rawBody;}
 		const std::string& getMethod() {return requestMethod;}// should these return const & to string or object????
 		const std::string& getTarget() {return requestTarget;}
 		const std::string& getVersion(){return requestVersion;}
