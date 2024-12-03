@@ -37,6 +37,7 @@ class HttpResponse
 		std::string	createResponseStatusLine(int code) const;
 		std::string	createContentLengthLine() const;
 		std::string	createConnectionLine() const;
+		void		errorBuilder(std::string &response, const int status);
 
 		HttpResponse();
 
