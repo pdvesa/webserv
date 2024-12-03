@@ -19,27 +19,21 @@ const ServerConfig &Client::getConfig() const {
 	return (config);
 }
 
-
-HttpRequest Client::getRequest() const
-{
-	if (request.has_value())
-		return *request;
-	throw std::runtime_error("request not formed yet");
+std::optional<HttpRequest> Client::getRequest() const {
+	return request;
+//	throw std::runtime_error("request not formed yet");
 }
 
-HttpResponse Client::getResponse() const
-{
-	if (response.has_value())
-		return *response;
-	throw std::runtime_error("response not formed yet");
+std::optional<HttpResponse> Client::getResponse() const {
+	return response;
+//	throw std::runtime_error("response not formed yet");
 }
 
-void	Client::buildRequest()
-{
+void	Client::buildRequest() {
 	request.emplace(HttpRequest(getConfig(), getClientFD()));
 }
-void	Client::buildResponse()
-{
+
+void	Client::buildResponse() {
 	if (request.has_value()) {
 		if (request->getMethod() == "GET")
 			response.emplace(HttpResponse(*request, HandleRequest::handleGet(request->getTarget(), request->getPath(), true)));
@@ -51,8 +45,7 @@ void	Client::buildResponse()
 		throw std::runtime_error("Request not ready");
 }
 
-void	Client::clearClear()
-{
+void	Client::clearClear() {
 	request.reset();
 	response.reset();
 }

@@ -24,8 +24,8 @@ class Client {
 		~Client();
 		int getClientFD();
 		int getListening() const;
-		HttpRequest getRequest() const;
-		HttpResponse getResponse() const;
+		std::optional<HttpRequest> getRequest() const;
+		std::optional<HttpResponse> getResponse() const;
 		const ServerConfig &getConfig() const;
 		void		buildRequest();
 		void		buildResponse();
