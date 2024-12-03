@@ -4,11 +4,11 @@
 
 #include <HandleRequest.hpp>
 
-std::string HandleRequest::handleGet(const std::string& target, const std::string& location) {
-	if (isDirectory(location)) {
-		return (listingBody(target, location));
+std::string HandleRequest::handleGet(const std::string& targetUrl, const std::string& serverLocation, bool listing) {
+	if (isDirectory(serverLocation)) {
+		return (listingBody(targetUrl, serverLocation));
 	}
-	std::ifstream	targetFile(location);
+	std::ifstream	targetFile(serverLocation);
 
 	if (!targetFile.is_open()) {
 		throw std::runtime_error("File not found");
@@ -19,14 +19,14 @@ std::string HandleRequest::handleGet(const std::string& target, const std::strin
 	return (buffer.str());
 }
 
-std::string HandleRequest::handleDelete(const std::string& location) {
-	if (access(location.c_str(), W_OK) != 0 || remove(location.c_str()) != 0)
+std::string HandleRequest::handleDelete(const std::string& fileToDelete) {
+	if (access(fileToDelete.c_str(), W_OK) != 0 || remove(fileToDelete.c_str()) != 0)
 		return ("<html><body><h1>Error</h1><p>Cannot delete file</p></body></html>");
 	return ("");
 }
 
-std::string HandleRequest::handlePost(const std::string& location, const std::string& filename, std::vector<unsigned char>& content) {
-	if (access(location.c_str(), W_OK) != 0)
+std::string HandleRequest::handlePost(const std::string& uploadLocation, const std::string& filename, std::vector<unsigned char>& content) {
+	if (access(uploadLocation.c_str(), W_OK) != 0)
 		return ("<html><body><h1>Error</h1><p>Cannot write location</p></body></html>");
 	if (filename.empty()) {
 		std::stringstream	buffer;
@@ -36,10 +36,10 @@ std::string HandleRequest::handlePost(const std::string& location, const std::st
 
 		return (buffer.str());
 	} else {
-		if (access((location + "/" + filename).c_str(), F_OK) == 0)
+		if (access((uploadLocation + "/" + filename).c_str(), F_OK) == 0)
 			return ("<html><body><h1>Error</h1><p>Cannot write file</p></body></html>");
 
-		std::ofstream	targetFile(location + "/" + "name");
+		std::ofstream	targetFile(uploadLocation + "/" + "name");
 
 		if (!targetFile.is_open())
 			return ("<html><body><h1>Error</h1><p>Cannot write file</p></body></html>");
@@ -58,17 +58,17 @@ bool	HandleRequest::isDirectory(const std::string& path) {
 	return (S_ISDIR(statbuf.st_mode));
 }
 
-std::string HandleRequest::listingBody(const std::string& target, const std::string& location) {
+std::string HandleRequest::listingBody(const std::string& targetUrl, const std::string& serverLocation) {
 	std::ostringstream	content;
 	DIR*				directory;
 	dirent*				entry;
 
-	if ((directory = opendir(location.c_str())) != nullptr) {
-		content << "<html><body><h1>Directory listing for " << target << "</h1><ul>";
+	if ((directory = opendir(serverLocation.c_str())) != nullptr) {
+		content << "<html><body><h1>Directory listing for " << targetUrl << "</h1><ul>";
 		while ((entry = readdir(directory)) != nullptr) {
 			std::string name = entry->d_name;
 			if (name != "." && name != "..") {
-				content << "<li><a href=\"" << target << "/" << name << "\">" << name << "</a></li>";
+				content << "<li><a href=\"" << targetUrl << "/" << name << "\">" << name << "</a></li>";
 			}
 		}
 		closedir(directory);

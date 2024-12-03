@@ -22,12 +22,12 @@ class HandleRequest {
 		HandleRequest &operator=(const HandleRequest &);
 
 		static bool			isDirectory(const std::string& path);
-		static std::string	listingBody(const std::string& target, const std::string& location);
+		static std::string	listingBody(const std::string& targetUrl, const std::string& serverLocation);
 
 	public:
-		static std::string	handleGet(const std::string& target, const std::string& location);
-		static std::string	handleDelete(const std::string& location);
-		static std::string	handlePost(const std::string& location, const std::string& filename, std::vector<unsigned char>& content);
+		static std::string	handleGet(const std::string& targetUrl, const std::string& serverLocation, bool listing);
+		static std::string	handleDelete(const std::string& fileToDelete);
+		static std::string	handlePost(const std::string& uploadLocation, const std::string& filename, std::vector<unsigned char>& content);
 };
 
 
