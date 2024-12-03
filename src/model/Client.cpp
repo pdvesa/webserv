@@ -42,9 +42,9 @@ void	Client::buildResponse()
 {
 	if (request.has_value()) {
 		if (request->getMethod() == "GET")
-			response.emplace(HttpResponse(*request, HandleRequest::handleGet(request->getPath())));
+			response.emplace(HttpResponse(*request, HandleRequest::handleGet(request->getTarget(), request->getPath())));
 		else if (request->getMethod() == "POST")
-			response.emplace(HttpResponse(*request, HandleRequest::handlePost(request->getPath(), request->getBody())));
+			response.emplace(HttpResponse(*request, HandleRequest::handlePost(request->getPath(), "", request->getBody())));
 		else if (request->getMethod() == "DELETE")
 			response.emplace(HttpResponse(*request, HandleRequest::handleDelete(request->getPath())));
 	} else
