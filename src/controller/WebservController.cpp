@@ -36,14 +36,11 @@ void	WebservController::run() {
 				}
 			}
 			else if (eventWaitlist[i].events & EPOLLRDHUP) {
-				std::cerr << "\n\n\nin RHDUP\n\n";
-				exit (0);
 				epollDelete(epollFD, currentFD);
 				close(currentFD);
 			}
 			else if (eventWaitlist[i].events & EPOLLIN) {
 				try {
-					std::cerr << "trying to build request for fd: " << currentFD << std::endl;
 					clients.at(currentFD).buildRequest();
 				}
 				catch (const std::runtime_error &e) {
@@ -51,19 +48,17 @@ void	WebservController::run() {
 					continue; 
 				}
 			}
-			else if (eventWaitlist[i].events & EPOLLOUT) {
+			else if (eventWaitlist[i].events & EPOLLOUT && clients.at(currentFD).getRequest()) {
 				try {
-					clients.at(currentFD).buildResponse(); // only works for GET atm;
-					write(currentFD, clients.at(currentFD).getResponse().toString().c_str(), clients.at(currentFD).getResponse().toString().length()); //maybe we need checker if we actually sent everything
+					clients.at(currentFD).buildResponse();
+					write(currentFD, clients.at(currentFD).getResponse()->toString().c_str(), clients.at(currentFD).getResponse()->toString().length()); //maybe we need checker if we actually sent everything also now we live dangerously with dereferencing :)
 //					write(1, clients.at(currentFD).getResponse().toString().c_str(), clients.at(currentFD).getResponse().toString().length()); //debug
-					std::cerr << "\n\ndone writing response\n\n";
 					epollDelete(epollFD, currentFD); //needed with this version of sending
 					close(currentFD);
 //					clients.at(currentFD).clearClear();
-					std::cerr <<"\n\n request/response cleared\n\n";
 				}
 				catch (const std::runtime_error &e) { //make sure its consistent with davids
-//					errorHandler(e, false);
+					errorHandler(e, false);
 					continue;
 				}
 			}
@@ -119,7 +114,7 @@ void WebservController::errorLogger(const std::string &errMsg) {
 	std::ofstream		errorLog;
 	const auto			now = std::chrono::system_clock::now();
 	const std::time_t	timestamp = std::chrono::system_clock::to_time_t(now);
-	std::cerr << "ERROR: " << strerror(errno) << ": "<< errMsg << std::endl;
+//	std::cerr << "ERROR: " << strerror(errno) << ": "<< errMsg << std::endl;
     errorLog.open("error.log", std::ios::app);
     if (errorLog.is_open() && errno) {
         errorLog << std::ctime(&timestamp) << " ERROR: " << "From system: "<< strerror(errno) << ". From program: " << errMsg << std::endl;
