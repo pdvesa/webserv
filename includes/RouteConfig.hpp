@@ -32,6 +32,7 @@ class RouteConfig {
 		const std::string	index;
 		const bool			listing;
 		const std::string	rootDir;
+		const std::string	uploadDir;
 		const t_redirection	redirection;
 
 		RouteConfig();
@@ -42,11 +43,18 @@ class RouteConfig {
 		static std::string		extractIndex(std::string& locationBlock);
 		static bool				extractListing(std::string& locationBlock);
 		static std::string		extractRootDir(std::string& locationBlock);
+		static std::string		extractUploadDir(std::string& locationBlock);
 		static t_redirection	extractRedirection(std::string& locationBlock);
 
 	public:
-		RouteConfig(const bool& GET, const bool& POST, const bool& DELETE, const std::string& index,
-			const bool& listing, const std::string& rootDir, const t_redirection& redirection);
+		RouteConfig(const bool& GET,
+			const bool& POST,
+			const bool& DELETE,
+			const std::string& index,
+			const bool& listing,
+			const std::string& rootDir,
+			const std::string& uploadDir,
+			const t_redirection& redirection);
 		RouteConfig(const RouteConfig& other);
 		~RouteConfig();
 
@@ -54,13 +62,14 @@ class RouteConfig {
 
 		static RouteConfig	fromLocationBlock(std::string& locationBlock);
 
-		bool		getGET() const;
-		bool		getPOST() const;
-		bool		getDELETE() const;
-		std::string getIndex() const;
-		bool		getListing() const;
-		std::string	getRootDir() const;
-		t_redirection getRedirection() const;
+		bool			getGET() const;
+		bool			getPOST() const;
+		bool			getDELETE() const;
+		std::string		getIndex() const;
+		bool			getListing() const;
+		std::string		getRootDir() const;
+		std::string		getUploadDir() const;
+		t_redirection	getRedirection() const;
 };
 
 #endif

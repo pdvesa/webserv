@@ -3,8 +3,6 @@
 //
 
 #include <HandleRequest.hpp>
-#include <iostream>
-#include <unistd.h>
 
 std::string HandleRequest::handleGet(const std::string& target, const std::string& location) {
 	if (isDirectory(location)) {
