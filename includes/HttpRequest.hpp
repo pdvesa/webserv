@@ -63,6 +63,8 @@ class HttpRequest {
 		bool				getListing(){return hasListing;}
 		const ServerConfig&  getServerConfig(){return serv;}
 		std::map<std::string, std::string>& getHeaders(){return requestHeader;}
+
+		void				setStatus(const int status) {this->requestStatus = status;}
 };
 
 #endif

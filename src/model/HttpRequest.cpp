@@ -119,7 +119,6 @@ void	HttpRequest::fillHeaders(std::string &req)
 	}
 	buildPath();
 	updateCGI();
-//	validateRequest();
 	std::cout << "Path in fillHeaders: " << requestPath << std::endl;
 	for(auto & key : requestHeader)
 	{
