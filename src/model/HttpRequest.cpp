@@ -51,7 +51,7 @@ void HttpRequest::readSocket(int socket)
 			break;
 	}
 //	std::cout << "Size of fullreq: " << fullRequest.size() << std::endl;
-//	write(1, fullRequest.data(), fullRequest.size());
+	write(1, fullRequest.data(), fullRequest.size());
 	if (rv == -1)
 		throw std::runtime_error("failed to read from socket");
 	std::string reqstr(fullRequest.begin(), fullRequest.end());
@@ -118,6 +118,10 @@ void	HttpRequest::fillHeaders(std::string &req)
 	fillRawBody(req);
 //	validateRequest();
 	std::cout << "Path in fillHeaders: " << requestPath << std::endl;
+	for(auto & key : requestHeader)
+	{
+		std::cout << "Key: " << key.first << " Value: " << key.second << std::endl;
+	}
 }
 void	HttpRequest::printElements() const
 {
@@ -230,18 +234,41 @@ RouteConfig HttpRequest::findRoute()
 	throw std::runtime_error("failed to find a route");
 }
 */
+void HttpRequest::validateRoute(const RouteConfig& rt)
+{
+	hasListing = rt.getListing();
+	if (requestMethod == "POST")
+	{
+		if (!rt.getPOST())
+			throw std::runtime_error("method not supported");
+	}
+	else if (requestMethod == "DELETE")
+	{
+		if (!rt.getDELETE())
+			throw std::runtime_error("method not supported");
+	}
+	else if (requestMethod == "GET")
+	{
+		if (!rt.getGET())
+			throw std::runtime_error("method not supported");
+	}
+}
 void HttpRequest::buildPath()
 {
 	try
 	{
 		RouteConfig route = findRoute();
-
+		validateRoute(route);
 		requestPath = route.getRootDir();
 		if (requestedResource.empty())
 			requestPath.append(route.getIndex());
 		else
 			requestPath.append(requestedResource);
 		requestPath.insert(0, ".");
+		if (requestMethod == "POST")
+		{
+			requestPath.append(route.getUploadDir());
+		}
 		std::cout << "request path in build: " << requestPath << std::endl;
 		if (!std::filesystem::exists(requestPath))
 			serveError(404);

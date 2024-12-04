@@ -44,12 +44,15 @@ class HttpRequest {
 		void	buildPath();
 		RouteConfig	findRoute();
 		void	serveError(int status);
+		void	validateRoute(const RouteConfig&);
 		std::vector<unsigned char>& getBody(){return rawBody;}
 		const std::string& getMethod() {return requestMethod;}// should these return const & to string or object????
 		const std::string& getTarget() {return requestTarget;}
 		const std::string& getVersion(){return requestVersion;}
 		const std::string& getPath(){return requestPath;}
 		int					getStatus(){return requestStatus;}
+		bool				getListing(){return hasListing;}
+		const ServerConfig&  getServerConfig(){return serv;}
 };
 
 #endif
