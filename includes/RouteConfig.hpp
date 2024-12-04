@@ -26,18 +26,17 @@ class RouteConfig {
 		};
 
 	private:
-		const bool			GET;
-		const bool			POST;
-		const bool			DELETE;
-		const std::string	index;
-		const bool			listing;
-		const std::string	rootDir;
-		const std::string	uploadDir;
-		const t_redirection	redirection;
+		bool			GET;
+		bool			POST;
+		bool			DELETE;
+		std::string		index;
+		bool			listing;
+		std::string		rootDir;
+		std::string		uploadDir;
+		t_redirection	redirection;
 
 		RouteConfig();
 
-		RouteConfig& operator=(const RouteConfig& other);
 
 		static void				extractMethods(bool& GET, bool& POST, bool& DELETE, std::string& locationBlock);
 		static std::string		extractIndex(std::string& locationBlock);
@@ -58,7 +57,8 @@ class RouteConfig {
 		RouteConfig(const RouteConfig& other);
 		~RouteConfig();
 
-		bool	operator==(const RouteConfig&) const;
+		RouteConfig&	operator=(const RouteConfig& other);
+		bool			operator==(const RouteConfig&) const;
 
 		static RouteConfig	fromLocationBlock(std::string& locationBlock);
 

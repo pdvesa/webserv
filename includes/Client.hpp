@@ -10,6 +10,8 @@
 #include <ServerConfig.hpp>
 #include "HttpResponse.hpp"
 #include <optional>
+#include "HandleRequest.hpp"
+
 class HttpRequest;
 class HttpResponse;
 class Client {
@@ -30,6 +32,11 @@ class Client {
 		void		buildRequest();
 		void		buildResponse();
 		void		clearClear();
+
+	private:
+		void	buildErrorResponse(std::exception &e);
+
+		static const	std::string DEFAULT_BODY;
 };
 
 #endif

@@ -62,6 +62,20 @@ RouteConfig::RouteConfig(const RouteConfig& other): GET(other.GET),
 
 RouteConfig::~RouteConfig() { }
 
+RouteConfig& RouteConfig::operator=(const RouteConfig& other) {
+	if (this != &other) {
+		this->GET = other.GET;
+		this->POST = other.POST;
+		this->DELETE = other.DELETE;
+		this->index = other.index;
+		this->listing = other.listing;
+		this->rootDir = other.rootDir;
+		this->uploadDir = other.uploadDir;
+		this->redirection = other.redirection;
+	}
+	return (*this);
+}
+
 bool RouteConfig::operator==(const RouteConfig& other) const {
 	return (GET == other.GET &&
 				POST == other.POST &&
