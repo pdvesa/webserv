@@ -45,6 +45,8 @@ class HttpRequest {
 		const std::string& getTarget() {return requestTarget;}
 		const std::string& getVersion(){return requestVersion;}
 		const std::string& getPath(){return requestPath;}
+		const ServerConfig& getServer(){return serv;}
+		std::string getMapValue(std::string key);
 		int					getStatus(){return requestStatus;}
 };
 
