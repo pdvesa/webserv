@@ -42,7 +42,14 @@ void	Client::buildResponse() {
 		else if (request->getMethod() == "DELETE")
 			response.emplace(HttpResponse(*request, HandleRequest::handleDelete(request->getPath())));
 	} catch (std::exception &e) {
-
+		int	statusCode;
+		try {
+			statusCode = std::stoi(e.what());
+		} catch (...) {
+			statusCode = 500;
+		}
+		request->setStatus(statusCode);
+		response.emplace(HttpResponse(*request, ""));
 	}
 }
 

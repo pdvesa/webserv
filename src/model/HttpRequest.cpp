@@ -115,7 +115,6 @@ void	HttpRequest::fillHeaders(std::string &req)
 		return ;
 	}
 	buildPath();
-	fillRawBody(req);
 //	validateRequest();
 	std::cout << "Path in fillHeaders: " << requestPath << std::endl;
 	for(auto & key : requestHeader)
