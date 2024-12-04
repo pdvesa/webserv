@@ -6,7 +6,9 @@
 
 std::string HandleRequest::handleGet(const std::string& targetUrl, const std::string& serverLocation, bool listing) {
 	if (isDirectory(serverLocation)) {
-		return (listingBody(targetUrl, serverLocation));
+		if (listing)
+			return (listingBody(targetUrl, serverLocation));
+		throw std::runtime_error("File not found");
 	}
 	std::ifstream	targetFile(serverLocation);
 
@@ -21,32 +23,41 @@ std::string HandleRequest::handleGet(const std::string& targetUrl, const std::st
 
 std::string HandleRequest::handleDelete(const std::string& fileToDelete) {
 	if (access(fileToDelete.c_str(), W_OK) != 0 || remove(fileToDelete.c_str()) != 0)
-		return ("<html><body><h1>Error</h1><p>Cannot delete file</p></body></html>");
+		throw std::runtime_error("File not found");
 	return ("");
 }
 
-std::string HandleRequest::handlePost(const std::string& uploadLocation, const std::string& filename, std::vector<unsigned char>& content) {
+std::string HandleRequest::handlePost(const std::string& uploadLocation, const std::string& contentType, std::vector<unsigned char>& content) {
+	(void) contentType;
 	if (access(uploadLocation.c_str(), W_OK) != 0)
-		return ("<html><body><h1>Error</h1><p>Cannot write location</p></body></html>");
-	if (filename.empty()) {
-		std::stringstream	buffer;
+		throw std::runtime_error("Cannot write location");
 
-		for (const unsigned char c : content)
-			buffer << c;
+	std::stringstream	buffer;
 
-		return (buffer.str());
-	} else {
+	for (const unsigned char c : content)
+		buffer << c;
+
+	std::vector<std::string>	linesContent = CppSplit::cppSplit(buffer.str(), '\n');
+	if (linesContent.size() < 5)
+		throw std::runtime_error("Filename not found");
+	try {
+		std::string	filename = Parsing::extractVariable(linesContent[1],"filename=");
+
 		if (access((uploadLocation + "/" + filename).c_str(), F_OK) == 0)
-			return ("<html><body><h1>Error</h1><p>Cannot write file</p></body></html>");
+			throw std::runtime_error("File already exists");
 
 		std::ofstream	targetFile(uploadLocation + "/" + "name");
 
 		if (!targetFile.is_open())
-			return ("<html><body><h1>Error</h1><p>Cannot write file</p></body></html>");
-		for (const unsigned char c : content)
-			targetFile << c;
+			throw std::runtime_error("Error creating file");
+
+		for (unsigned long i = 4; i < linesContent.size() -1; i++) {
+			targetFile << linesContent[i];
+		}
 		targetFile.close();
-		return ("");
+		return ("<html><body><h1>Success</h1></body></html>");
+	} catch (Parsing::VariableNotFoundException&) {
+		throw std::runtime_error("Filename not found");
 	}
 }
 
@@ -63,6 +74,8 @@ std::string HandleRequest::listingBody(const std::string& targetUrl, const std::
 	DIR*				directory;
 	dirent*				entry;
 
+	std::cerr << targetUrl << std::endl;
+	std::cerr << serverLocation << std::endl;
 	if ((directory = opendir(serverLocation.c_str())) != nullptr) {
 		content << "<html><body><h1>Directory listing for " << targetUrl << "</h1><ul>";
 		while ((entry = readdir(directory)) != nullptr) {

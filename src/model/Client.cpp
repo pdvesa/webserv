@@ -34,15 +34,16 @@ void	Client::buildRequest() {
 }
 
 void	Client::buildResponse() {
-	if (request.has_value()) {
+	try {
 		if (request->getMethod() == "GET")
 			response.emplace(HttpResponse(*request, HandleRequest::handleGet(request->getTarget(), request->getPath(), true)));
 		else if (request->getMethod() == "POST")
-			response.emplace(HttpResponse(*request, HandleRequest::handlePost(request->getPath(), "", request->getBody())));
+			response.emplace(HttpResponse(*request, HandleRequest::handlePost(request->getPath(), request->getHeaders().at("Content-Type"), request->getBody())));
 		else if (request->getMethod() == "DELETE")
 			response.emplace(HttpResponse(*request, HandleRequest::handleDelete(request->getPath())));
-	} else
-		throw std::runtime_error("Request not ready");
+	} catch (std::exception &e) {
+
+	}
 }
 
 void	Client::clearClear() {
