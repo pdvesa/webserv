@@ -13,6 +13,12 @@
 //#include "Client.hpp"
 class ServerConfig;
 class Client;
+typedef enum e_cgi
+{
+	NO_CGI = 0,
+	PY = 1,
+	CGI = 2
+} t_cgi;
 class HttpRequest {
 	private:
 		std::string							requestMethod;
@@ -25,6 +31,7 @@ class HttpRequest {
 		std::string							requestPath;
 		std::string							requestedResource;
 //		std::vector<BodyChunk>				requestBody; // more manageable body chunks
+		int									cgiStatus;
 		int									requestStatus;
 		bool								hasListing;
 	public:
@@ -43,8 +50,10 @@ class HttpRequest {
 		void	fulfillRequest();
 		void	buildPath();
 		RouteConfig	findRoute();
+		const RouteConfig checkRedirs(const RouteConfig& rt);
 		void	serveError(int status);
 		void	validateRoute(const RouteConfig&);
+		void	updateCGI();
 		std::vector<unsigned char>& getBody(){return rawBody;}
 		const std::string& getMethod() {return requestMethod;}// should these return const & to string or object????
 		const std::string& getTarget() {return requestTarget;}
