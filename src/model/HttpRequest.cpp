@@ -74,7 +74,9 @@ void	HttpRequest::fillRequest(std::string req)
 	requestMethod = mtv[0];
 	if (mtv[0] != "GET" && mtv[0] != "POST" && mtv[0] != "DELETE")
 	{
-		requestStatus = 405; 
+		requestStatus = 405;
+		serveError(405);
+		std::cout << "Incorrect request method\n\n\n";
 		return ;
 	}
 	requestTarget = mtv[1];
@@ -88,6 +90,7 @@ void	HttpRequest::fillRequest(std::string req)
 	req.erase(0, req.find("\r\n") + 2); // need to make scalable just testing
 	fillHeaders(req);
 	fillRawBody(req);
+
 //	printElements(); // debug atm
 }
 
@@ -115,7 +118,7 @@ void	HttpRequest::fillHeaders(std::string &req)
 		return ;
 	}
 	buildPath();
-	fillRawBody(req);
+	updateCGI();
 //	validateRequest();
 	std::cout << "Path in fillHeaders: " << requestPath << std::endl;
 	for(auto & key : requestHeader)
@@ -130,18 +133,15 @@ void	HttpRequest::printElements() const
 	std::cout << "Request Version:" << requestVersion << std::endl;
 	for (const auto &i : requestHeader)
 		std::cout << "Key:" << i.first << " Value:" << i.second << std::endl;
-//	for (const auto &i : rawBody)
-//		std::cout << "Vector element: " << i << std::endl;
 }
 
 void	HttpRequest::fillRawBody(std::string &req)
 {
-	std::cout << "Body filled with content :";
 	rawBody.reserve(req.size());
 	for (const auto &i : req)
 	{
 		rawBody.push_back(i);
-		std::cout << i;
+//		std::cout << i;
 	}
 	std::cout << std::endl;
 }
@@ -156,37 +156,6 @@ void	HttpRequest::populateChunks(std::vector<unsigned char>& vec)
 	std::string body_content = "placeholder";
 	requestBody.emplace_back(reqSize,body_content);
 }
-
-static void prepPath(std::string& requestPath, std::string index, bool add_index)
-{
-	requestPath.insert(0, ".");
-	if (add_index)
-		requestPath += index;
-}
-
-static void trimPath(std::string &requestPath)
-{
-	size_t i = 0;
-		while ((i = requestPath.find("//") != std::string::npos))
-		{
-			requestPath.replace(i, 2, "/");
-		}
-}
-
-static std::vector<std::string> splitURI(std::string URI)
-{
-	std::vector<std::string> result;
-	size_t start = 0;
-	size_t end = 0;
-	while ((end = URI.find('/', start)) != std::string::npos)
-	{
-		result.push_back(URI.substr(start, end - start + 1));
-		start = end + 1;
-	}
-	if (start < URI.length())
-        result.push_back(URI.substr(start));
-	return result;
-}
 */
 RouteConfig HttpRequest::findRoute() {
     size_t latestSlash = requestTarget.rfind('/');
@@ -196,7 +165,7 @@ RouteConfig HttpRequest::findRoute() {
         return routes.at(requestTarget);
     }
     while (latestSlash != std::string::npos) {
-        routeMatch = requestTarget.substr(0, latestSlash + 1); // Retain trailing slash
+        routeMatch = requestTarget.substr(0, latestSlash + 1);
         if (routes.find(routeMatch) != routes.end()) {
 			requestedResource = requestTarget.substr(latestSlash + 1);
 			std::cout << "returning with route at: " << routeMatch << " and requested resource: " << requestedResource;
@@ -212,28 +181,17 @@ RouteConfig HttpRequest::findRoute() {
     throw std::runtime_error("Failed to find a route for: " + requestTarget);
 }
 
-/*
-RouteConfig HttpRequest::findRoute()
+const RouteConfig HttpRequest::checkRedirs(const RouteConfig& rt)
 {
-	requestTarget = normalizeURI(requestTarget);
-	size_t latestSlash = requestTarget.rfind('/');
-	std::map<std::string ,RouteConfig>	routes = serv.getRoutes();
-	RouteConfig::t_redirection redir;
-	std::string requestedResource = requestTarget.substr(latestSlash + 1, requestTarget.length());
-	std::cout << "Requested resource in findRoute: " << requestedResource << std::endl;
-	if (routes.count(requestTarget))
-		return routes.at(requestTarget);
-	while (latestSlash != std::string::npos)
+	if (!rt.getRedirection().path.empty())
 	{
-		std::cout << "Request target in findRoute" << requestTarget << std::endl;
-		requestTarget = requestTarget.substr(0, latestSlash);
-		if (routes.count(requestTarget))
-			return routes.at(requestTarget);
-		latestSlash = requestTarget.rfind('/');
+		RouteConfig::t_redirection redir = rt.getRedirection();
+		requestStatus = redir.code;
+		return serv.getRoutes().at(redir.path);
 	}
-	throw std::runtime_error("failed to find a route");
+	return rt;
 }
-*/
+
 void HttpRequest::validateRoute(const RouteConfig& rt)
 {
 	hasListing = rt.getListing();
@@ -260,14 +218,15 @@ void HttpRequest::buildPath()
 		RouteConfig route = findRoute();
 		validateRoute(route);
 		requestPath = route.getRootDir();
-		if (requestedResource.empty())
+//		route = checkRedirs(route); implemented with changes to ROUTE class, updates route to the redirected one in case of redir
+		if (requestedResource.empty() && requestMethod == "GET")
 			requestPath.append(route.getIndex());
 		else
 			requestPath.append(requestedResource);
 		requestPath.insert(0, ".");
 		if (requestMethod == "POST")
 		{
-			requestPath.append(route.getUploadDir());
+			requestPath.append(route.getUploadDir() + "/");
 		}
 		std::cout << "request path in build: " << requestPath << std::endl;
 		if (!std::filesystem::exists(requestPath))
@@ -280,86 +239,32 @@ void HttpRequest::buildPath()
 		requestStatus = 404;
 		requestPath = serv.getErrorsPages().at(404);
 	}
-
 }
 void	HttpRequest::serveError(int status)
 {
 	requestStatus = status;
 	requestPath = serv.getErrorsPages().at(status);
+	requestPath.insert(0, ".");
 }
 
-/*
-void HttpRequest::buildPath()
+void	HttpRequest::updateCGI()
 {
-	std::vector<std::string> paths = splitURI(requestTarget);
-	for (const auto &i : paths)
-		std::cout << "Path: " << i << std::endl;
-	std::string latestroot;
-	std::string index;
-	bool add_index = 1;
-	std::map<std::string ,RouteConfig>	routes = serv.getRoutes();
-	RouteConfig::t_redirection redir;
-	std::cout << "in buildpath with new path testing\n\n\n: " << findRoute() << std::endl;
-	if (routes.count(requestTarget))
+	if (requestPath.find("/cgi-bin/") != std::string::npos)
 	{
-		std::cout << "request with location match found!\n";
-		std::cout << requestTarget << std::endl;
-		requestPath = routes.at(requestTarget).getRootDir();
-		prepPath(requestPath, routes.at(requestTarget).getIndex(), 0);
-		if (!std::filesystem::exists(requestPath))
+		if (requestedResource.substr(requestedResource.length() - 3) == ".py")
 		{
-			requestStatus = 404;
-			requestPath = serv.getErrorsPages().at(requestStatus);
-			requestPath = "." + requestPath;
-			std::cerr << "404 in buildPath: \n";
+			cgiStatus = PY;
+		std::cout << "\n\n\n\n\n CGI STATUS: " << cgiStatus << std::endl;
 			return ;
 		}
-		redir = routes.at(requestTarget).getRedirection(); // will return t_redirect struct;
-		if (!redir.path.empty())
+		if (requestedResource.substr(requestedResource.length() - 4) == ".cgi")
 		{
-			requestPath = redir.path;
-			requestStatus = redir.code;
-		}
-		return ;
-	}
-	for (auto &i : paths)
-	{
-		try {
-			if (routes.count(i))
-			{
-				requestPath = routes.at(i).getRootDir();
-				index = routes.at(i).getIndex();
-				latestroot = requestPath;
-			}
-			else 
-			{
-				i.insert(0, "/");
-				requestPath = routes.at(i).getRootDir();
-				index = routes.at(i).getIndex();
-				latestroot = requestPath;
-			}
-		}
-		catch (std::exception &e)
-		{
-			std::cerr << "Failed to find location : " << i << " in routesMap, appending to previous route\n";
-			requestPath += i;
-			add_index = 0;
+			cgiStatus = CGI;
+		std::cout << "\n\n\n\n\n CGI STATUS: " << cgiStatus << std::endl;
+			return ;
 		}
 	}
-	requestPath.insert(0, ".");
-	if (add_index)
-		requestPath += index;
-	else
-		requestPath = requestPath.substr(0, requestPath.size());
-//	trimPath(requestPath);
-	std::cerr << "Before checking if path exists: " << requestPath << std::endl;
-	if (!std::filesystem::exists(requestPath))
-	{
-		requestStatus = 404;
-		requestPath = serv.getErrorsPages().at(requestStatus);
-		requestPath = "." + requestPath;
-		std::cerr << "404 in buildPath: \n";
-		return ;
-	}
-
-}*/
+	cgiStatus = NO_CGI;
+	std::cout << "\n\n\n\n\n CGI STATUS: " << cgiStatus << std::endl;
+	return ;
+}

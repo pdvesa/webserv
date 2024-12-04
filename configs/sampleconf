@@ -13,6 +13,9 @@ location / {
     upload_dir upload
 }
 
+location /redir/ {
+	return 301 /home/
+}
 location /home/ {
     methods GET DELETE
     listing on
