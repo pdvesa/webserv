@@ -4,10 +4,12 @@
 
 #include <HandleRequest.hpp>
 
-std::string HandleRequest::handleGet(const std::string& targetUrl, const std::string& serverLocation, bool listing) {
+std::string HandleRequest::handleGet(const std::string& targetUrl, const std::string& serverLocation, bool listing, std::string& contentType) {
 	if (isDirectory(serverLocation)) {
-		if (listing)
+		if (listing) {
+			contentType = "text/html";
 			return (listingBody(targetUrl, serverLocation));
+		}
 		throw std::runtime_error("401");
 	}
 	std::ifstream	targetFile(serverLocation);
@@ -15,6 +17,7 @@ std::string HandleRequest::handleGet(const std::string& targetUrl, const std::st
 	if (!targetFile.is_open()) {
 		throw std::runtime_error("404");
 	}
+	contentType = getContentType(serverLocation);
 	std::stringstream buffer;
 	buffer << targetFile.rdbuf();
 	targetFile.close();
@@ -103,4 +106,27 @@ std::string HandleRequest::listingBody(const std::string& targetUrl, const std::
 		throw std::runtime_error("500");
 	}
 	return (content.str());
+}
+
+std::string HandleRequest::getContentType(const std::string& filePath) {
+	static const std::map<std::string, std::string> extensionToMimeType = {
+		{".html", "text/html"},
+		{".css", "text/css"},
+		{".js", "application/javascript"},
+		{".json", "application/json"},
+		{".png", "image/png"},
+		{".jpg", "image/jpeg"},
+		{".jpeg", "image/jpeg"},
+		{".gif", "image/gif"},
+		{".txt", "text/plain"}
+	};
+
+	size_t extensionIndex = filePath.find_last_of('.');
+	if (extensionIndex != std::string::npos) {
+		std::string extension = filePath.substr(extensionIndex);
+
+		if (extensionToMimeType.contains(extension))
+			return (extensionToMimeType.at(extension));
+	}
+	return ("application/octet-stream");
 }

@@ -14,6 +14,7 @@
 #include <unistd.h>
 #include <Parsing.hpp>
 #include <CppSplit.hpp>
+#include <map>
 
 class HandleRequest {
 	private:
@@ -25,9 +26,10 @@ class HandleRequest {
 
 		static bool			isDirectory(const std::string& path);
 		static std::string	listingBody(const std::string& targetUrl, const std::string& serverLocation);
+		static std::string getContentType(const std::string& filePath);
 
 	public:
-		static std::string	handleGet(const std::string& targetUrl, const std::string& serverLocation, bool listing);
+		static std::string	handleGet(const std::string& targetUrl, const std::string& serverLocation, bool listing, std::string& contentType);
 		static std::string	handleDelete(const std::string& fileToDelete);
 		static std::string	handlePost(const std::string& uploadLocation, const std::string& contentType, std::vector<unsigned char>& content);
 };

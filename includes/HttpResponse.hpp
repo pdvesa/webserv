@@ -1,4 +1,5 @@
 #pragma once
+
 #include "HttpRequest.hpp"
 #include <iostream>
 #include <fstream>
@@ -23,9 +24,11 @@ class HttpResponse
 		std::string	contentLengthLine;
 		std::string	connectionLine;
 		std::string	responseBody;
+		std::string	contentTypeLine;
 
 	public:
-		HttpResponse(HttpRequest request, const std::string& responseBody);
+
+		HttpResponse(HttpRequest request, const std::string& responseBody, const std::string& contentType);
 		HttpResponse(const HttpResponse& other);
 		~HttpResponse();
 
@@ -37,6 +40,7 @@ class HttpResponse
 		std::string	createResponseStatusLine(int code) const;
 		std::string	createContentLengthLine() const;
 		std::string	createConnectionLine() const;
+		std::string createContentTypeLine(const std::string& contentType) const;
 		void		errorBuilder(std::string &response, const int status);
 
 		HttpResponse();
@@ -44,6 +48,7 @@ class HttpResponse
 		const std::string	HTTP_VERSION = "HTTP/1.1";
 		const std::string	CONTENT_LENGTH = "Content-Length";
 		const std::string	CONNECTION = "Connection";
+		const std::string	CONTENT_TYPE = "Content-Type";
 		std::map<int, std::string> httpErrors = {
 			{200, "OK"},
 			{400, "Bad Request"},

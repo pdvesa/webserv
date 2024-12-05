@@ -1,12 +1,13 @@
 #include "HttpResponse.hpp"
 
-HttpResponse::HttpResponse(HttpRequest request, const std::string& responseBody) {
+HttpResponse::HttpResponse(HttpRequest request, const std::string& responseBody, const std::string& contentType) {
 	this->responseStatusLine = createResponseStatusLine(request.getStatus());
 	this->responseBody = responseBody;
 	if (request.getStatus() >= 400)
 		errorBuilder(this->responseBody, request.getStatus());
 	this->contentLengthLine = createContentLengthLine();
 	this->connectionLine = createConnectionLine();
+	this->contentTypeLine = createContentTypeLine(contentType);
 }
 
 HttpResponse::HttpResponse(const HttpResponse& other) {
@@ -21,12 +22,14 @@ HttpResponse& HttpResponse::operator=(const HttpResponse& other) {
 		responseBody = other.responseBody;
 		contentLengthLine = other.contentLengthLine;
 		connectionLine = other.connectionLine;
+		contentTypeLine = other.contentTypeLine;
 	}
 	return (*this);
 }
 
 std::string HttpResponse::toString() const {
 	return (responseStatusLine + "\n"
+		+ contentTypeLine + "\n"
 		+ contentLengthLine + "\n"
 		+ connectionLine + "\n\n" +
 		responseBody);
@@ -43,6 +46,10 @@ std::string HttpResponse::createContentLengthLine() const {
 
 std::string HttpResponse::createConnectionLine() const {
 	return (CONNECTION + ": " + "keep-alive"); //TODO No idea what to put
+}
+
+std::string HttpResponse::createContentTypeLine(const std::string& contentType) const {
+	return (CONTENT_TYPE + ": " + contentType);
 }
 
 void HttpResponse::errorBuilder(std::string &response, const int status) {

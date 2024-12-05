@@ -34,12 +34,22 @@ void	Client::buildRequest() {
 
 void	Client::buildResponse() {
 	try {
+		std::string	path = request->getPath();
+
 		if (request->getMethod() == "GET")
-			response.emplace(HttpResponse(*request, HandleRequest::handleGet(request->getTarget(), request->getPath(), true)));
+		{
+			std::string	contentType;
+			response.emplace(HttpResponse(*request, HandleRequest::handleGet(request->getTarget(),path , true, contentType), contentType));
+		}
 		else if (request->getMethod() == "POST")
-			response.emplace(HttpResponse(*request, HandleRequest::handlePost(request->getPath(), request->getHeaders().at("Content-Type"), request->getBody())));
+		{
+			response.emplace(HttpResponse(*request, HandleRequest::handlePost(path,
+				request->getHeaders().at("Content-Type"), request->getBody()), "text/html"));
+		}
 		else if (request->getMethod() == "DELETE")
-			response.emplace(HttpResponse(*request, HandleRequest::handleDelete(request->getPath())));
+		{
+			response.emplace(HttpResponse(*request, HandleRequest::handleDelete(path), "text/html"));
+		}
 	} catch (std::exception &e) {
 		buildErrorResponse(e);
 	}
@@ -69,7 +79,7 @@ void Client::buildErrorResponse(std::exception &e) {
 		} catch (std::exception&) { }
 	}
 	request->setStatus(static_cast<int>(statusCode));
-	response.emplace(HttpResponse(*request, body));
+	response.emplace(HttpResponse(*request, body, "text/html"));
 }
 
 const std::string Client::DEFAULT_BODY = "<!DOCTYPE html><html lang=\"en\"><head><meta charset=\"UTF-8\"><meta name=\"viewport\""

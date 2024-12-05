@@ -52,7 +52,7 @@ void	WebservController::run() {
 				try {
 					clients.at(currentFD).buildResponse();
 					write(currentFD, clients.at(currentFD).getResponse()->toString().c_str(), clients.at(currentFD).getResponse()->toString().length()); //maybe we need checker if we actually sent everything also now we live dangerously with dereferencing :)
-//					write(1, clients.at(currentFD).getResponse().toString().c_str(), clients.at(currentFD).getResponse().toString().length()); //debug
+					write(1, clients.at(currentFD).getResponse()->toString().c_str(), clients.at(currentFD).getResponse()->toString().length()); //debug
 					epollDelete(epollFD, currentFD); //needed with this version of sending
 					close(currentFD);
 //					clients.at(currentFD).clearClear();
