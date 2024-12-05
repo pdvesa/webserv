@@ -59,7 +59,7 @@ void Client::buildErrorResponse(std::exception &e) {
 	}
 	std::string	body = DEFAULT_BODY;
 
-	if (request->getServerConfig().getErrorsPages().find(statusCode) != request->getServerConfig().getErrorsPages().end()) {
+	if (request->getServerConfig().getErrorsPages().contains(statusCode)) {
 		try {
 			if (std::ifstream errorPage(request->getServerConfig().getErrorsPages()[statusCode]); errorPage.is_open()) {
 				std::stringstream	buffer;
