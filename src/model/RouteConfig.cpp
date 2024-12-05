@@ -4,17 +4,6 @@
 
 #include <RouteConfig.hpp>
 
-bool RouteConfig::operator==(const RouteConfig& other) const {
-	return (GET == other.GET &&
-				POST == other.POST &&
-				DELETE == other.DELETE &&
-				index == other.index &&
-				listing == other.listing &&
-				rootDir == other.rootDir &&
-				redirection.code == other.redirection.code &&
-				redirection.path == other.redirection.path);
-}
-
 RouteConfig RouteConfig::fromLocationBlock(std::string& locationBlock) {
 
 	bool			GET = false;
@@ -23,6 +12,7 @@ RouteConfig RouteConfig::fromLocationBlock(std::string& locationBlock) {
 	std::string		index;
 	bool			listing = false;
 	std::string		rootDir;
+	std::string		uploadDir;
 	t_redirection	redirection = {"", 0};
 
 	try {
@@ -32,12 +22,15 @@ RouteConfig RouteConfig::fromLocationBlock(std::string& locationBlock) {
 		index = extractIndex(locationBlock);
 		listing = extractListing(locationBlock);
 		rootDir = extractRootDir(locationBlock);
+		if (POST)
+			uploadDir = extractUploadDir(locationBlock);
+
 	}
 
 	if (!IsBlank::isBlank(locationBlock))
 		throw ServerConfig::InvalidConfigFileException();
 
-	return (RouteConfig(GET, POST, DELETE, index, listing, rootDir, redirection));
+	return (RouteConfig(GET, POST, DELETE, index, listing, rootDir, uploadDir, redirection));
 }
 
 RouteConfig::RouteConfig(const bool& GET,
@@ -46,6 +39,7 @@ RouteConfig::RouteConfig(const bool& GET,
 	const std::string& index,
 	const bool& listing,
 	const std::string& rootDir,
+	const std::string& uploadDir,
 	const t_redirection& redirection):
 	GET(GET),
 	POST(POST),
@@ -53,6 +47,7 @@ RouteConfig::RouteConfig(const bool& GET,
 	index(index),
 	listing(listing),
 	rootDir(rootDir),
+	uploadDir(uploadDir),
 	redirection(redirection) { }
 
 RouteConfig::RouteConfig(const RouteConfig& other): GET(other.GET),
@@ -61,10 +56,37 @@ RouteConfig::RouteConfig(const RouteConfig& other): GET(other.GET),
 													index(other.index),
 													listing(other.listing),
 													rootDir(other.rootDir),
+													uploadDir(other.uploadDir),
 													redirection(other.redirection) {
 }
 
 RouteConfig::~RouteConfig() { }
+
+RouteConfig& RouteConfig::operator=(const RouteConfig& other) {
+	if (this != &other) {
+		this->GET = other.GET;
+		this->POST = other.POST;
+		this->DELETE = other.DELETE;
+		this->index = other.index;
+		this->listing = other.listing;
+		this->rootDir = other.rootDir;
+		this->uploadDir = other.uploadDir;
+		this->redirection = other.redirection;
+	}
+	return (*this);
+}
+
+bool RouteConfig::operator==(const RouteConfig& other) const {
+	return (GET == other.GET &&
+				POST == other.POST &&
+				DELETE == other.DELETE &&
+				index == other.index &&
+				listing == other.listing &&
+				rootDir == other.rootDir &&
+				uploadDir == other.uploadDir &&
+				redirection.code == other.redirection.code &&
+				redirection.path == other.redirection.path);
+}
 
 void RouteConfig::extractMethods(bool& GET, bool& POST, bool& DELETE, std::string& locationBlock) {
 	std::vector<std::string>	methodsVector = CppSplit::cppSplit(
@@ -100,6 +122,10 @@ bool RouteConfig::extractListing(std::string& locationBlock) {
 
 std::string RouteConfig::extractRootDir(std::string& locationBlock) {
 	return (Parsing::extractVariable(locationBlock, "root"));
+}
+
+std::string RouteConfig::extractUploadDir(std::string& locationBlock) {
+	return (Parsing::extractVariable(locationBlock, "upload_dir"));
 }
 
 RouteConfig::t_redirection RouteConfig::extractRedirection(std::string& locationBlock) {
@@ -140,6 +166,10 @@ bool RouteConfig::getListing() const {
 
 std::string RouteConfig::getRootDir() const {
     return (rootDir);
+}
+
+std::string RouteConfig::getUploadDir() const {
+	return (uploadDir);
 }
 
 RouteConfig::t_redirection RouteConfig::getRedirection() const {

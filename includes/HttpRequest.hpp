@@ -13,6 +13,12 @@
 //#include "Client.hpp"
 class ServerConfig;
 class Client;
+typedef enum e_cgi
+{
+	NO_CGI = 0,
+	PY = 1,
+	CGI = 2
+} t_cgi;
 class HttpRequest {
 	private:
 		std::string							requestMethod;
@@ -23,8 +29,11 @@ class HttpRequest {
 		std::vector<unsigned char>			fullRequest;
 		const ServerConfig&					serv;
 		std::string							requestPath;
+		std::string							requestedResource;
 //		std::vector<BodyChunk>				requestBody; // more manageable body chunks
+		int									cgiStatus;
 		int									requestStatus;
+		bool								hasListing;
 	public:
 		HttpRequest& operator=(const HttpRequest& other);
 		HttpRequest(const ServerConfig& cfg, int fd);
@@ -40,6 +49,11 @@ class HttpRequest {
 		void	validateRequest();
 		void	fulfillRequest();
 		void	buildPath();
+		RouteConfig	findRoute();
+		const RouteConfig checkRedirs(const RouteConfig& rt);
+		void	serveError(int status);
+		void	validateRoute(const RouteConfig&);
+		void	updateCGI();
 		std::vector<unsigned char>& getBody(){return rawBody;}
 		const std::string& getMethod() {return requestMethod;}// should these return const & to string or object????
 		const std::string& getTarget() {return requestTarget;}
@@ -48,6 +62,11 @@ class HttpRequest {
 		const ServerConfig& getServer(){return serv;}
 		std::string getMapValue(std::string key);
 		int					getStatus(){return requestStatus;}
+		bool				getListing(){return hasListing;}
+		const ServerConfig&  getServerConfig(){return serv;}
+		std::map<std::string, std::string>& getHeaders(){return requestHeader;}
+
+		void				setStatus(const int status) {this->requestStatus = status;}
 };
 
 #endif

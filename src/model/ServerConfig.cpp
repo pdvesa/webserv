@@ -5,27 +5,6 @@
 #include <ServerConfig.hpp>
 
 
-ServerConfig& ServerConfig::operator=(const ServerConfig& other) {
-    if (this != &other) {
-        host = other.host;
-        port = other.port;
-        names = other.names;
-        errorsPages = other.errorsPages;
-        maxClientBodySize = other.maxClientBodySize;
-        routes = other.routes;
-    }
-    return (*this);
-}
-
-bool ServerConfig::operator==(const ServerConfig& other) const {
-	return (host == other.host &&
-				port == other.port &&
-				names == other.names &&
-				errorsPages == other.errorsPages &&
-				maxClientBodySize == other.maxClientBodySize &&
-				routes == other.routes);
-}
-
 std::vector<ServerConfig> ServerConfig::fromConfigFile(const std::string& filePath) {
 	std::ifstream	configFile(filePath);
 
@@ -65,6 +44,27 @@ ServerConfig::ServerConfig(const ServerConfig& other) : host(other.host),
 	errorsPages(other.errorsPages),
 	maxClientBodySize(other.getMaxClientBodySize()),
 	routes(other.routes) { }
+
+ServerConfig& ServerConfig::operator=(const ServerConfig& other) {
+	if (this != &other) {
+		host = other.host;
+		port = other.port;
+		names = other.names;
+		errorsPages = other.errorsPages;
+		maxClientBodySize = other.maxClientBodySize;
+		routes = other.routes;
+	}
+	return (*this);
+}
+
+bool ServerConfig::operator==(const ServerConfig& other) const {
+	return (host == other.host &&
+				port == other.port &&
+				names == other.names &&
+				errorsPages == other.errorsPages &&
+				maxClientBodySize == other.maxClientBodySize &&
+				routes == other.routes);
+}
 
 ServerConfig ServerConfig::parseServer(std::string& content) {
 	std::string serverBlock;

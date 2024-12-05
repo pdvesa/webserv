@@ -3,12 +3,6 @@
 #include <unistd.h>
 #include "Client.hpp"
 
-//HttpRequest::HttpRequest(const Client &client) : serv(client.getConfig()), requestStatus(200)
-//{
-//	readSocket(client.getClientFD());
-//}
-
-
 HttpRequest::HttpRequest(const HttpRequest& other) : serv(other.serv)
 {
 		requestMethod = other.requestMethod;
@@ -18,9 +12,10 @@ HttpRequest::HttpRequest(const HttpRequest& other) : serv(other.serv)
 		rawBody = other.rawBody;
 		fullRequest = other.fullRequest;
 		requestPath = other.requestPath;
-//		requestBody = other.requestBody;
 		requestStatus = other.requestStatus;
+		requestedResource = other.requestedResource;
 }
+
 HttpRequest& HttpRequest::operator=(const HttpRequest& other)
 {
 	if (this != &other)
@@ -32,14 +27,14 @@ HttpRequest& HttpRequest::operator=(const HttpRequest& other)
 		rawBody = other.rawBody;
 		fullRequest = other.fullRequest;
 		requestPath = other.requestPath;
-//		requestBody = other.requestBody;
 		requestStatus = other.requestStatus;
+		requestedResource = other.requestedResource;
 	}
 	return (*this);
 }
 
 
-HttpRequest::HttpRequest(const ServerConfig &cfg, int fd) : serv(cfg), requestStatus(200)
+HttpRequest::HttpRequest(const ServerConfig &cfg, int fd) : serv(cfg), requestedResource(""), requestStatus(200)
 {
 	readSocket(fd);
 }
@@ -48,14 +43,14 @@ void HttpRequest::readSocket(int socket)
 {
 	int							rv;
 	std::vector<unsigned char>	buffer(BUF_SIZE);
-	std::cout << "buffer size: " << BUF_SIZE << std::endl;
+//	std::cout << "buffer size: " << BUF_SIZE << std::endl;
 	while ((rv = read(socket, buffer.data(), BUF_SIZE)) > 0) {
 		buffer.resize(rv);
 		fullRequest.insert(fullRequest.end(), buffer.begin(), buffer.end()); // might read too much into buffer
 		if (rv < BUF_SIZE) 
 			break;
 	}
-	std::cout << "Size of fullreq: " << fullRequest.size() << std::endl;
+//	std::cout << "Size of fullreq: " << fullRequest.size() << std::endl;
 	write(1, fullRequest.data(), fullRequest.size());
 	if (rv == -1)
 		throw std::runtime_error("failed to read from socket");
@@ -79,26 +74,23 @@ void	HttpRequest::fillRequest(std::string req)
 	requestMethod = mtv[0];
 	if (mtv[0] != "GET" && mtv[0] != "POST" && mtv[0] != "DELETE")
 	{
-		requestStatus = 405; // METHOD NOT ALLOWED
+		requestStatus = 405;
+		serveError(405);
+		std::cout << "Incorrect request method\n\n\n";
 		return ;
 	}
-	requestTarget = mtv[1]; // check if target is valid
-	// some sort of :
-	// if (requestTarget != validTarget)
-	// {
-	//	requestStatus = 404;
-	//	return ;
-	//	}
+	requestTarget = mtv[1];
 	requestVersion = mtv[2]; // check if version is correct one
 	if (requestVersion != "HTTP/1.1")
 	{
+		std::cout << "version mismatch \n" << std::endl;
 		requestStatus = 505; // HTTP VERSION NOT SUPPORTED
 		return ;
 	}
 	req.erase(0, req.find("\r\n") + 2); // need to make scalable just testing
 	fillHeaders(req);
-//	fillRawBody(req);
-	printElements(); // debug atm
+	fillRawBody(req);
+//	printElements(); // debug atm
 }
 
 void	HttpRequest::fillHeaders(std::string &req)
@@ -125,9 +117,12 @@ void	HttpRequest::fillHeaders(std::string &req)
 		return ;
 	}
 	buildPath();
-	fillRawBody(req);
-//	validateRequest();
+	updateCGI();
 	std::cout << "Path in fillHeaders: " << requestPath << std::endl;
+	for(auto & key : requestHeader)
+	{
+		std::cout << "Key: " << key.first << " Value: " << key.second << std::endl;
+	}
 }
 void	HttpRequest::printElements() const
 {
@@ -136,18 +131,15 @@ void	HttpRequest::printElements() const
 	std::cout << "Request Version:" << requestVersion << std::endl;
 	for (const auto &i : requestHeader)
 		std::cout << "Key:" << i.first << " Value:" << i.second << std::endl;
-//	for (const auto &i : rawBody)
-//		std::cout << "Vector element: " << i << std::endl;
 }
 
 void	HttpRequest::fillRawBody(std::string &req)
 {
-	std::cout << "Body filled with content :";
 	rawBody.reserve(req.size());
 	for (const auto &i : req)
 	{
 		rawBody.push_back(i);
-		std::cout << i;
+//		std::cout << i;
 	}
 	std::cout << std::endl;
 }
@@ -163,153 +155,114 @@ void	HttpRequest::populateChunks(std::vector<unsigned char>& vec)
 	requestBody.emplace_back(reqSize,body_content);
 }
 */
-static void prepPath(std::string& requestPath, std::string index, bool add_index)
-{
-	requestPath.insert(0, ".");
-	if (add_index)
-		requestPath += index;
+RouteConfig HttpRequest::findRoute() {
+    size_t latestSlash = requestTarget.rfind('/');
+	std::string routeMatch = requestTarget;
+    std::map<std::string, RouteConfig> routes = serv.getRoutes();
+    if (routes.find(requestTarget) != routes.end()) {
+        return routes.at(requestTarget);
+    }
+    while (latestSlash != std::string::npos) {
+        routeMatch = requestTarget.substr(0, latestSlash + 1);
+        if (routes.find(routeMatch) != routes.end()) {
+			requestedResource = requestTarget.substr(latestSlash + 1);
+			std::cout << "returning with route at: " << routeMatch << " and requested resource: " << requestedResource;
+            return routes.at(routeMatch);
+        }
+        routeMatch = routeMatch.substr(0, latestSlash);
+        latestSlash = routeMatch.rfind('/');
+    }
+    if (routes.find("/") != routes.end()) {
+        return routes.at("/");
+    }
+
+    throw std::runtime_error("Failed to find a route for: " + requestTarget);
 }
 
-
-static std::vector<std::string> splitURI(std::string URI)
+const RouteConfig HttpRequest::checkRedirs(const RouteConfig& rt)
 {
-	std::vector<std::string> result;
-	size_t start = 0;
-	size_t end = 0;
-	while ((end = URI.find('/', start)) != std::string::npos)
+	if (!rt.getRedirection().path.empty())
 	{
-		result.push_back(URI.substr(start, end - start + 1));
-		start = end + 1;
+		RouteConfig::t_redirection redir = rt.getRedirection();
+		requestStatus = redir.code;
+		return serv.getRoutes().at(redir.path);
 	}
-	if (start < URI.length())
-        result.push_back(URI.substr(start));
-	return result;
+	return rt;
 }
 
-
+void HttpRequest::validateRoute(const RouteConfig& rt)
+{
+	hasListing = rt.getListing();
+	if (requestMethod == "POST")
+	{
+		if (!rt.getPOST())
+			throw std::runtime_error("method not supported");
+	}
+	else if (requestMethod == "DELETE")
+	{
+		if (!rt.getDELETE())
+			throw std::runtime_error("method not supported");
+	}
+	else if (requestMethod == "GET")
+	{
+		if (!rt.getGET())
+			throw std::runtime_error("method not supported");
+	}
+}
 void HttpRequest::buildPath()
 {
-//	if (requestTarget == "/")
-//		requestPath = serv.getRoutes().at(requestTarget).getRootDir();
-	std::string latestroot;
-	std::vector<std::string> paths = splitURI(requestTarget);
-	for (const auto &i : paths)
-		std::cout << "Path: " << i << std::endl;
-	std::string index;
-	bool add_index = 1;
-	std::map<std::string ,RouteConfig>	routes = serv.getRoutes();
-	RouteConfig::t_redirection redir;
-	
-//	std::cout << "Target URI: " << requestTarget << std::endl;
-	if (routes.count(requestTarget))
+	try
 	{
-		std::cout << "request with location match found!\n";
-		std::cout << requestTarget << std::endl;
-		requestPath = routes.at(requestTarget).getRootDir();
-		prepPath(requestPath, routes.at(requestTarget).getIndex(), add_index);
-		redir = routes.at(requestTarget).getRedirection(); // will return t_redirect struct;
-		if (!redir.path.empty())
-		{
-			requestPath = redir.path;
-			requestStatus = redir.code;
-		}
-		// TODO: redirections and checking that method is allowed in that route
-		// also add redirection to config file and test to see what syntax is in serverConfig!
-		return ;
-	}
-//	std::vector<std::string> paths = CppSplit::cppSplit(requestTarget, '/');
-	for (auto &i : paths)
-	{
-		try {
-			if (routes.count(i))
-			{
-				requestPath = routes.at(i).getRootDir();
-				index = routes.at(i).getIndex();
-				latestroot = requestPath;
-			}
-			else 
-			{
-				i.insert(0, "/");
-				requestPath = routes.at(i).getRootDir();
-				index = routes.at(i).getIndex();
-				latestroot = requestPath;
-			}
-		}
-		catch (std::exception &e)
-		{
-			std::cerr << "Failed to find location : " << i << " in routesMap, appending to previous route\n";
-			requestPath += i;
-			add_index = 0;
-		}
-	}
-//	std::cout << "final path in buildPath: " << requestPath << std::endl;
-	requestPath.insert(0, ".");
-	if (add_index)
-		requestPath += index;
-	else
-		requestPath = requestPath.substr(0, requestPath.size());
-//	std::cout << "final path in buildPath with resource: " << requestPath << std::endl;
-	std::cerr << "Before checking if path exists: " << requestPath << std::endl;
-	if (!std::filesystem::exists(requestPath))
-	{
-		requestStatus = 404;
-		requestPath = serv.getErrorsPages().at(requestStatus);
-		requestPath = "." + requestPath;
-		std::cerr << "404 in buildPath: \n";
-		return ;
-	}
-		// need to append index of latest location;
-
-}
-/*
-void	HttpRequest::validateRequest()
-{
-	std::string path;
-	std::string index;
-
-//	std::cout << "Size of the map: " << serv.getRoutes().size() << std::endl;
-//	for (const auto &pair : serv.getRoutes())
-//	{
-//		std::cout << "Key: "<< pair.first << std::endl;
-//	}
-
-	std::string loc = requestTarget.substr(0, requestTarget.find_last_of('/') + 1);
-//	std::cout << "request target " << requestTarget << std::endl;
-//	std::cout << "loc target " << loc << std::endl;
-//	std::string allowedMethods[3] {"GET", "POST", "DELETE"};
-	try{
-		path = serv.getRoutes().at(loc).getRootDir(); // hould only access location even if there are things after
-	
-		if (requestTarget == loc)
-			index = serv.getRoutes().at(requestTarget).getIndex();
+		RouteConfig route = findRoute();
+		validateRoute(route);
+		requestPath = route.getRootDir();
+//		route = checkRedirs(route); implemented with changes to ROUTE class, updates route to the redirected one in case of redir
+		if (requestedResource.empty() && requestMethod == "GET")
+			requestPath.append(route.getIndex());
 		else
-			index = requestTarget.substr(requestTarget.find_last_of('/') + 1);
-		path += index;
-		path = "." + path;
-		requestPath = path;
-//		std::cout << "path before checking if exists: " << requestPath << std::endl;
-		if (!std::filesystem::exists(requestPath))
+			requestPath.append(requestedResource);
+		requestPath.insert(0, ".");
+		if (requestMethod == "POST")
 		{
-			requestStatus = 404;
-			requestPath = serv.getErrorsPages().at(requestStatus);
-			requestPath = "." + requestPath;
+			requestPath.append(route.getUploadDir() + "/");
 		}
-//		std::cout << "Path in request validation: " << requestPath << std::endl;
+		std::cout << "request path in build: " << requestPath << std::endl;
+		if (!std::filesystem::exists(requestPath))
+			serveError(404);
 	}
 	catch (std::exception &e)
 	{
+		std::cout << e.what();
+		std::cout << "404 in buildPath\n";
 		requestStatus = 404;
-		requestPath = serv.getErrorsPages().at(requestStatus);
-		requestPath = "." + requestPath;
-//		std::cout << "Error path is now: " << requestPath << std::endl;
-		return ;
+		requestPath = serv.getErrorsPages().at(404);
 	}
-}*/
+}
+void	HttpRequest::serveError(int status)
+{
+	requestStatus = status;
+	requestPath = serv.getErrorsPages().at(status);
+	requestPath.insert(0, ".");
+}
 
-std::string HttpRequest::getMapValue(std::string key) {
-	auto found = requestHeader.find(key);
-	if (found == requestHeader.end())
-		return ("");
-	else 
-		return (found->second);
+void	HttpRequest::updateCGI()
+{
+	if (requestPath.find("/cgi-bin/") != std::string::npos)
+	{
+		if (requestedResource.substr(requestedResource.length() - 3) == ".py")
+		{
+			cgiStatus = PY;
+		std::cout << "\n\n\n\n\n CGI STATUS: " << cgiStatus << std::endl;
+			return ;
+		}
+		if (requestedResource.substr(requestedResource.length() - 4) == ".cgi")
+		{
+			cgiStatus = CGI;
+		std::cout << "\n\n\n\n\n CGI STATUS: " << cgiStatus << std::endl;
+			return ;
+		}
+	}
+	cgiStatus = NO_CGI;
+	std::cout << "\n\n\n\n\n CGI STATUS: " << cgiStatus << std::endl;
+	return ;
 }

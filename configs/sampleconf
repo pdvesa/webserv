@@ -6,13 +6,18 @@ error_page 404 405 /www/error/general.html
 client_max_body_size 2
 
 location / {
-    methods GET POST DELETE
+    methods GET DELETE POST
     listing on
     index index.html
     root /www/
+    upload_dir upload
+}
+
+location /redir/ {
+	return 301 /home/
 }
 location /home/ {
-    methods GET POST DELETE
+    methods GET DELETE
     listing on
     index index.html
     root /www/
@@ -30,12 +35,14 @@ location / {
     listing on
     index index.html
     root /www/
+    upload_dir upload
 }
 location /home/ {
     methods GET POST
     listing on
     index index.html
     root /www/
+    upload_dir upload
 }}
 
 server { 
@@ -50,6 +57,7 @@ location /home/ {
     listing on
     index index.html
     root /www/
+    upload_dir upload
 }}
 
 server { 
@@ -64,4 +72,5 @@ location /home/ {
     listing on
     index index.html
     root /www/
+    upload_dir upload
 }}

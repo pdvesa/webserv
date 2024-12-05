@@ -25,12 +25,49 @@ class RouteConfig;
 class ServerConfig {
 	private:
 		std::string							host;
-		u_int									port;
-		std::vector<std::string>				names;
-		std::map<u_int, std::string>			errorsPages;
-		u_int									maxClientBodySize;
+		u_int								port;
+		std::vector<std::string>			names;
+		std::map<u_int, std::string>		errorsPages;
+		u_int								maxClientBodySize;
 		std::map<std::string ,RouteConfig>	routes;
 
+	public:
+		static std::vector<ServerConfig>	fromConfigFile(const std::string&);
+
+
+		ServerConfig(const std::string& host, const u_int& port, const std::vector<std::string>& names,
+				const std::map<u_int, std::string>& errorsPages, const u_int& maxClientBodySize,
+				const std::map<std::string, RouteConfig>& routes);
+		ServerConfig(const ServerConfig&);
+		~ServerConfig();
+
+		ServerConfig&	operator=(const ServerConfig&);
+		bool			operator==(const ServerConfig&) const;
+
+		std::string							getHost() const;
+    	u_int								getPort() const;
+    	std::vector<std::string>			getNames() const;
+    	std::map<u_int, std::string>		getErrorsPages() const;
+    	u_int								getMaxClientBodySize() const;
+    	std::map<std::string, RouteConfig>	getRoutes() const;
+
+		class InvalidConfigFileException : public std::exception {
+			std::string	message;
+
+			public:
+				InvalidConfigFileException();
+				explicit InvalidConfigFileException(const std::string& msg);
+				~InvalidConfigFileException() override;
+
+				const char* what() const noexcept override;
+
+			private:
+				InvalidConfigFileException(const InvalidConfigFileException& other);
+
+				InvalidConfigFileException& operator=(const InvalidConfigFileException& other);
+		};
+
+	private:
 		ServerConfig();
 
 
@@ -41,42 +78,6 @@ class ServerConfig {
 		static std::map<u_int, std::string>			parseServerErrorsPages(std::string& serverBlock);
 		static u_int								parseServerMaxClientBodySize(std::string& serverBlock);
 		static std::map<std::string, RouteConfig>	parseServerRoutes(std::string& serverBlock);
-
-	public:
-		ServerConfig& operator=(const ServerConfig&);
-		ServerConfig(const std::string& host, const u_int& port, const std::vector<std::string>& names,
-				const std::map<u_int, std::string>& errorsPages, const u_int& maxClientBodySize,
-				const std::map<std::string, RouteConfig>& routes);
-		ServerConfig(const ServerConfig&);
-		~ServerConfig();
-
-		bool	operator==(const ServerConfig&) const;
-
-		static std::vector<ServerConfig>	fromConfigFile(const std::string&);
-
-		std::string							getHost() const;
-    	u_int								getPort() const;
-    	std::vector<std::string>			getNames() const;
-    	std::map<u_int, std::string>		getErrorsPages() const;
-    	u_int								getMaxClientBodySize() const;
-    	std::map<std::string, RouteConfig>	getRoutes() const;
-
-
-	class InvalidConfigFileException : public std::exception {
-		std::string	message;
-
-		public:
-			InvalidConfigFileException();
-			explicit InvalidConfigFileException(const std::string& msg);
-			~InvalidConfigFileException() override;
-
-			const char* what() const noexcept override;
-
-		private:
-//			InvalidConfigFileException(const InvalidConfigFileException& other);
-
-			InvalidConfigFileException& operator=(const InvalidConfigFileException& other);
-	};
 };
 
 #endif
