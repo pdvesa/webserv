@@ -24,7 +24,7 @@ std::string HandleRequest::handleGet(const std::string& targetUrl, const std::st
 std::string HandleRequest::handleDelete(const std::string& fileToDelete) {
 	if (access(fileToDelete.c_str(), W_OK) != 0 || remove(fileToDelete.c_str()) != 0)
 		throw std::runtime_error("404");
-	return ("");
+	return ("<html><body><h1>Success</h1></body></html>");
 }
 
 std::string HandleRequest::handlePost(const std::string& uploadLocation, const std::string& contentType, std::vector<unsigned char>& content) {
