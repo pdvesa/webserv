@@ -34,7 +34,7 @@ class Client {
 		void		clearClear();
 
 	private:
-		void		buildErrorResponse(std::exception &e);
+		void		buildErrorResponse();
 
 		static const	std::string DEFAULT_BODY;
 };

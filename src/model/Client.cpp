@@ -34,24 +34,38 @@ void	Client::buildRequest() {
 
 void	Client::buildResponse() {
 	try {
-		std::string	path = request->getPath();
+		if (request->getStatus() >= 200 && request->getStatus() < 300) {
+			std::string	path = request->getPath();
 
-		if (request->getMethod() == "GET")
-		{
-			std::string	contentType;
-			response.emplace(HttpResponse(*request, HandleRequest::handleGet(request->getTarget(),path , true, contentType), contentType));
-		}
-		else if (request->getMethod() == "POST")
-		{
-			response.emplace(HttpResponse(*request, HandleRequest::handlePost(path,
-				request->getHeaders().at("Content-Type"), request->getBody()), "text/html"));
-		}
-		else if (request->getMethod() == "DELETE")
-		{
-			response.emplace(HttpResponse(*request, HandleRequest::handleDelete(path), "text/html"));
+			if (request->getMethod() == "GET")
+			{
+				std::string	contentType;
+				response.emplace(HttpResponse(*request, HandleRequest::handleGet(request->getTarget(),path,
+					true, contentType), contentType));
+			}
+			else if (request->getMethod() == "POST")
+			{
+				response.emplace(HttpResponse(*request, HandleRequest::handlePost(path,
+					request->getHeaders().at("Content-Type"), request->getBody()), "text/html"));
+			}
+			else if (request->getMethod() == "DELETE")
+			{
+				response.emplace(HttpResponse(*request, HandleRequest::handleDelete(path), "text/html"));
+			}
+		} else if (request->getStatus() >= 300 && request->getStatus() < 400) {
+			response.emplace((HttpResponse(*request, request->getTarget())));
+		} else {
+			buildErrorResponse();
 		}
 	} catch (std::exception &e) {
-		buildErrorResponse(e);
+		u_int	statusCode;
+		try {
+			statusCode = std::stoi(e.what());
+		} catch (...) {
+			statusCode = 500;
+		}
+		request->setStatus(static_cast<int>(statusCode));
+		buildErrorResponse();
 	}
 }
 
@@ -60,25 +74,19 @@ void	Client::clearClear() {
 	response.reset();
 }
 
-void Client::buildErrorResponse(std::exception &e) {
-	u_int	statusCode;
-	try {
-		statusCode = std::stoi(e.what());
-	} catch (...) {
-		statusCode = 500;
-	}
+void Client::buildErrorResponse() {
+
 	std::string	body = DEFAULT_BODY;
 
-	if (request->getServerConfig().getErrorsPages().contains(statusCode)) {
+	if (request->getServerConfig().getErrorsPages().contains(request->getStatus())) {
 		try {
-			if (std::ifstream errorPage(request->getServerConfig().getErrorsPages()[statusCode]); errorPage.is_open()) {
+			if (std::ifstream errorPage(request->getServerConfig().getErrorsPages()[request->getStatus()]); errorPage.is_open()) {
 				std::stringstream	buffer;
 				buffer << errorPage.rdbuf();
 				body = buffer.str();
 			}
 		} catch (std::exception&) { }
 	}
-	request->setStatus(static_cast<int>(statusCode));
 	response.emplace(HttpResponse(*request, body, "text/html"));
 }
 
