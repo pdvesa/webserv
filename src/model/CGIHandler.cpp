@@ -1,23 +1,25 @@
 #include <CGIHandler.hpp>
 
-CGI::CGI() {	
+CGI::CGI(HttpRequest request) : req(request) {
+	runCGI();
 }
 
 CGI::~CGI() {	
 }
 
-void CGI::runCGI(HttpRequest req) {
+void CGI::runCGI() {
 	pid_t	pid;
 	int		pipes[2];
 	char	*args[3];
 
 	std::string	script = req.getPath();
-	switch (req.getEnum()) {
-		case py:
-			args[0] = "/usr/bin/python3";
+	std::string temp = "/usr/bin/python3";
+	switch (req.getCGIStatus()) {
+		case PY:
+			args[0] = temp.data();
 			args[1] = script.data();
 			break ;
-		case cgi: 
+		case CGI_E: 
 			args[0] = script.data();
 			args[1] = nullptr;
 			break ;
@@ -25,21 +27,29 @@ void CGI::runCGI(HttpRequest req) {
 			std::cout << "This should never happen, segfaulting next... :)" << std::endl;
 	}
 	args[2] = nullptr;
+	fillEnv();
+	for (auto var : env)
+		std::cerr << var << std::endl;
+	for (const char *var : envp)
+		std::cerr << var << std::endl;
 	if (pipe(pipes) == -1)
-		//do stuff
+		exit(1) ; //placeholders
 	pid = fork();
 	if (pid == -1)
-		//do stuff
+		exit(1) ;
 	if (pid == 0) {
         close(pipes[0]);
 		if (dup2(pipes[1], STDOUT_FILENO) == -1)
-			//do stuff
+			exit(1) ;
 		close(pipes[1]);
 		execve(args[0], args, envp.data());
-		//error do stuff
+		std::cerr << "Something exploded" << std::endl;
+		perror("this: ");
+		exit(1); //temp handlers
 	}
 	else {
-        close(pipes[1]);
+        std::cout << "ARE WE HERE\n\n\n";
+		close(pipes[1]);
 		int rv;
 		std::vector<unsigned char>	buffer(BUF_SIZE);
 		while ((rv = read(pipes[0], buffer.data(), BUF_SIZE)) > 0) {
@@ -54,7 +64,7 @@ void CGI::runCGI(HttpRequest req) {
 	} 
 }
 
-void CGI::fillEnv(HttpRequest req) { //debug this shit if these are even correct like getHost
+void CGI::fillEnv() { //debug this shit if these are even correct like getHost
 	env.push_back("SERVER_SOFTWARE=KYS/0.0.1 (Unix)");
 	env.push_back("SERVER_NAME=" + req.getServer().getHost());
 	env.push_back("SERVER_PORT=" + std::to_string(req.getServer().getPort()));
@@ -64,13 +74,13 @@ void CGI::fillEnv(HttpRequest req) { //debug this shit if these are even correct
 	env.push_back("CONTENT_LENGTH=" + req.getMapValue("Content-Length"));
 //	env.push_back("QUERY_STRING="); //dont know if needed
 	env.push_back("SCRIPT_NAME=" + req.getPath()); 
-	env.push_back("PATH_INFO=" + std::filesystem::current_path().string() + req.getPath()); //not sure what goes here
+	env.push_back("PATH_INFO=" + std::filesystem::current_path().string()); // + req.getPath()); //not sure what goes here
 //	env.push_back("REMOTE_ADDR="); //dont know if needed (client addr) i dont think we even save it anymore :)
 	std::vector temp = req.getBody();
 	std::string	body(temp.begin(), temp.end());
 	env.push_back("POST_BODY=" + body); //lets hope that converting doessnt break anything
-	for (auto var : env) {
-		envp.push_back(var.data()); //make sure you dont die
+	for (const auto &var : env) {
+		envp.push_back(const_cast<char*>(var.c_str())); //make sure you dont die
 	}
 	envp.push_back(nullptr);
 }

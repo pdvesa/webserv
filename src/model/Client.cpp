@@ -34,7 +34,12 @@ void	Client::buildRequest() {
 
 void	Client::buildResponse() {
 	try {
-		if (request->getMethod() == "GET")
+		std::cout << "WE WUZ HERE " << request->getCGIStatus() << std::endl;
+		if (request->getCGIStatus()) {
+			response.emplace(HttpResponse(*request, HandleRequest::handleCGI(*request)));
+			std::cout << "ARE WE EVER HERE" << std::endl;
+		}
+		else if (request->getMethod() == "GET")
 			response.emplace(HttpResponse(*request, HandleRequest::handleGet(request->getTarget(), request->getPath(), true)));
 		else if (request->getMethod() == "POST")
 			response.emplace(HttpResponse(*request, HandleRequest::handlePost(request->getPath(), request->getHeaders().at("Content-Type"), request->getBody())));

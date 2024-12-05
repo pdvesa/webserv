@@ -14,6 +14,8 @@
 #include <unistd.h>
 #include <Parsing.hpp>
 #include <CppSplit.hpp>
+#include <HttpRequest.hpp>
+#include <CGIHandler.hpp>
 
 class HandleRequest {
 	private:
@@ -30,6 +32,7 @@ class HandleRequest {
 		static std::string	handleGet(const std::string& targetUrl, const std::string& serverLocation, bool listing);
 		static std::string	handleDelete(const std::string& fileToDelete);
 		static std::string	handlePost(const std::string& uploadLocation, const std::string& contentType, std::vector<unsigned char>& content);
+		static std::string	handleCGI(HttpRequest request);
 };
 
 

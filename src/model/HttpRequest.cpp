@@ -14,6 +14,7 @@ HttpRequest::HttpRequest(const HttpRequest& other) : serv(other.serv)
 		requestPath = other.requestPath;
 		requestStatus = other.requestStatus;
 		requestedResource = other.requestedResource;
+		cgiStatus = other.cgiStatus;
 }
 
 HttpRequest& HttpRequest::operator=(const HttpRequest& other)
@@ -29,12 +30,13 @@ HttpRequest& HttpRequest::operator=(const HttpRequest& other)
 		requestPath = other.requestPath;
 		requestStatus = other.requestStatus;
 		requestedResource = other.requestedResource;
+		cgiStatus = other.cgiStatus;
 	}
 	return (*this);
 }
 
 
-HttpRequest::HttpRequest(const ServerConfig &cfg, int fd) : serv(cfg), requestedResource(""), requestStatus(200)
+HttpRequest::HttpRequest(const ServerConfig &cfg, int fd) : serv(cfg), requestedResource(""), cgiStatus(0), requestStatus(200)
 {
 	readSocket(fd);
 }
@@ -257,7 +259,7 @@ void	HttpRequest::updateCGI()
 		}
 		if (requestedResource.substr(requestedResource.length() - 4) == ".cgi")
 		{
-			cgiStatus = CGI;
+			cgiStatus = CGI_E;
 		std::cout << "\n\n\n\n\n CGI STATUS: " << cgiStatus << std::endl;
 			return ;
 		}
@@ -265,4 +267,12 @@ void	HttpRequest::updateCGI()
 	cgiStatus = NO_CGI;
 	std::cout << "\n\n\n\n\n CGI STATUS: " << cgiStatus << std::endl;
 	return ;
+}
+
+std::string HttpRequest::getMapValue(std::string key) {
+	auto found = requestHeader.find(key);
+	if (found == requestHeader.end())
+		return ("");
+	else 
+		return (found->second);
 }
