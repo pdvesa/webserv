@@ -14,6 +14,8 @@ HttpRequest::HttpRequest(const HttpRequest& other) : serv(other.serv)
 		requestPath = other.requestPath;
 		requestStatus = other.requestStatus;
 		requestedResource = other.requestedResource;
+		cgiStatus = other.cgiStatus;
+		hasListing = other.hasListing;
 }
 
 HttpRequest& HttpRequest::operator=(const HttpRequest& other)
@@ -29,12 +31,14 @@ HttpRequest& HttpRequest::operator=(const HttpRequest& other)
 		requestPath = other.requestPath;
 		requestStatus = other.requestStatus;
 		requestedResource = other.requestedResource;
+		cgiStatus = other.cgiStatus;
+		hasListing = other.hasListing;
 	}
 	return (*this);
 }
 
 
-HttpRequest::HttpRequest(const ServerConfig &cfg, int fd) : serv(cfg), requestedResource(""), requestStatus(200)
+HttpRequest::HttpRequest(const ServerConfig &cfg, int fd) : serv(cfg), requestedResource(""), cgiStatus(0), requestStatus(200)
 {
 	readSocket(fd);
 }
@@ -51,7 +55,7 @@ void HttpRequest::readSocket(int socket)
 			break;
 	}
 //	std::cout << "Size of fullreq: " << fullRequest.size() << std::endl;
-	write(1, fullRequest.data(), fullRequest.size());
+//	write(1, fullRequest.data(), fullRequest.size());
 	if (rv == -1)
 		throw std::runtime_error("failed to read from socket");
 	std::string reqstr(fullRequest.begin(), fullRequest.end());
@@ -76,7 +80,6 @@ void	HttpRequest::fillRequest(std::string req)
 	{
 		requestStatus = 405;
 		serveError(405);
-		std::cout << "Incorrect request method\n\n\n";
 		return ;
 	}
 	requestTarget = mtv[1];
@@ -119,11 +122,11 @@ void	HttpRequest::fillHeaders(std::string &req)
 	}
 	buildPath();
 	updateCGI();
-	std::cout << "Path in fillHeaders: " << requestPath << std::endl;
-	for(auto & key : requestHeader)
-	{
-		std::cout << "Key: " << key.first << " Value: " << key.second << std::endl;
-	}
+//	std::cout << "Path in fillHeaders: " << requestPath << std::endl;
+//	for(auto & key : requestHeader)
+//	{
+//		std::cout << "Key: " << key.first << " Value: " << key.second << std::endl;
+//	}
 }
 void	HttpRequest::printElements() const
 {
@@ -167,7 +170,7 @@ RouteConfig HttpRequest::findRoute() {
         routeMatch = requestTarget.substr(0, latestSlash + 1);
         if (routes.find(routeMatch) != routes.end()) {
 			requestedResource = requestTarget.substr(latestSlash + 1);
-			std::cout << "returning with route at: " << routeMatch << " and requested resource: " << requestedResource;
+//			std::cout << "returning with route at: " << routeMatch << " and requested resource: " << requestedResource;
             return routes.at(routeMatch);
         }
         routeMatch = routeMatch.substr(0, latestSlash);
@@ -215,9 +218,9 @@ void HttpRequest::buildPath()
 	try
 	{
 		RouteConfig route = findRoute();
+		route = checkRedirs(route);
 		validateRoute(route);
 		requestPath = route.getRootDir();
-//		route = checkRedirs(route); implemented with changes to ROUTE class, updates route to the redirected one in case of redir
 		if (requestedResource.empty() && requestMethod == "GET")
 			requestPath.append(route.getIndex());
 		else
@@ -225,9 +228,10 @@ void HttpRequest::buildPath()
 		requestPath.insert(0, ".");
 		if (requestMethod == "POST")
 		{
+			if (!std::filesystem::exists(requestPath))
+				serveError(404);
 			requestPath.append(route.getUploadDir() + "/");
 		}
-		std::cout << "request path in build: " << requestPath << std::endl;
 		if (!std::filesystem::exists(requestPath))
 			serveError(404);
 	}
@@ -253,17 +257,14 @@ void	HttpRequest::updateCGI()
 		if (requestedResource.substr(requestedResource.length() - 3) == ".py")
 		{
 			cgiStatus = PY;
-		std::cout << "\n\n\n\n\n CGI STATUS: " << cgiStatus << std::endl;
 			return ;
 		}
 		if (requestedResource.substr(requestedResource.length() - 4) == ".cgi")
 		{
 			cgiStatus = CGI;
-		std::cout << "\n\n\n\n\n CGI STATUS: " << cgiStatus << std::endl;
 			return ;
 		}
 	}
 	cgiStatus = NO_CGI;
-	std::cout << "\n\n\n\n\n CGI STATUS: " << cgiStatus << std::endl;
 	return ;
 }
