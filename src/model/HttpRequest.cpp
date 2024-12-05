@@ -90,7 +90,6 @@ void	HttpRequest::fillRequest(std::string req)
 	req.erase(0, req.find("\r\n") + 2); // need to make scalable just testing
 	fillHeaders(req);
 	fillRawBody(req);
-
 //	printElements(); // debug atm
 }
 
