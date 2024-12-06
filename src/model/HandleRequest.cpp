@@ -25,8 +25,12 @@ std::string HandleRequest::handleGet(const std::string& targetUrl, const std::st
 }
 
 std::string HandleRequest::handleDelete(const std::string& fileToDelete) {
-	if (access(fileToDelete.c_str(), W_OK) != 0 || remove(fileToDelete.c_str()) != 0)
+	if (access(fileToDelete.c_str(), F_OK) != 0)
+		throw std::runtime_error("401");
+	if (access(fileToDelete.c_str(), W_OK) != 0)
 		throw std::runtime_error("404");
+	if (remove(fileToDelete.c_str()) != 0)
+		throw std::runtime_error("500");
 	return ("<html><body><h1>Success</h1></body></html>");
 }
 
