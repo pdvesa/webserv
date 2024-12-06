@@ -189,6 +189,7 @@ const RouteConfig HttpRequest::checkRedirs(const RouteConfig& rt)
 	{
 		RouteConfig::t_redirection redir = rt.getRedirection();
 		requestStatus = redir.code;
+		requestTarget = redir.path;
 		return serv.getRoutes().at(redir.path);
 	}
 	return rt;
