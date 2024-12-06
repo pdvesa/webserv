@@ -50,7 +50,7 @@ class HttpRequest {
 		void	fulfillRequest();
 		void	buildPath();
 		RouteConfig	findRoute();
-		const RouteConfig checkRedirs(const RouteConfig& rt);
+		bool checkRedirs(const RouteConfig& rt);
 		void	serveError(int status);
 		void	validateRoute(const RouteConfig&);
 		void	updateCGI();

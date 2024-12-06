@@ -15,7 +15,7 @@ SRCDIR = src
 OBJDIR = obj
 INCDIR = includes
 CC = c++
-CFLAGS = -Wall -Wextra -Werror -pedantic -g -std=c++17
+CFLAGS = -Wall -Wextra -Werror -pedantic -g -std=c++20
 
 SRCS = $(SRCDIR)/run/main.cpp \
        $(SRCDIR)/controller/WebservController.cpp \

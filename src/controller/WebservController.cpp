@@ -51,7 +51,7 @@ void	WebservController::run() {
 			}
 			else if (eventWaitlist[i].events & EPOLLOUT && clients.at(currentFD).getRequest()) {
 				try {
-					clients.at(currentFD).buildResponse();
+					clients.at(currentFD).buildResponse();			
 					if (clients.at(currentFD).getResponse()) {  //making 100% we dont try to dereference nullopt next if smebody breaks clieantbuilder again :()()()()
 						write(currentFD, clients.at(currentFD).getResponse()->toString().c_str(), clients.at(currentFD).getResponse()->toString().length()); //maybe we need checker if we actually sent everything also now we live dangerously with dereferencing :)
 //						write(1, clients.at(currentFD).getResponse().toString().c_str(), clients.at(currentFD).getResponse().toString().length()); //debug
