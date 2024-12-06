@@ -38,9 +38,9 @@ void	Client::buildResponse() {
 			std::string	path = request->getPath();
 
 			if (request->getCGIStatus()) {
-			  response.emplace(HttpResponse(*request, HandleRequest::handleCGI(*request)));
-		  }
-      else if (request->getMethod() == "GET")
+			response.emplace(HttpResponse(*request, HandleRequest::handleCGI(*request), "text/html"));
+		  	}
+      		else if (request->getMethod() == "GET")
 			{
 				std::string	contentType;
 				response.emplace(HttpResponse(*request, HandleRequest::handleGet(request->getTarget(),path,
