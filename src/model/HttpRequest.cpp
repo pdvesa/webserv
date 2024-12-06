@@ -93,7 +93,6 @@ void	HttpRequest::fillRequest(std::string req)
 	req.erase(0, req.find("\r\n") + 2); // need to make scalable just testing
 	fillHeaders(req);
 	fillRawBody(req);
-
 //	printElements(); // debug atm
 }
 
@@ -121,9 +120,8 @@ void	HttpRequest::fillHeaders(std::string &req)
 		return ;
 	}
 	buildPath();
-	updateCGI();
-//	std::cout << "Path in fillHeaders: " << requestPath << std::endl;
-//	for(auto & key : requestHeader)
+	std::cout << "Path in fillHeaders: " << requestPath << std::endl;
+//	for(auto & key: requestHeader)
 //	{
 //		std::cout << "Key: " << key.first << " Value: " << key.second << std::endl;
 //	}
@@ -170,7 +168,7 @@ RouteConfig HttpRequest::findRoute() {
         routeMatch = requestTarget.substr(0, latestSlash + 1);
         if (routes.find(routeMatch) != routes.end()) {
 			requestedResource = requestTarget.substr(latestSlash + 1);
-//			std::cout << "returning with route at: " << routeMatch << " and requested resource: " << requestedResource;
+			std::cout << "returning with route at: " << routeMatch << " and requested resource: " << requestedResource << std::endl;
             return routes.at(routeMatch);
         }
         routeMatch = routeMatch.substr(0, latestSlash);
@@ -183,16 +181,18 @@ RouteConfig HttpRequest::findRoute() {
     throw std::runtime_error("Failed to find a route for: " + requestTarget);
 }
 
-const RouteConfig HttpRequest::checkRedirs(const RouteConfig& rt)
+ bool HttpRequest::checkRedirs(const RouteConfig& rt)
 {
 	if (!rt.getRedirection().path.empty())
 	{
 		RouteConfig::t_redirection redir = rt.getRedirection();
 		requestStatus = redir.code;
 		requestTarget = redir.path;
-		return serv.getRoutes().at(redir.path);
+		if (!requestedResource.empty())
+			requestTarget.append(requestedResource);
+		return true;
 	}
-	return rt;
+	return false;
 }
 
 void HttpRequest::validateRoute(const RouteConfig& rt)
@@ -219,7 +219,8 @@ void HttpRequest::buildPath()
 	try
 	{
 		RouteConfig route = findRoute();
-		route = checkRedirs(route);
+		if(checkRedirs(route))
+			return ;
 		validateRoute(route);
 		requestPath = route.getRootDir();
 		if (requestedResource.empty() && requestMethod == "GET")
@@ -227,11 +228,17 @@ void HttpRequest::buildPath()
 		else
 			requestPath.append(requestedResource);
 		requestPath.insert(0, ".");
-		if (requestMethod == "POST")
+		updateCGI();
+		if (requestMethod == "POST" && !cgiStatus)
 		{
 			if (!std::filesystem::exists(requestPath))
+			{
+				std::cout << "serving error here with path: " << requestPath << std::endl;
 				serveError(404);
+				return ;
+			}
 			requestPath.append(route.getUploadDir() + "/");
+			return ;
 		}
 		if (!std::filesystem::exists(requestPath))
 			serveError(404);
@@ -253,6 +260,7 @@ void	HttpRequest::serveError(int status)
 
 void	HttpRequest::updateCGI()
 {
+	std::cout << "in updateCGI: " << "path: " << requestPath << std::endl;
 	if (requestPath.find("/cgi-bin/") != std::string::npos)
 	{
 		if (requestedResource.substr(requestedResource.length() - 3) == ".py")
