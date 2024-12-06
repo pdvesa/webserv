@@ -6,11 +6,10 @@ error_page 404 405 /www/error/general.html
 client_max_body_size 2
 
 location / {
-    methods GET DELETE POST
+    methods GET 
     listing on
     index index.html
     root /www/
-    upload_dir upload
 }
 
 location /redir/ {
@@ -20,12 +19,24 @@ location /google/ {
 	return 301 http://www.google.com
 }
 location /home/ {
-    methods GET DELETE
+    methods GET 
     listing on
     index index.html
     root /www/
+}
+location /testing/ {
+    methods GET DELETE
+    listing on
+    index index.html
+    root /www/testing/
+}
+location /posting/ {
+    methods GET POST DELETE
+    listing on
+    index index.html
+    root /www/posting/
+    upload_dir upload
 }}
-
 server { 
 hostname 127.0.0.1
 port 8081
