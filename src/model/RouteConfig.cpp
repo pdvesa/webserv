@@ -9,7 +9,7 @@ RouteConfig RouteConfig::fromLocationBlock(std::string& locationBlock) {
 	bool			GET = false;
 	bool			POST = false;
 	bool			DELETE = false;
-	std::string		index;
+	std::string		index = "";
 	bool			listing = false;
 	std::string		rootDir;
 	std::string		uploadDir;
@@ -18,8 +18,10 @@ RouteConfig RouteConfig::fromLocationBlock(std::string& locationBlock) {
 	try {
 		redirection = extractRedirection(locationBlock);
 	} catch (Parsing::VariableNotFoundException&) {
+		try {
+			index = extractIndex(locationBlock);
+		} catch (Parsing::VariableNotFoundException&) { }
 		extractMethods(GET, POST, DELETE, locationBlock);
-		index = extractIndex(locationBlock);
 		listing = extractListing(locationBlock);
 		rootDir = extractRootDir(locationBlock);
 		if (POST)
