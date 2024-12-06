@@ -126,7 +126,28 @@ std::string HandleRequest::getContentType(const std::string& filePath) {
 		{".jpg", "image/jpeg"},
 		{".jpeg", "image/jpeg"},
 		{".gif", "image/gif"},
-		{".txt", "text/plain"}
+		{".txt", "text/plain"},
+		{".xml", "application/xml"},
+		{".svg", "image/svg+xml"},
+		{".ico", "image/vnd.microsoft.icon"},
+		{".ttf", "font/ttf"},
+		{".woff", "font/woff"},
+		{".woff2", "font/woff2"},
+		{".mp3", "audio/mpeg"},
+		{".mp4", "video/mp4"},
+		{".pdf", "application/pdf"},
+		{".zip", "application/zip"},
+		{".rar", "application/vnd.rar"},
+		{".csv", "text/csv"},
+		{".bmp", "image/bmp"},
+		{".webp", "image/webp"},
+		{".ogg", "audio/ogg"},
+		{".wav", "audio/wav"},
+		{".avi", "video/x-msvideo"},
+		{".mov", "video/quicktime"},
+		{".mpeg", "video/mpeg"},
+		{".flv", "video/x-flv"},
+		{".wasm", "application/wasm"}
 	};
 
 	size_t extensionIndex = filePath.find_last_of('.');
