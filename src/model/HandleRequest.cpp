@@ -41,15 +41,19 @@ std::string HandleRequest::handlePost(const std::string& uploadLocation, const s
 	if (boundaryPos == std::string::npos) {
 		return (buffer.str());
 	} else {
-		if (access(uploadLocation.c_str(), W_OK) != 0)
+		if (access(uploadLocation.c_str(), F_OK) != 0) {
+			if (mkdir(uploadLocation.c_str(), 0755) != 0) {
+				throw std::runtime_error("500");
+			}
+		} else if (access(uploadLocation.c_str(), W_OK) != 0) {
 			throw std::runtime_error("401");
-
+		}
+		
 		std::string boundaryString = contentType.substr(boundaryPos + 9, contentType.size() - boundaryPos - 9);
 		std::vector<std::string>	linesContent = CppSplit::cppSplit(buffer.str(), '\n');
 
 		if (linesContent.size() < 5)
 			throw std::runtime_error("400");
-		std::cerr << linesContent.at(1) << "\n" << ("--" + boundaryString) << "\n" << linesContent.at(linesContent.size() - 1) << "\n";
 
 		if (linesContent[1].compare(2, boundaryString.size(), boundaryString) != 0)
 			throw std::runtime_error("400");
