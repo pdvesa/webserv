@@ -38,6 +38,7 @@ void	WebservController::run() {
 			else if (eventWaitlist[i].events & EPOLLRDHUP) {
 				epollDelete(epollFD, currentFD);
 				close(currentFD);
+				clients.at(currentFD).clearClear();
 			}
 			else if (eventWaitlist[i].events & EPOLLIN) {
 				try {
@@ -50,12 +51,14 @@ void	WebservController::run() {
 			}
 			else if (eventWaitlist[i].events & EPOLLOUT && clients.at(currentFD).getRequest()) {
 				try {
-					clients.at(currentFD).buildResponse();
-					write(currentFD, clients.at(currentFD).getResponse()->toString().c_str(), clients.at(currentFD).getResponse()->toString().length()); //maybe we need checker if we actually sent everything also now we live dangerously with dereferencing :)
-					write(1, clients.at(currentFD).getResponse()->toString().c_str(), clients.at(currentFD).getResponse()->toString().length()); //debug
-					epollDelete(epollFD, currentFD); //needed with this version of sending
-					close(currentFD);
-//					clients.at(currentFD).clearClear();
+					clients.at(currentFD).buildResponse();			
+					if (clients.at(currentFD).getResponse()) {  //making 100% we dont try to dereference nullopt next if smebody breaks clieantbuilder again :()()()()
+						write(currentFD, clients.at(currentFD).getResponse()->toString().c_str(), clients.at(currentFD).getResponse()->toString().length()); //maybe we need checker if we actually sent everything also now we live dangerously with dereferencing :)
+//						write(1, clients.at(currentFD).getResponse().toString().c_str(), clients.at(currentFD).getResponse().toString().length()); //debug
+						epollDelete(epollFD, currentFD); //needed with this version of sending
+						close(currentFD);
+						clients.at(currentFD).clearClear();
+					}
 				}
 				catch (const std::runtime_error &e) { //make sure its consistent with davids
 					errorHandler(e, false);

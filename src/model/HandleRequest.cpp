@@ -87,6 +87,13 @@ std::string HandleRequest::handlePost(const std::string& uploadLocation, const s
 	}
 }
 
+std::string HandleRequest::handleCGI(HttpRequest request) {
+	CGI cgi(request);
+	if (cgi.getCGIStatus())
+		throw("500");
+	return (cgi.getCGIResponse());
+}
+
 bool	HandleRequest::isDirectory(const std::string& path) {
 	struct stat statbuf;
 

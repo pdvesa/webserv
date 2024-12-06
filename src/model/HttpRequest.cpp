@@ -270,10 +270,19 @@ void	HttpRequest::updateCGI()
 		}
 		if (requestedResource.substr(requestedResource.length() - 4) == ".cgi")
 		{
-			cgiStatus = CGI;
+			cgiStatus = CGI_E;
+		  std::cout << "\n\n\n\n\n CGI STATUS: " << cgiStatus << std::endl;
 			return ;
 		}
 	}
 	cgiStatus = NO_CGI;
 	return ;
+}
+
+std::string HttpRequest::getMapValue(std::string key) {
+	auto found = requestHeader.find(key);
+	if (found == requestHeader.end())
+		return ("");
+	else 
+		return (found->second);
 }

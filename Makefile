@@ -35,6 +35,7 @@ SRCS = $(SRCDIR)/run/main.cpp \
        $(SRCDIR)/util/BodyChunk.cpp \
        $(SRCDIR)/util/ExtractChunk.cpp \
        $(SRCDIR)/model/HandleRequest.cpp \
+	   $(SRCDIR)/model/CGIHandler.cpp \
 
 OBJS = $(patsubst $(SRCDIR)/%.cpp, $(OBJDIR)/%.o, $(SRCS))
 
