@@ -1,10 +1,17 @@
 #include <CGIHandler.hpp>
 
+static pid_t childPID = -1;
+
 CGI::CGI(HttpRequest request) : req(request) {
 	runCGI();
 }
 
 CGI::~CGI() {	
+}
+
+static void alarmHandler(int signal) {
+	if (childPID != -1)
+		kill(childPID, SIGKILL);
 }
 
 void CGI::runCGI() {
@@ -48,10 +55,12 @@ void CGI::runCGI() {
 		exit(1); //temp handlers
 	}
 	else {
-        std::cout << "ARE WE HERE\n\n\n";
-		close(pipes[1]);
+		signal(SIGALRM, alarmHandler);
+		alarm(15);
+		childPID = pid;
 		int rv;
 		std::vector<unsigned char>	buffer(BUF_SIZE);
+		close(pipes[1]);
 		while ((rv = read(pipes[0], buffer.data(), BUF_SIZE)) > 0) {
 			buffer.resize(rv);
 			cgiResponse.append(buffer.begin(), buffer.end());
@@ -60,7 +69,6 @@ void CGI::runCGI() {
 		}
 		close(pipes[0]);
 		waitpid(pid, nullptr, 0);
-		//timeout 
 	} 
 }
 

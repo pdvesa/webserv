@@ -8,6 +8,7 @@
 #include <sys/wait.h>
 #include <HttpRequest.hpp>
 #include <Client.hpp>
+#include <signal.h>
 
 class CGI {
 	private:
