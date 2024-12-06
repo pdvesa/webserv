@@ -237,7 +237,7 @@ void HttpRequest::buildPath()
 				serveError(404);
 				return ;
 			}
-			requestPath.append(route.getUploadDir() + "/");
+			requestPath.append(route.getUploadDir());
 			return ;
 		}
 		if (!std::filesystem::exists(requestPath))
