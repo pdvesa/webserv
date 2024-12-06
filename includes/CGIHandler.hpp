@@ -16,13 +16,16 @@ class CGI {
 		std::vector<std::string>	env;
 		std::vector<char *>			envp;
 		std::string					cgiResponse;
+		int							exitStatus;
+
+		void fillEnv();
+		void runCGI();
 	public:
 		CGI(HttpRequest request);
 		~CGI();
 		
-		void fillEnv();
-		void runCGI();
 		std::string getCGIResponse(){return cgiResponse;}
+		int			getCGIStatus(){return exitStatus;}
 };
 
 #endif

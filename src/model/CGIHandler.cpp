@@ -2,16 +2,16 @@
 
 static pid_t childPID = -1;
 
-CGI::CGI(HttpRequest request) : req(request) {
+static void alarmHandler(int signal) {
+	if (childPID != -1 && signal == SIGALRM)
+		kill(childPID, SIGKILL);
+}
+
+CGI::CGI(HttpRequest request) : req(request), env(), envp(), exitStatus(0) {
 	runCGI();
 }
 
 CGI::~CGI() {	
-}
-
-static void alarmHandler(int signal) {
-	if (childPID != -1)
-		kill(childPID, SIGKILL);
 }
 
 void CGI::runCGI() {
@@ -19,6 +19,7 @@ void CGI::runCGI() {
 	int		pipes[2];
 	char	*args[3];
 
+	fillEnv();
 	std::string	script = req.getPath();
 	std::string temp = "/usr/bin/python3";
 	switch (req.getCGIStatus()) {
@@ -34,31 +35,32 @@ void CGI::runCGI() {
 			std::cout << "This should never happen, segfaulting next... :)" << std::endl;
 	}
 	args[2] = nullptr;
-	fillEnv();
-	for (auto var : env)
-		std::cerr << var << std::endl;
-	for (const char *var : envp)
-		std::cerr << var << std::endl;
-	if (pipe(pipes) == -1)
-		exit(1) ; //placeholders
+	if (pipe(pipes) == -1) {
+		exitStatus = 1;
+		return ;
+	}
 	pid = fork();
-	if (pid == -1)
-		exit(1) ;
+	if (pid == -1) {
+		close(pipes[0]);
+		close(pipes[1]);
+		exitStatus = 1;
+		return ;
+	}
 	if (pid == 0) {
         close(pipes[0]);
 		if (dup2(pipes[1], STDOUT_FILENO) == -1)
 			exit(1) ;
 		close(pipes[1]);
 		execve(args[0], args, envp.data());
-		std::cerr << "Something exploded" << std::endl;
-		perror("this: ");
+		perror("This happened: ");
 		exit(1); //temp handlers
 	}
 	else {
+		int status;
+		int rv;
+		childPID = pid;
 		signal(SIGALRM, alarmHandler);
 		alarm(15);
-		childPID = pid;
-		int rv;
 		std::vector<unsigned char>	buffer(BUF_SIZE);
 		close(pipes[1]);
 		while ((rv = read(pipes[0], buffer.data(), BUF_SIZE)) > 0) {
@@ -68,7 +70,12 @@ void CGI::runCGI() {
 				break;
 		}
 		close(pipes[0]);
-		waitpid(pid, nullptr, 0);
+		waitpid(pid, &status, 0);
+		alarm(0);
+		if (WIFEXITED(status))
+            exitStatus = WEXITSTATUS(status);
+		else if (WIFSIGNALED(status))
+			exitStatus = WTERMSIG(status);
 	} 
 }
 
