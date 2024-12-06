@@ -17,7 +17,7 @@ typedef enum e_cgi
 {
 	NO_CGI = 0,
 	PY = 1,
-	CGI = 2
+	CGI_E = 2
 } t_cgi;
 class HttpRequest {
 	private:
@@ -59,7 +59,10 @@ class HttpRequest {
 		const std::string& getTarget() {return requestTarget;}
 		const std::string& getVersion(){return requestVersion;}
 		const std::string& getPath(){return requestPath;}
+		const ServerConfig& getServer(){return serv;}
+		std::string getMapValue(std::string key);
 		int					getStatus(){return requestStatus;}
+		int					getCGIStatus(){return cgiStatus;}
 		bool				getListing(){return hasListing;}
 		const ServerConfig&  getServerConfig(){return serv;}
 		std::map<std::string, std::string>& getHeaders(){return requestHeader;}

@@ -37,7 +37,10 @@ void	Client::buildResponse() {
 		if (request->getStatus() >= 200 && request->getStatus() < 300) {
 			std::string	path = request->getPath();
 
-			if (request->getMethod() == "GET")
+			if (request->getCGIStatus()) {
+			  response.emplace(HttpResponse(*request, HandleRequest::handleCGI(*request)));
+		  }
+      else if (request->getMethod() == "GET")
 			{
 				std::string	contentType;
 				response.emplace(HttpResponse(*request, HandleRequest::handleGet(request->getTarget(),path,
