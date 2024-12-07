@@ -4,7 +4,7 @@ static pid_t childPID = -1;
 
 static void alarmHandler(int signal) {
 	if (childPID != -1 && signal == SIGALRM)
-		kill(childPID, SIGKILL);
+		kill(childPID, SIGTERM);
 }
 
 CGI::CGI(HttpRequest request) : req(request), env(), envp(), exitStatus(0) {

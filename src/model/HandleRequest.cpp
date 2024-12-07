@@ -89,8 +89,8 @@ std::string HandleRequest::handlePost(const std::string& uploadLocation, const s
 
 std::string HandleRequest::handleCGI(HttpRequest request) {
 	CGI cgi(request);
-	if (cgi.getCGIStatus())
-		throw("500");
+	if (cgi.getCGIStatus())	
+		throw std::runtime_error("500");
 	return (cgi.getCGIResponse());
 }
 
