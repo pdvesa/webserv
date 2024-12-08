@@ -15,6 +15,7 @@
 #include <sys/epoll.h>
 #include <unistd.h>
 #include <fcntl.h>
+#include <signal.h>
 
 #include <ServerConfig.hpp>
 #include <Client.hpp>
@@ -39,6 +40,7 @@ class WebservController {
 		void	errorHandler(const std::runtime_error &err, bool ifExit);
 		void	errorLogger(const std::string &errMsg);
 		void	cleanResources();
+		void	controllerSignals();
 	public:
 		WebservController();
 		WebservController(const std::string& configFilePath);

@@ -8,10 +8,17 @@
 #include "HandleRequest.hpp"
 #include <unordered_map>
 
+bool running = true;
+
 WebservController::WebservController() {	
 }
 
-WebservController::~WebservController() {	
+WebservController::~WebservController() {
+	for (const auto &fd : listenFDs)
+		close (fd);
+	for (const auto& pair : clients)
+		close(pair.first);
+	close(epollFD); 
 }
 
 WebservController::WebservController(const std::string& configFilePath) {
@@ -19,11 +26,12 @@ WebservController::WebservController(const std::string& configFilePath) {
 }
 
 void	WebservController::run() {
+	controllerSignals();
 	epollFD = epoll_create1(0);
 	if (epollFD == -1)
 		throw std::runtime_error("Initializing epoll failed, idk :("); //maybe handling needs change
 	createSockets(AF_INET, SOCK_STREAM, 0); //make into socket class
-	while (true) {
+	while (running) {
 		eventsWaiting = epoll_wait(epollFD, eventWaitlist, MAX_EVENTS, -1);
 		for (int i = 0; i < eventsWaiting; i++) {
 			int currentFD = eventWaitlist[i].data.fd;
@@ -117,18 +125,29 @@ void WebservController::errorLogger(const std::string &errMsg) {
 	std::ofstream		errorLog;
 	const auto			now = std::chrono::system_clock::now();
 	const std::time_t	timestamp = std::chrono::system_clock::to_time_t(now);
-//	std::cerr << "ERROR: " << strerror(errno) << ": "<< errMsg << std::endl;
+	std::cerr << "ERROR: " << errMsg << std::endl;
     errorLog.open("error.log", std::ios::app);
-    if (errorLog.is_open() && errno) {
-        errorLog << std::ctime(&timestamp) << " ERROR: " << "From system: "<< strerror(errno) << ". From program: " << errMsg << std::endl;
+    if (errorLog.is_open()) {
+        errorLog << std::ctime(&timestamp) << " ERROR: " << errMsg << std::endl;
         errorLog.close();
-		errno = 0; //we technically check errno after read() :) 
-    } else if (errno) //kek
+    } else 
         std::cerr << "ERROR: Could not open error.log, consider total annihilation of computers!" << std::endl;
 }
 
 void WebservController::cleanResources() {
 	for (const int &fd : listenFDs)
 		close (fd);
+}
+
+static void sigHandler(int signal) {
+	if (signal == SIGINT || signal == SIGTERM || signal == SIGKILL || signal == SIGQUIT)
+		running = false;
+}
+
+void WebservController::controllerSignals() {
+	signal(SIGINT, sigHandler);
+	signal(SIGTERM, sigHandler);
+	signal(SIGKILL, sigHandler);
+	signal(SIGQUIT, sigHandler);
 }
 
