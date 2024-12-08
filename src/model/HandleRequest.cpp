@@ -46,7 +46,7 @@ std::string HandleRequest::handlePost(const std::string& uploadLocation, const s
 		return (buffer.str());
 	} else {
 		if (access(uploadLocation.c_str(), F_OK) != 0) {
-			if (mkdir(uploadLocation.c_str(), 0755) != 0) {
+			if (!std::filesystem::create_directories(uploadLocation)) {
 				throw std::runtime_error("500");
 			}
 		} else if (access(uploadLocation.c_str(), W_OK) != 0) {
