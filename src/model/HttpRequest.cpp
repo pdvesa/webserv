@@ -38,7 +38,7 @@ HttpRequest& HttpRequest::operator=(const HttpRequest& other)
 }
 
 
-HttpRequest::HttpRequest(const ServerConfig &cfg, int fd) : serv(cfg), requestedResource(""), cgiStatus(0), requestStatus(200)
+HttpRequest::HttpRequest(const ServerConfig &cfg, int fd) : serv(cfg), requestedResource(""), cgiStatus(0), requestStatus(200), maxSize(cfg.getMaxClientBodySize())
 {
 	readSocket(fd);
 }
@@ -55,7 +55,7 @@ void HttpRequest::readSocket(int socket)
 			break;
 	}
 //	std::cout << "Size of fullreq: " << fullRequest.size() << std::endl;
-//	write(1, fullRequest.data(), fullRequest.size());
+	write(1, fullRequest.data(), fullRequest.size());
 	if (rv == -1)
 		throw std::runtime_error("failed to read from socket");
 	std::string reqstr(fullRequest.begin(), fullRequest.end());
@@ -83,48 +83,56 @@ void	HttpRequest::fillRequest(std::string req)
 		return ;
 	}
 	requestTarget = mtv[1];
-	requestVersion = mtv[2]; // check if version is correct one
+	requestVersion = mtv[2];
 	if (requestVersion != "HTTP/1.1")
 	{
 		std::cout << "version mismatch \n" << std::endl;
-		requestStatus = 505; // HTTP VERSION NOT SUPPORTED
+		requestStatus = 505;
 		return ;
 	}
-	req.erase(0, req.find("\r\n") + 2); // need to make scalable just testing
+	req.erase(0, req.find("\r\n") + 2);
 	fillHeaders(req);
 	fillRawBody(req);
-//	printElements(); // debug atm
+	if (requestHeader.count("Transfer-Encoding"))
+	{
+		if (requestHeader.at("Transfer-Encoding") == " chunked")
+		{
+//			rawBody = dechunkBody();
+			std::cout << "\nchunked encoding\n";
+		}
+	}
+	std::cout << "method in request: " << requestMethod << std::endl;
 }
 
 void	HttpRequest::fillHeaders(std::string &req)
 {
-//	std::string::iterator i = req.begin();
 	while (req.substr(0, 2) != "\r\n")
 	{
 		std::string key = req.substr(0, req.find(':'));
 		req.erase(0, req.find(':') + 1);
 		std::string value = req.substr(0, req.find("\r\n"));
-//		if (value[0] != ' ')
-//			throw std::runtime_error("bad header formatting, needs to have space after :");
+		if (value[0] != ' ')
+		{
+			throw std::runtime_error("bad header formatting, needs to have space after :");
+			requestStatus = 400;
+		}
 		req.erase(0, req.find("\r\n") + 2);
 		requestHeader.insert({key,value});
 	}
 	try{
-		 requestHeader.at("Host"); // checking that Host field exists in header
+		 requestHeader.at("Host");
 	}
-	catch (std::exception &e) // just doing this until figure out how to handle errors
+	catch (std::exception &e) 
 	{
-		requestStatus = 404; // change to correct error status
+		requestStatus = 400; 
 		requestPath = serv.getErrorsPages().at(requestStatus);
 		requestPath = "." + requestPath;
 		return ;
 	}
 	buildPath();
+	req.erase(0, 2);
+	std::cout << "req before reading body: " << req << std::endl;
 	std::cout << "Path in fillHeaders: " << requestPath << std::endl;
-//	for(auto & key: requestHeader)
-//	{
-//		std::cout << "Key: " << key.first << " Value: " << key.second << std::endl;
-//	}
 }
 void	HttpRequest::printElements() const
 {
@@ -141,20 +149,33 @@ void	HttpRequest::fillRawBody(std::string &req)
 	for (const auto &i : req)
 	{
 		rawBody.push_back(i);
-//		std::cout << i;
+		std::cout << i;
 	}
-	std::cout << std::endl;
+	if (rawBody.size() > maxSize)
+	{
+		std::cout << "Max body size exceeded\n";
+		requestStatus = 413;
+	}
 }
 
-/*
-void	HttpRequest::populateChunks(std::vector<unsigned char>& vec)
+
+/* std::vector<unsigned char>	HttpRequest::dechunkBody()
 {
+	std::vector<unsigned char> dechunkedBody;
 	const char *eof = "\r\n\r\n";
-	auto it = std::search(vec.begin(), vec.end(), eof, eof + strlen(eof));
-	std::string sizestr(vec.begin(), it);
-	long reqSize = strtol(sizestr.c_str(), NULL, 16);
-	std::string body_content = "placeholder";
-	requestBody.emplace_back(reqSize,body_content);
+	const char *rn = "\r\n";
+	size_t i = 0;
+	size_t chunk_pos;
+	while (i < rawBody.size())
+	{
+		chunk_pos = i;
+		while (rawBody[i] != '\r')
+			i++;
+		long chunkSize = strtol(sizestr.c_str(), NULL, 16);
+	}
+	auto it = std::search(rawBody.begin(), rawBody.end(), eof, eof + strlen(eof));
+
+	return dechunkedBody;
 }
 */
 RouteConfig HttpRequest::findRoute() {
