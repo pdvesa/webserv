@@ -66,7 +66,7 @@ std::string HandleRequest::handlePost(const std::string& uploadLocation, const s
 
 
 		try {
-			std::string	filename = Parsing::extractVariable(linesContent[2],"name=");
+			std::string	filename = Parsing::extractVariable(linesContent[2],"filename=");
 
 			if (access((uploadLocation + "/" + filename).c_str(), F_OK) == 0)
 				throw std::runtime_error("401");
