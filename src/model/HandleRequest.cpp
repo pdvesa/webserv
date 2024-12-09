@@ -63,7 +63,6 @@ std::string HandleRequest::handlePost(const std::string& uploadLocation, const s
 			throw std::runtime_error("400");
 		}
 		if (linesContent[linesContent.size() - 1].compare(2, boundaryString.size(), boundaryString) != 0) {
-			std::cerr << "here2" << std::endl;
 			throw std::runtime_error("400");
 		}
 
@@ -80,6 +79,7 @@ std::string HandleRequest::handlePost(const std::string& uploadLocation, const s
 
 			for (unsigned long i = 4; i < linesContent.size() - 1; i++) {
 				targetFile << linesContent[i];
+				targetFile << '\n';
 			}
 			targetFile.close();
 			return ("<html><body><h1>Success</h1></body></html>");
