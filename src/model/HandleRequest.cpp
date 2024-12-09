@@ -59,14 +59,16 @@ std::string HandleRequest::handlePost(const std::string& uploadLocation, const s
 		if (linesContent.size() < 5)
 			throw std::runtime_error("400");
 
-		if (linesContent[1].compare(2, boundaryString.size(), boundaryString) != 0)
+		if (linesContent[0].compare(2, boundaryString.size(), boundaryString) != 0) {
 			throw std::runtime_error("400");
-		if (linesContent[linesContent.size() - 1].compare(2, boundaryString.size(), boundaryString) != 0)
+		}
+		if (linesContent[linesContent.size() - 1].compare(2, boundaryString.size(), boundaryString) != 0) {
+			std::cerr << "here2" << std::endl;
 			throw std::runtime_error("400");
-
+		}
 
 		try {
-			std::string	filename = Parsing::extractVariable(linesContent[2],"filename=");
+			std::string	filename = Parsing::extractVariable(linesContent[1],"filename=");
 
 			if (access((uploadLocation + "/" + filename).c_str(), F_OK) == 0)
 				throw std::runtime_error("401");
