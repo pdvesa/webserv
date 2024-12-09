@@ -24,9 +24,11 @@ RouteConfig RouteConfig::fromLocationBlock(std::string& locationBlock) {
 		extractMethods(GET, POST, DELETE, locationBlock);
 		listing = extractListing(locationBlock);
 		rootDir = extractRootDir(locationBlock);
-		if (POST)
-			uploadDir = extractUploadDir(locationBlock);
-
+		if (POST) {
+			try {
+				uploadDir = extractUploadDir(locationBlock);
+			} catch (Parsing::VariableNotFoundException&) { }
+		}
 	}
 
 	if (!IsBlank::isBlank(locationBlock))
