@@ -16,6 +16,7 @@ HttpRequest::HttpRequest(const HttpRequest& other) : serv(other.serv)
 		requestedResource = other.requestedResource;
 		cgiStatus = other.cgiStatus;
 		hasListing = other.hasListing;
+		maxSize = other.maxSize;
 }
 
 HttpRequest& HttpRequest::operator=(const HttpRequest& other)
@@ -33,6 +34,7 @@ HttpRequest& HttpRequest::operator=(const HttpRequest& other)
 		requestedResource = other.requestedResource;
 		cgiStatus = other.cgiStatus;
 		hasListing = other.hasListing;
+		maxSize = other.maxSize;
 	}
 	return (*this);
 }
@@ -47,15 +49,14 @@ void HttpRequest::readSocket(int socket)
 {
 	int							rv;
 	std::vector<unsigned char>	buffer(BUF_SIZE);
-//	std::cout << "buffer size: " << BUF_SIZE << std::endl;
+	fullRequest.clear();
+
 	while ((rv = read(socket, buffer.data(), BUF_SIZE)) > 0) {
-		buffer.resize(rv);
-		fullRequest.insert(fullRequest.end(), buffer.begin(), buffer.end()); // might read too much into buffer
+		fullRequest.insert(fullRequest.end(), buffer.begin(), buffer.begin() + rv);
 		if (rv < BUF_SIZE) 
 			break;
 	}
-//	std::cout << "Size of fullreq: " << fullRequest.size() << std::endl;
-	write(1, fullRequest.data(), fullRequest.size());
+//	write(1, fullRequest.data(), fullRequest.size());
 	if (rv == -1)
 		throw std::runtime_error("failed to read from socket");
 	std::string reqstr(fullRequest.begin(), fullRequest.end());
@@ -86,20 +87,18 @@ void	HttpRequest::fillRequest(std::string req)
 	requestVersion = mtv[2];
 	if (requestVersion != "HTTP/1.1")
 	{
-		std::cout << "version mismatch \n" << std::endl;
 		requestStatus = 505;
 		return ;
 	}
 	req.erase(0, req.find("\r\n") + 2);
 	fillHeaders(req);
 	fillRawBody(req);
+	if (rawBody.empty())
+		requestHeader.insert({"Content-Type", " text/html"});
 	if (requestHeader.count("Transfer-Encoding"))
 	{
 		if (requestHeader.at("Transfer-Encoding") == " chunked")
-		{
-//			rawBody = dechunkBody();
-			std::cout << "\nchunked encoding\n";
-		}
+			rawBody = dechunkBody();
 	}
 	std::cout << "method in request: " << requestMethod << std::endl;
 }
@@ -119,20 +118,15 @@ void	HttpRequest::fillHeaders(std::string &req)
 		req.erase(0, req.find("\r\n") + 2);
 		requestHeader.insert({key,value});
 	}
-	try{
-		 requestHeader.at("Host");
-	}
-	catch (std::exception &e) 
+	if (!requestHeader.count("Host"))
 	{
 		requestStatus = 400; 
-		requestPath = serv.getErrorsPages().at(requestStatus);
+		requestPath = serv.getErrorsPages().at(404);
 		requestPath = "." + requestPath;
 		return ;
 	}
 	buildPath();
 	req.erase(0, 2);
-	std::cout << "req before reading body: " << req << std::endl;
-	std::cout << "Path in fillHeaders: " << requestPath << std::endl;
 }
 void	HttpRequest::printElements() const
 {
@@ -147,37 +141,46 @@ void	HttpRequest::fillRawBody(std::string &req)
 {
 	rawBody.reserve(req.size());
 	for (const auto &i : req)
-	{
 		rawBody.push_back(i);
-		std::cout << i;
-	}
 	if (rawBody.size() > maxSize)
-	{
-		std::cout << "Max body size exceeded\n";
 		requestStatus = 413;
-	}
 }
 
 
-/* std::vector<unsigned char>	HttpRequest::dechunkBody()
+ std::vector<unsigned char>	HttpRequest::dechunkBody()
 {
 	std::vector<unsigned char> dechunkedBody;
-	const char *eof = "\r\n\r\n";
-	const char *rn = "\r\n";
-	size_t i = 0;
-	size_t chunk_pos;
-	while (i < rawBody.size())
-	{
-		chunk_pos = i;
-		while (rawBody[i] != '\r')
-			i++;
-		long chunkSize = strtol(sizestr.c_str(), NULL, 16);
-	}
-	auto it = std::search(rawBody.begin(), rawBody.end(), eof, eof + strlen(eof));
 
+	auto iter = rawBody.begin();
+	while (iter != rawBody.end())
+	{
+		try{
+			auto chunkStart = iter;
+			auto chunkEnd = std::find(iter, rawBody.end(), '\r');
+			if (chunkEnd == rawBody.end() || chunkEnd + 1 == rawBody.end())
+				throw std::runtime_error("bad chunked request\n");
+			std::string chunkSize(chunkStart, chunkEnd);
+			size_t chunkLen = std::stoi(chunkSize, nullptr, 16);
+			if (chunkLen == 0)
+				break ;
+			chunkEnd += 2;
+			std::copy(chunkEnd, chunkEnd + chunkLen, std::back_inserter(dechunkedBody));
+			if (dechunkedBody.size() > maxSize)
+			{
+				requestStatus = 413;
+				break ;
+			}
+			iter = chunkEnd + chunkLen + 2;
+		}
+		catch (std::exception &e)
+		{
+			requestStatus = 400;
+			break ;
+		}
+	}
 	return dechunkedBody;
 }
-*/
+
 RouteConfig HttpRequest::findRoute() {
     size_t latestSlash = requestTarget.rfind('/');
 	std::string routeMatch = requestTarget;
@@ -187,9 +190,11 @@ RouteConfig HttpRequest::findRoute() {
     }
     while (latestSlash != std::string::npos) {
         routeMatch = requestTarget.substr(0, latestSlash + 1);
-        if (routes.find(routeMatch) != routes.end()) {
+        if (routes.find(routeMatch) != routes.end())
+		{
 			requestedResource = requestTarget.substr(latestSlash + 1);
-			std::cout << "returning with route at: " << routeMatch << " and requested resource: " << requestedResource << std::endl;
+			if (!requestedResource.empty() && requestedResource[0] == '/')
+				requestedResource.substr(1);
             return routes.at(routeMatch);
         }
         routeMatch = routeMatch.substr(0, latestSlash);
@@ -254,7 +259,6 @@ void HttpRequest::buildPath()
 		{
 			if (!std::filesystem::exists(requestPath))
 			{
-				std::cout << "serving error here with path: " << requestPath << std::endl;
 				serveError(404);
 				return ;
 			}
@@ -263,11 +267,11 @@ void HttpRequest::buildPath()
 		}
 		if (!std::filesystem::exists(requestPath))
 			serveError(404);
+		else if (std::filesystem::is_directory(requestPath) && !requestPath.ends_with('/'))
+			serveError(404);
 	}
 	catch (std::exception &e)
 	{
-		std::cout << e.what();
-		std::cout << "404 in buildPath\n";
 		requestStatus = 404;
 		requestPath = serv.getErrorsPages().at(404);
 	}
@@ -281,7 +285,6 @@ void	HttpRequest::serveError(int status)
 
 void	HttpRequest::updateCGI()
 {
-	std::cout << "in updateCGI: " << "path: " << requestPath << std::endl;
 	if (requestPath.find("/cgi-bin/") != std::string::npos)
 	{
 		if (requestedResource.substr(requestedResource.length() - 3) == ".py")
@@ -292,7 +295,6 @@ void	HttpRequest::updateCGI()
 		if (requestedResource.substr(requestedResource.length() - 4) == ".cgi")
 		{
 			cgiStatus = CGI_E;
-		  std::cout << "\n\n\n\n\n CGI STATUS: " << cgiStatus << std::endl;
 			return ;
 		}
 	}

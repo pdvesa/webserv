@@ -1,0 +1,2 @@
+#!/bin/bash
+echo -ne 'POST /posting/ HTTP/1.1\r\nHost: 127.0.0.1:8080\r\nTransfer-Encoding: chunked\r\nContent-Type: application/x-www-form-urlencoded\r\n\r\n7\r\nHello, \r\n11\r\nthis is chunked:)\r\n0\r\n' | nc 127.0.0.1 8080
