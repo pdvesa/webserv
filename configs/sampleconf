@@ -3,7 +3,7 @@ hostname 127.0.0.1
 port 8080
 server_name alpaca_lama
 error_page 404 405 /www/error/general.html
-client_max_body_size 2
+client_max_body_size 8000
 
 location / {
     methods GET 

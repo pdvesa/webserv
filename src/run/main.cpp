@@ -4,7 +4,7 @@
 
 #include <WebservController.hpp>
 
-int main(int n, char* args[])
+int main(int n, char *args[])
 {
 	if (n != 2 && !args)
 		return (EXIT_FAILURE);

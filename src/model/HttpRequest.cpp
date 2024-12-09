@@ -193,8 +193,8 @@ RouteConfig HttpRequest::findRoute() {
         if (routes.find(routeMatch) != routes.end())
 		{
 			requestedResource = requestTarget.substr(latestSlash + 1);
-			if (!requestedResource.empty() && requestedResource[0] == '/')
-				requestedResource.substr(1);
+			// if (!requestedResource.empty() && requestedResource[0] == '/')
+			// 	requestedResource = requestedResource.substr(1);
             return routes.at(routeMatch);
         }
         routeMatch = routeMatch.substr(0, latestSlash);
