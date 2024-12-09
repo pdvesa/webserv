@@ -32,8 +32,6 @@ class WebservController {
 		std::vector<Server>				servers;
 		int 							epollFD;
 		int								eventsWaiting;
-//		int								epollSize; not used atm
-//		epoll_event						tempEvent;
 		epoll_event						eventWaitlist[MAX_EVENTS];
 		void	createSockets(int domain, int type, int protocol);
 		void	acceptConnection(int listenFd);

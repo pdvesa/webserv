@@ -14,11 +14,7 @@ WebservController::WebservController() {
 }
 
 WebservController::~WebservController() {
-	for (const auto &fd : listenFDs)
-		close (fd);
-	for (const auto& pair : clients)
-		close(pair.first);
-	close(epollFD); 
+	cleanResources();
 }
 
 WebservController::WebservController(const std::string& configFilePath) {
@@ -30,7 +26,7 @@ void	WebservController::run() {
 	epollFD = epoll_create1(0);
 	if (epollFD == -1)
 		throw std::runtime_error("Initializing epoll failed, idk :("); //maybe handling needs change
-	createSockets(AF_INET, SOCK_STREAM, 0); //make into socket class
+	createSockets(AF_INET, SOCK_STREAM, 0);
 	while (running) {
 		eventsWaiting = epoll_wait(epollFD, eventWaitlist, MAX_EVENTS, -1);
 		for (int i = 0; i < eventsWaiting; i++) {
@@ -40,7 +36,7 @@ void	WebservController::run() {
 					acceptConnection(currentFD); 
 				}
 				catch (const std::runtime_error &e) {
-					errorHandler(e, true); //might need some changes
+					errorHandler(e, true);
 				}
 			}
 			else if (eventWaitlist[i].events & EPOLLRDHUP) {
@@ -60,15 +56,14 @@ void	WebservController::run() {
 			else if (eventWaitlist[i].events & EPOLLOUT && clients.at(currentFD).getRequest()) {
 				try {
 					clients.at(currentFD).buildResponse();			
-					if (clients.at(currentFD).getResponse()) {  //making 100% we dont try to dereference nullopt next if smebody breaks clieantbuilder again :()()()()
-						write(currentFD, clients.at(currentFD).getResponse()->toString().c_str(), clients.at(currentFD).getResponse()->toString().length()); //maybe we need checker if we actually sent everything also now we live dangerously with dereferencing :)
-//						write(1, clients.at(currentFD).getResponse().toString().c_str(), clients.at(currentFD).getResponse().toString().length()); //debug
-						epollDelete(epollFD, currentFD); //needed with this version of sending
+					if (clients.at(currentFD).getResponse()) { 
+						write(currentFD, clients.at(currentFD).getResponse()->toString().c_str(), clients.at(currentFD).getResponse()->toString().length());
+						epollDelete(epollFD, currentFD);
 						close(currentFD);
 						clients.at(currentFD).clearClear();
 					}
 				}
-				catch (const std::runtime_error &e) { //make sure its consistent with davids
+				catch (const std::runtime_error &e) {
 					errorHandler(e, false);
 					continue;
 				}
@@ -115,11 +110,10 @@ void WebservController::acceptConnection(int listenFD) {
 void WebservController::errorHandler(const std::runtime_error &err, bool ifExit) {
 	errorLogger(err.what());
 	if (ifExit) {
-//	epoll_ctl(EPOLL_CTL_DEL) remember
-	cleanResources();
-	exit(EXIT_FAILURE); //maybe needs rework
+		cleanResources();
+		exit(EXIT_FAILURE);
 	}
-} // make work with other err types monke
+}
 
 void WebservController::errorLogger(const std::string &errMsg) {
 	std::ofstream		errorLog;
@@ -135,8 +129,13 @@ void WebservController::errorLogger(const std::string &errMsg) {
 }
 
 void WebservController::cleanResources() {
-	for (const int &fd : listenFDs)
+	for (const auto &fd : listenFDs) {
 		close (fd);
+	}
+	for (const auto &pair : clients) {
+		close(pair.first);
+	}
+	close(epollFD);
 }
 
 static void sigHandler(int signal) {
@@ -147,7 +146,6 @@ static void sigHandler(int signal) {
 void WebservController::controllerSignals() {
 	signal(SIGINT, sigHandler);
 	signal(SIGTERM, sigHandler);
-	signal(SIGKILL, sigHandler);
 	signal(SIGQUIT, sigHandler);
 }
 

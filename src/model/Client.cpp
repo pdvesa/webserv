@@ -20,12 +20,10 @@ const ServerConfig &Client::getConfig() const {
 
 std::optional<HttpRequest> Client::getRequest() const {
 	return request;
-//	throw std::runtime_error("request not formed yet");
 }
 
 std::optional<HttpResponse> Client::getResponse() const {
 	return response;
-//	throw std::runtime_error("response not formed yet");
 }
 
 void	Client::buildRequest() {
