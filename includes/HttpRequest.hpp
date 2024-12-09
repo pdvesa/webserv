@@ -40,7 +40,8 @@ class HttpRequest {
 		HttpRequest(const ServerConfig& cfg, int fd);
 		HttpRequest(const HttpRequest& other);
 		~HttpRequest();
-		void	readSocket(int socket);
+		void	appendR(int fd);
+		void	readSocket(int socket, bool first);
 		void	fillRequest(std::string req);
 		void	fillRequest_vec(std::vector<unsigned char>& req);
 		void	fillHeaders(std::string &req);

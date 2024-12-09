@@ -69,7 +69,6 @@ std::string HttpResponse::createLocationLine(const std::string& redirectionTarge
 }
 
 void HttpResponse::errorBuilder(std::string &response, const int status) {
-	std::cout << response << std::endl;
 	std::string errorStr = std::to_string(status) + " " + httpErrors[status];
 	int	index = response.find("{{{ERROR}}}");
 	if (index != (int)std::string::npos)

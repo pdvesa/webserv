@@ -42,10 +42,10 @@ HttpRequest& HttpRequest::operator=(const HttpRequest& other)
 
 HttpRequest::HttpRequest(const ServerConfig &cfg, int fd) : serv(cfg), requestedResource(""), cgiStatus(0), requestStatus(200), maxSize(cfg.getMaxClientBodySize())
 {
-	readSocket(fd);
+	readSocket(fd, true);
 }
 
-void HttpRequest::readSocket(int socket)
+void HttpRequest::readSocket(int socket, bool first)
 {
 	int							rv;
 	std::vector<unsigned char>	buffer(BUF_SIZE);
@@ -61,7 +61,10 @@ void HttpRequest::readSocket(int socket)
 	else if (rv == 0)
 		std::cout << "We read 0 in request. Maybe it was EOF?. Maybe it wasn't, who cares?" << std::endl;
 	std::string reqstr(fullRequest.begin(), fullRequest.end());
-	fillRequest(reqstr);
+	if (first)
+		fillRequest(reqstr);
+	else
+		fillRawBody(reqstr);
 }
 
 HttpRequest::~HttpRequest(){}
@@ -102,6 +105,7 @@ void	HttpRequest::fillRequest(std::string req)
 			rawBody = dechunkBody();
 	}
 	std::cout << "method in request: " << requestMethod << std::endl;
+	std::cout << requestPath << std::endl;
 }
 
 void	HttpRequest::fillHeaders(std::string &req)
@@ -309,4 +313,8 @@ std::string HttpRequest::getMapValue(std::string key) {
 		return ("");
 	else 
 		return (found->second);
+}
+
+void HttpRequest::appendR(int fd) {
+	readSocket(fd, false);
 }

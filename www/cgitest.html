@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Favorite Color</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            text-align: center;
+            padding: 50px;
+        }
+        button {
+            padding: 10px 20px;
+            margin: 10px;
+            border: none;
+            color: white;
+            font-size: 16px;
+            cursor: pointer;
+        }
+        .red {
+            background-color: red;
+        }
+        .green {
+            background-color: green;
+        }
+        .blue {
+            background-color: blue;
+        }
+    </style>
+</head>
+<body>
+
+    <h1>What's your favorite color?</h1>
+
+    <!-- Form for sending POST request -->
+    <form action="./cgi-bin/test.py" method="POST">
+        <button class="red" type="submit" name="color" value="Red">Red</button>
+        <button class="green" type="submit" name="color" value="Green">Green</button>
+        <button class="blue" type="submit" name="color" value="Blue">Blue</button>
+    </form>
+
+</body>
+</html>

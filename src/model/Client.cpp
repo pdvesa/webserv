@@ -27,7 +27,13 @@ std::optional<HttpResponse> Client::getResponse() const {
 }
 
 void	Client::buildRequest() {
-	request.emplace(HttpRequest(getConfig(), getClientFD()));
+	if (request.has_value()) {
+		std::cout << "GOT CALLED" << std::endl;
+		request->appendR(getClientFD());
+		std::cout << "OK " << request->getMethod() << std::endl;
+	}
+	else
+		request.emplace(HttpRequest(getConfig(), getClientFD()));
 }
 
 void	Client::buildResponse() {
