@@ -34,6 +34,7 @@ class HttpRequest {
 		int									cgiStatus;
 		int									requestStatus;
 		bool								hasListing;
+		size_t								maxSize;
 	public:
 		HttpRequest& operator=(const HttpRequest& other);
 		HttpRequest(const ServerConfig& cfg, int fd);
@@ -59,6 +60,7 @@ class HttpRequest {
 		const std::string& getTarget() {return requestTarget;}
 		const std::string& getVersion(){return requestVersion;}
 		const std::string& getPath(){return requestPath;}
+		const std::string& getResource(){return requestedResource;}
 		const ServerConfig& getServer(){return serv;}
 		std::string getMapValue(std::string key);
 		int					getStatus(){return requestStatus;}
@@ -66,7 +68,7 @@ class HttpRequest {
 		bool				getListing(){return hasListing;}
 		const ServerConfig&  getServerConfig(){return serv;}
 		std::map<std::string, std::string>& getHeaders(){return requestHeader;}
-
+		std::vector<unsigned char>			dechunkBody(); 
 		void				setStatus(const int status) {this->requestStatus = status;}
 };
 
