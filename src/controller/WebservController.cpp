@@ -109,10 +109,8 @@ void WebservController::acceptConnection(int listenFD) {
 
 void WebservController::errorHandler(const std::runtime_error &err, bool ifExit) {
 	errorLogger(err.what());
-	if (ifExit) {
-		cleanResources();
-		exit(EXIT_FAILURE);
-	}
+	if (ifExit)
+		running = false;
 }
 
 void WebservController::errorLogger(const std::string &errMsg) {
