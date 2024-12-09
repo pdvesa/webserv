@@ -25,7 +25,7 @@ void	WebservController::run() {
 	controllerSignals();
 	epollFD = epoll_create1(0);
 	if (epollFD == -1)
-		throw std::runtime_error("Initializing epoll failed, idk :("); //maybe handling needs change
+		throw std::runtime_error("Initializing epoll failed, idk :("); //we dont catch
 	createSockets(AF_INET, SOCK_STREAM, 0);
 	while (running) {
 		eventsWaiting = epoll_wait(epollFD, eventWaitlist, MAX_EVENTS, -1);
@@ -44,34 +44,13 @@ void	WebservController::run() {
 				close(currentFD);
 				clients.at(currentFD).clearClear();
 			}
-			else if (eventWaitlist[i].events & EPOLLIN) {
-				try {
-					clients.at(currentFD).buildRequest();
-				}
-				catch (const std::runtime_error &e) {
-					errorHandler(e, false);
-					continue; 
-				}
-			}
-			else if (eventWaitlist[i].events & EPOLLOUT && clients.at(currentFD).getRequest()) {
-				try {
-					clients.at(currentFD).buildResponse();			
-					if (clients.at(currentFD).getResponse()) { 
-						write(currentFD, clients.at(currentFD).getResponse()->toString().c_str(), clients.at(currentFD).getResponse()->toString().length());
-						epollDelete(epollFD, currentFD);
-						close(currentFD);
-						clients.at(currentFD).clearClear();
-					}
-				}
-				catch (const std::runtime_error &e) {
-					errorHandler(e, false);
-					continue;
-				}
-			}
+			else if (eventWaitlist[i].events & EPOLLIN)
+				makeRequest(currentFD);
+			else if (eventWaitlist[i].events & EPOLLOUT && clients.at(currentFD).getRequest())
+				makeResponse(currentFD);
 		}
 	}
 }
-
 
 void WebservController::createSockets(int domain, int type, int protocol) {
 	try {
@@ -104,6 +83,38 @@ void WebservController::acceptConnection(int listenFD) {
 		clients.insert_or_assign(connectionFD, client);
 		epollAdd(epollFD, connectionFD, true);
 		std::cout << "Connection accepted for fd " << connectionFD << std::endl;
+	}
+}
+
+void WebservController::makeRequest(int fd) {
+	try {
+		clients.at(fd).buildRequest();
+	}
+	catch (const std::runtime_error &e) {
+		epollDelete(epollFD, fd);
+		close(fd);
+		clients.at(fd).clearClear();
+		errorHandler(e, false);
+	}
+}
+
+void WebservController::makeResponse(int fd) {
+	int wb;
+	try {
+		clients.at(fd).buildResponse();			
+		if (clients.at(fd).getResponse()) { 
+			wb = write(fd, clients.at(fd).getResponse()->toString().c_str(), clients.at(fd).getResponse()->toString().length());
+			epollDelete(epollFD, fd);
+			close(fd);
+			clients.at(fd).clearClear();
+			if (wb == -1)
+				throw std::runtime_error("Write failed in responding");
+			else if (wb == 0)
+				throw std::runtime_error("Write sent nothing in response");
+		}
+	}
+	catch (const std::runtime_error &e) {
+		errorHandler(e, false);
 	}
 }
 

@@ -39,6 +39,8 @@ class WebservController {
 		void	errorLogger(const std::string &errMsg);
 		void	cleanResources();
 		void	controllerSignals();
+		void	makeResponse(int fd);
+		void	makeRequest(int fd);
 	public:
 		WebservController();
 		WebservController(const std::string& configFilePath);

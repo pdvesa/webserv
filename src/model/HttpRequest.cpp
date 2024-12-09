@@ -56,9 +56,10 @@ void HttpRequest::readSocket(int socket)
 		if (rv < BUF_SIZE) 
 			break;
 	}
-//	write(1, fullRequest.data(), fullRequest.size());
 	if (rv == -1)
-		throw std::runtime_error("failed to read from socket");
+		throw std::runtime_error("Failed to read from socket");
+	else if (rv == 0)
+		std::cout << "We read 0 in request. Maybe it was EOF?. Maybe it wasn't, who cares?" << std::endl;
 	std::string reqstr(fullRequest.begin(), fullRequest.end());
 	fillRequest(reqstr);
 }

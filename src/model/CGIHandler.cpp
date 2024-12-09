@@ -8,7 +8,12 @@ static void alarmHandler(int signal) {
 }
 
 CGI::CGI(HttpRequest request) : req(request), env(), envp(), exitStatus(0) {
-	runCGI();
+	try {
+		runCGI();
+	}
+	catch (const std::runtime_error &e) {
+		exitStatus = 1;
+	}
 }
 
 CGI::~CGI() {	
@@ -73,6 +78,10 @@ void CGI::runCGI() {
 		close(pipes[0]);
 		waitpid(pid, &status, 0);
 		alarm(0);
+		if (rv == -1)
+			throw std::runtime_error("Parent failed to read in CGIHandler");
+		else if (rv == 0)
+			std::cout << "MAYBE WE JUST READ 0 THIS IN INSANE" << std::endl;
 		if (WIFEXITED(status))
             exitStatus = WEXITSTATUS(status);
 		else if (WIFSIGNALED(status))
