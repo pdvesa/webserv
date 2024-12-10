@@ -57,7 +57,7 @@ std::string HttpResponse::createContentLengthLine() const {
 }
 
 std::string HttpResponse::createConnectionLine() const {
-	return (CONNECTION + ": " + "keep-alive" + "\n"); //TODO No idea what to put
+	return (CONNECTION + ": " + "keep-alive" + "\n");
 }
 
 std::string HttpResponse::createContentTypeLine(const std::string& contentType) const {
@@ -69,8 +69,7 @@ std::string HttpResponse::createLocationLine(const std::string& redirectionTarge
 }
 
 void HttpResponse::errorBuilder(std::string &response, const int status) {
-	std::cout << response << std::endl;
-	std::string errorStr = std::to_string(status) + " " + httpErrors[status]; //assuming everything here is correct as should :()()
+	std::string errorStr = std::to_string(status) + " " + httpErrors[status];
 	int	index = response.find("{{{ERROR}}}");
 	if (index != (int)std::string::npos)
 		response.replace(index, 11, errorStr);

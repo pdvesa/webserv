@@ -20,16 +20,20 @@ const ServerConfig &Client::getConfig() const {
 
 std::optional<HttpRequest> Client::getRequest() const {
 	return request;
-//	throw std::runtime_error("request not formed yet");
 }
 
 std::optional<HttpResponse> Client::getResponse() const {
 	return response;
-//	throw std::runtime_error("response not formed yet");
 }
 
 void	Client::buildRequest() {
-	request.emplace(HttpRequest(getConfig(), getClientFD()));
+	if (request.has_value()) {
+		std::cout << "GOT CALLED" << std::endl;
+		request->appendR(getClientFD());
+		std::cout << "OK " << request->getMethod() << std::endl;
+	}
+	else
+		request.emplace(HttpRequest(getConfig(), getClientFD()));
 }
 
 void	Client::buildResponse() {

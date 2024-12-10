@@ -3,7 +3,7 @@
 
 #include <ServerConfig.hpp>
 
-class Server { //wrapper class for david
+class Server {
 	private:
 		ServerConfig	serverData;
 		int				serverFD;
