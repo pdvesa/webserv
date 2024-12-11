@@ -17,6 +17,8 @@
 #include <map>
 #include <HttpRequest.hpp>
 #include <CGIHandler.hpp>
+#include <fcntl.h>
+
 
 class HandleRequest {
 	private:

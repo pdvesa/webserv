@@ -52,40 +52,66 @@ std::string HandleRequest::handlePost(const std::string& uploadLocation, const s
 		} else if (access(uploadLocation.c_str(), W_OK) != 0) {
 			throw std::runtime_error("401");
 		}
-		
 		std::string boundaryString = contentType.substr(boundaryPos + 9, contentType.size() - boundaryPos - 9);
-		std::vector<std::string>	linesContent = CppSplit::cppSplit(buffer.str(), '\n');
 
-		if (linesContent.size() < 5)
+		std::string	body = buffer.str();
+
+		size_t	firstLineEnd = body.find('\n');
+		if (firstLineEnd == std::string::npos)
+			throw std::runtime_error("400");
+		size_t	firstBoundaryPos = body.substr(0, firstLineEnd).find(boundaryString);
+		if (firstBoundaryPos == std::string::npos)
 			throw std::runtime_error("400");
 
-		if (linesContent[0].compare(2, boundaryString.size(), boundaryString) != 0) {
+		if (body.at(body.size() - 1) == '\n')
+			body = body.substr(0, body.size() - 1);
+		size_t	lastNewLine = body.find_last_of('\n');
+		if (lastNewLine == std::string::npos || lastNewLine == firstLineEnd || lastNewLine <= firstLineEnd + 2)
+			throw std::runtime_error("400");
+		size_t	endBoundaryPos = body.substr(lastNewLine + 1).find(boundaryString);
+		if (endBoundaryPos == std::string::npos) {
 			throw std::runtime_error("400");
 		}
-		if (linesContent[linesContent.size() - 1].compare(2, boundaryString.size(), boundaryString) != 0) {
-			throw std::runtime_error("400");
-		}
 
+		body = body.substr(body.find('\n') + 1, lastNewLine - (firstLineEnd + 2));
+
+		size_t filenameLineEnd = body.find('\n');
+		if (filenameLineEnd == std::string::npos)
+			throw std::runtime_error("400");
+
+		std::string filenameLine = body.substr(0, filenameLineEnd);
+		body = body.substr(filenameLineEnd + 1, body.size());
+
+		std::string	filename;
 		try {
-			std::string	filename = Parsing::extractVariable(linesContent[1],"filename=");
-
-			if (access((uploadLocation + "/" + filename).c_str(), F_OK) == 0)
-				throw std::runtime_error("401");
-
-			std::ofstream	targetFile(uploadLocation + "/" + filename);
-
-			if (!targetFile.is_open())
-				throw std::runtime_error("500");
-
-			for (unsigned long i = 4; i < linesContent.size() - 1; i++) {
-				targetFile << linesContent[i];
-				targetFile << '\n';
-			}
-			targetFile.close();
-			return ("<html><body><h1>Success</h1></body></html>");
+			filename = Parsing::extractVariable(filenameLine,"filename=");
 		} catch (Parsing::VariableNotFoundException&) {
 			throw std::runtime_error("400");
 		}
+		if (access((uploadLocation + "/" + filename).c_str(), F_OK) == 0)
+			throw std::runtime_error("401");
+		std::string	filepath = uploadLocation + "/" + filename;
+		int	fd = open(filepath.c_str(), O_WRONLY | O_CREAT | O_TRUNC, S_IRUSR | S_IWUSR);
+		if (fd == -1)
+			throw std::runtime_error("500");
+
+		for (u_int i = 0; i < 2; i++) {
+			size_t endLinePos = body.find('\n');
+			if (endLinePos == std::string::npos) {
+				close(fd);
+				throw std::runtime_error("400");
+			}
+			body = body.substr(endLinePos + 1, body.size());
+		}
+
+		ssize_t result = write(fd , body.c_str(), body.size());
+		close(fd);
+		if (result == -1)
+			throw std::runtime_error("500");
+		else if (result == 0)
+			throw std::runtime_error("500");
+
+		return ("<html><body><h1>Success</h1></body></html>");
 	}
 }
 
