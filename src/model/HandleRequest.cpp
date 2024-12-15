@@ -108,7 +108,7 @@ std::string HandleRequest::handlePost(const std::string& uploadLocation, const s
 		close(fd);
 		if (result == -1)
 			throw std::runtime_error("500");
-		else if (result == 0)
+		else if (result == 0 && !body.empty())
 			throw std::runtime_error("500");
 
 		return ("<html><body><h1>Success</h1></body></html>");

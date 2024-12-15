@@ -80,6 +80,9 @@ ServerConfig ServerConfig::parseServer(std::string& content) {
 	const u_int									parsedBodySize = parseServerMaxClientBodySize(serverBlock); //Optional
 	const std::map<std::string, RouteConfig>	parsedRoutes = parseServerRoutes(serverBlock); //Mandatory
 
+	if (!IsBlank::isBlank(serverBlock))
+		throw ServerConfig::InvalidConfigFileException();
+
 	return (ServerConfig(parsedHost, parsedPort, parsedServerName, parsedErrorPages, parsedBodySize, parsedRoutes));
 }
 
