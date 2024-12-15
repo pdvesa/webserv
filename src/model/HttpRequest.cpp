@@ -241,6 +241,7 @@ void HttpRequest::validateRoute(const RouteConfig& rt)
 			throw std::runtime_error("method not supported");
 	}
 }
+
 void HttpRequest::buildPath()
 {
 	try
@@ -248,7 +249,13 @@ void HttpRequest::buildPath()
 		RouteConfig route = findRoute();
 		if(checkRedirs(route))
 			return ;
-		validateRoute(route);
+		try {
+			validateRoute(route);
+		} catch (std::exception &e) {
+			requestStatus = 405;
+			serveError(405);
+			return ;
+		}
 		requestPath = route.getRootDir();
 		if (requestedResource.empty() && requestMethod == "GET")
 			requestPath.append(route.getIndex());

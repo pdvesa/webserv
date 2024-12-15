@@ -56,7 +56,6 @@ std::string HandleRequest::handlePost(const std::string& uploadLocation, const s
 
 		std::string	body = buffer.str();
 
-
 		size_t	firstLineEnd = body.find('\n');
 		if (firstLineEnd == std::string::npos)
 			throw std::runtime_error("400");
@@ -109,7 +108,7 @@ std::string HandleRequest::handlePost(const std::string& uploadLocation, const s
 		close(fd);
 		if (result == -1)
 			throw std::runtime_error("500");
-		else if (result == 0 && body.size() != 0)
+		else if (result == 0)
 			throw std::runtime_error("500");
 
 		return ("<html><body><h1>Success</h1></body></html>");
