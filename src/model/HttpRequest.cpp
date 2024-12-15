@@ -40,7 +40,7 @@ HttpRequest& HttpRequest::operator=(const HttpRequest& other)
 }
 
 
-HttpRequest::HttpRequest(const ServerConfig &cfg, int fd) : serv(cfg), requestedResource(""), cgiStatus(0), requestStatus(200), maxSize(cfg.getMaxClientBodySize())
+HttpRequest::HttpRequest(const ServerConfig &cfg, int fd) : serv(cfg), requestedResource(""), cgiStatus(0), requestStatus(200), maxSize(cfg.getMaxClientBodySize() * 1024)
 {
 	readSocket(fd, true);
 }
@@ -104,8 +104,6 @@ void	HttpRequest::fillRequest(std::string req)
 		if (requestHeader.at("Transfer-Encoding") == " chunked")
 			rawBody = dechunkBody();
 	}
-	std::cout << "method in request: " << requestMethod << std::endl;
-	std::cout << requestPath << std::endl;
 }
 
 void	HttpRequest::fillHeaders(std::string &req)
@@ -117,7 +115,6 @@ void	HttpRequest::fillHeaders(std::string &req)
 		std::string value = req.substr(0, req.find("\r\n"));
 		if (value[0] != ' ')
 		{
-			throw std::runtime_error("bad header formatting, needs to have space after :");
 			requestStatus = 400;
 		}
 		req.erase(0, req.find("\r\n") + 2);
@@ -208,7 +205,6 @@ RouteConfig HttpRequest::findRoute() {
     if (routes.find("/") != routes.end()) {
         return routes.at("/");
     }
-
     throw std::runtime_error("Failed to find a route for: " + requestTarget);
 }
 
@@ -290,6 +286,8 @@ void	HttpRequest::serveError(int status)
 
 void	HttpRequest::updateCGI()
 {
+	if (requestPath == "./www/cgi-bin/")
+		return ;
 	if (requestPath.find("/cgi-bin/") != std::string::npos)
 	{
 		if (requestedResource.substr(requestedResource.length() - 3) == ".py")

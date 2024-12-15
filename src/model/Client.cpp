@@ -28,9 +28,7 @@ std::optional<HttpResponse> Client::getResponse() const {
 
 void	Client::buildRequest() {
 	if (request.has_value()) {
-		std::cout << "GOT CALLED" << std::endl;
 		request->appendR(getClientFD());
-		std::cout << "OK " << request->getMethod() << std::endl;
 	}
 	else
 		request.emplace(HttpRequest(getConfig(), getClientFD()));
@@ -40,7 +38,6 @@ void	Client::buildResponse() {
 	try {
 		if (request->getStatus() >= 200 && request->getStatus() < 300) {
 			std::string	path = request->getPath();
-
 			if (request->getCGIStatus()) {
 			response.emplace(HttpResponse(*request, HandleRequest::handleCGI(*request), "text/html"));
 		  	}

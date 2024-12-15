@@ -82,7 +82,6 @@ void WebservController::acceptConnection(int listenFD) {
 		Client client(connectionFD, listenFD, config);
 		clients.insert_or_assign(connectionFD, client);
 		epollAdd(epollFD, connectionFD, true);
-		std::cout << "Connection accepted for fd " << connectionFD << std::endl;
 	}
 }
 
