@@ -1,76 +1,69 @@
+//
+// Created by jules on 19/12/2024.
+//
+
 #ifndef HTTPREQUEST_HPP
 # define HTTPREQUEST_HPP
 
-#include <string>
 #include <map>
+#include <string>
 #include <vector>
-#include <algorithm>
-#include "BodyChunk.hpp"
-#include <cstring>
-#include <sys/socket.h>
-#include "ServerConfig.hpp"
-#include <filesystem>
-//#include "Client.hpp"
-class ServerConfig;
-class Client;
-typedef enum e_cgi
-{
-	NO_CGI = 0,
-	PY = 1,
-	CGI_E = 2
-} t_cgi;
+
+typedef enum e_method {
+	GET,
+	POST,
+	DELETE,
+	UNINITIALIZED,
+	INVALID //TODO HOW TO HANDLE NOW JUST THROW IMMEDIATELY?
+}	t_method;
+
+typedef enum e_parsing_state {
+	PARSING_METHOD,
+	PARSING_TARGET,
+	PARSING_VERSION,
+	PARSING_HEADER,
+	PARSING_BODY,
+	PARSING_DONE
+}	t_parsing_state;
+
 class HttpRequest {
 	private:
-		std::string							requestMethod;
-		std::string							requestTarget;
-		std::string							requestVersion;
-		std::map<std::string, std::string>	requestHeader;
-		std::vector<unsigned char>			rawBody; // maybe not needed anymore
-		std::vector<unsigned char>			fullRequest;
-		const ServerConfig&					serv;
-		std::string							requestPath;
-		std::string							requestedResource;
-//		std::vector<BodyChunk>				requestBody; // more manageable body chunks
-		int									cgiStatus;
-		int									requestStatus;
-		bool								hasListing;
-		size_t								maxSize;
+		t_parsing_state		parsingState;
+		std::vector<u_char>	unparsedData;
+
+		t_method							method;
+		std::string							target;
+		std::string							version;
+		std::map<std::string, std::string>	headers;
+		std::vector<u_char>					body;
+
 	public:
-		HttpRequest& operator=(const HttpRequest& other);
-		HttpRequest(const ServerConfig& cfg, int fd);
-		HttpRequest(const HttpRequest& other);
-		~HttpRequest();
-		void	appendR(int fd);
-		void	readSocket(int socket, bool first);
-		void	fillRequest(std::string req);
-		void	fillRequest_vec(std::vector<unsigned char>& req);
-		void	fillHeaders(std::string &req);
-		void	printElements() const;
-		void	fillRawBody(std::string &req);
-		void	populateChunks(std::vector<unsigned char> &vec);
-		void	validateRequest();
-		void	fulfillRequest();
-		void	buildPath();
-		RouteConfig	findRoute();
-		bool checkRedirs(const RouteConfig& rt);
-		void	serveError(int status);
-		void	validateRoute(const RouteConfig&);
-		void	updateCGI();
-		std::vector<unsigned char>& getBody(){return rawBody;}
-		const std::string& getMethod() {return requestMethod;}// should these return const & to string or object????
-		const std::string& getTarget() {return requestTarget;}
-		const std::string& getVersion(){return requestVersion;}
-		const std::string& getPath(){return requestPath;}
-		const std::string& getResource(){return requestedResource;}
-		const ServerConfig& getServer(){return serv;}
-		std::string getMapValue(std::string key);
-		int					getStatus(){return requestStatus;}
-		int					getCGIStatus(){return cgiStatus;}
-		bool				getListing(){return hasListing;}
-		const ServerConfig&  getServerConfig(){return serv;}
-		std::map<std::string, std::string>& getHeaders(){return requestHeader;}
-		std::vector<unsigned char>			dechunkBody(); 
-		void				setStatus(const int status) {this->requestStatus = status;}
+		HttpRequest();
+		HttpRequest(const u_char* data, size_t len);
+		HttpRequest(const HttpRequest &) = default;
+		~HttpRequest() = default;
+
+		bool	parseData(const u_char* data, size_t len);
+
+		[[nodiscard]] e_method						getMethod() const;
+		[[nodiscard]] const std::string&			getTarget() const;
+		[[nodiscard]] const std::string&			getVersion() const;
+		[[nodiscard]] const std::string&			getHeader(const std::string &key) const;
+		[[nodiscard]] const std::vector<u_char>&	getBody() const;
+
+		class InvalidRequest final : public std::exception {
+			public:
+				InvalidRequest() = default;
+				explicit InvalidRequest(const char* str);
+		};
+
+	private:
+		bool	parseMethod(const u_char* data, size_t len, int& parsedIndex);
+		bool	parseTarget(const u_char* data, size_t len, int& parsedIndex);
+		bool	parseVersion(const u_char* data, size_t len, int& parsedIndex);
+		bool	parseHeader(const u_char* data, size_t len, int& parsedIndex);
+		bool	parseBody(const u_char* data, size_t len, int& parsedIndex);
+		void	saveUnparsed(const u_char* data, size_t len, int parsedIndex);
 };
 
 #endif

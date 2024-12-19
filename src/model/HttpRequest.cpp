@@ -1,325 +1,99 @@
-#include "HttpRequest.hpp"
-#include <iostream>
-#include <unistd.h>
-#include "Client.hpp"
+//
+// Created by jules on 19/12/2024.
+//
 
-HttpRequest::HttpRequest(const HttpRequest& other) : serv(other.serv)
+#include <HttpRequest.hpp>
+
+HttpRequest::HttpRequest() :
+	parsingState(PARSING_METHOD),
+	method(UNINITIALIZED)
+{ }
+
+HttpRequest::HttpRequest(const u_char* data, const size_t len) :
+	HttpRequest()
 {
-		requestMethod = other.requestMethod;
-		requestTarget = other.requestTarget;
-		requestVersion = other.requestVersion;
-		requestHeader = other.requestHeader;
-		rawBody = other.rawBody;
-		fullRequest = other.fullRequest;
-		requestPath = other.requestPath;
-		requestStatus = other.requestStatus;
-		requestedResource = other.requestedResource;
-		cgiStatus = other.cgiStatus;
-		hasListing = other.hasListing;
-		maxSize = other.maxSize;
+	parseData(data, len);
 }
 
-HttpRequest& HttpRequest::operator=(const HttpRequest& other)
+bool HttpRequest::parseData(const u_char* data, const size_t len)
 {
-	if (this != &other)
-	{
-		requestMethod = other.requestMethod;
-		requestTarget = other.requestTarget;
-		requestVersion = other.requestVersion;
-		requestHeader = other.requestHeader;
-		rawBody = other.rawBody;
-		fullRequest = other.fullRequest;
-		requestPath = other.requestPath;
-		requestStatus = other.requestStatus;
-		requestedResource = other.requestedResource;
-		cgiStatus = other.cgiStatus;
-		hasListing = other.hasListing;
-		maxSize = other.maxSize;
-	}
-	return (*this);
-}
+	try {
+		int parsedIndex = 0;
 
-
-HttpRequest::HttpRequest(const ServerConfig &cfg, int fd) : serv(cfg), requestedResource(""), cgiStatus(0), requestStatus(200), maxSize(cfg.getMaxClientBodySize() * 1024)
-{
-	readSocket(fd, true);
-}
-
-void HttpRequest::readSocket(int socket, bool first)
-{
-	int							rv;
-	std::vector<unsigned char>	buffer(BUF_SIZE);
-	fullRequest.clear();
-
-	while ((rv = read(socket, buffer.data(), BUF_SIZE)) > 0) {
-		fullRequest.insert(fullRequest.end(), buffer.begin(), buffer.begin() + rv);
-		if (rv < BUF_SIZE) 
-			break;
-	}
-	if (rv == -1)
-		throw std::runtime_error("Failed to read from socket");
-	else if (rv == 0)
-		std::cout << "We read 0 in request. Maybe it was EOF?. Maybe it wasn't, who cares?" << std::endl;
-	std::string reqstr(fullRequest.begin(), fullRequest.end());
-	if (first)
-		fillRequest(reqstr);
-	else
-		fillRawBody(reqstr);
-}
-
-HttpRequest::~HttpRequest(){}
-
-void	HttpRequest::fillRequest(std::string req)
-{
-	std::string	req_line = req.substr(0, req.find("\r\n"));
-	std::string mtv[3];
-	int			pos;
-	for (int i = 0; i < 3; i++)
-	{
-		pos = req_line.find(' ');
-		mtv[i] = req_line.substr(0, pos);
-		req_line.erase(0, pos + 1);
-	}
-	requestMethod = mtv[0];
-	if (mtv[0] != "GET" && mtv[0] != "POST" && mtv[0] != "DELETE")
-	{
-		requestStatus = 405;
-		serveError(405);
-		return ;
-	}
-	requestTarget = mtv[1];
-	requestVersion = mtv[2];
-	if (requestVersion != "HTTP/1.1")
-	{
-		requestStatus = 505;
-		return ;
-	}
-	req.erase(0, req.find("\r\n") + 2);
-	fillHeaders(req);
-	fillRawBody(req);
-	if (rawBody.empty())
-		requestHeader.insert({"Content-Type", " text/html"});
-	if (requestHeader.count("Transfer-Encoding"))
-	{
-		if (requestHeader.at("Transfer-Encoding") == " chunked")
-			rawBody = dechunkBody();
-	}
-}
-
-void	HttpRequest::fillHeaders(std::string &req)
-{
-	while (req.substr(0, 2) != "\r\n")
-	{
-		std::string key = req.substr(0, req.find(':'));
-		req.erase(0, req.find(':') + 1);
-		std::string value = req.substr(0, req.find("\r\n"));
-		if (value[0] != ' ')
+		switch (parsingState)
 		{
-			requestStatus = 400;
-		}
-		req.erase(0, req.find("\r\n") + 2);
-		requestHeader.insert({key,value});
-	}
-	if (!requestHeader.count("Host"))
-	{
-		requestStatus = 400; 
-		requestPath = serv.getErrorsPages().at(404);
-		requestPath = "." + requestPath;
-		return ;
-	}
-	buildPath();
-	req.erase(0, 2);
-}
-void	HttpRequest::printElements() const
-{
-	std::cout << "Request Method:" << requestMethod << std::endl;
-	std::cout << "Request Target:" << requestTarget << std::endl;
-	std::cout << "Request Version:" << requestVersion << std::endl;
-	for (const auto &i : requestHeader)
-		std::cout << "Key:" << i.first << " Value:" << i.second << std::endl;
-}
+			case PARSING_METHOD:
+				if (!parseMethod(data, len, parsedIndex))
+					break ;
+				parsingState = PARSING_TARGET;
+				[fallthrough];
 
-void	HttpRequest::fillRawBody(std::string &req)
-{
-	rawBody.reserve(req.size());
-	for (const auto &i : req)
-		rawBody.push_back(i);
-	if (rawBody.size() > maxSize)
-		requestStatus = 413;
-}
+			case PARSING_TARGET:
+				if (!parseTarget(data, len, parsedIndex))
+					break ;
+				parsingState = PARSING_VERSION;
+				[fallthrough];
 
+			case PARSING_VERSION:
+				if (!parseVersion(data, len, parsedIndex))
+					break ;
+				parsingState = PARSING_HEADER;
+				[fallthrough];
 
- std::vector<unsigned char>	HttpRequest::dechunkBody()
-{
-	std::vector<unsigned char> dechunkedBody;
+			case PARSING_HEADER:
+				if (!parseHeader(data, len, parsedIndex))
+					break ;
+				parsingState = PARSING_BODY;
+				[fallthrough];
 
-	auto iter = rawBody.begin();
-	while (iter != rawBody.end())
-	{
-		try{
-			auto chunkStart = iter;
-			auto chunkEnd = std::find(iter, rawBody.end(), '\r');
-			if (chunkEnd == rawBody.end() || chunkEnd + 1 == rawBody.end())
-				throw std::runtime_error("bad chunked request\n");
-			std::string chunkSize(chunkStart, chunkEnd);
-			size_t chunkLen = std::stoi(chunkSize, nullptr, 16);
-			if (chunkLen == 0)
+			case PARSING_BODY:
+				if (!parseBody(data, len, parsedIndex))
+					break ;
+				parsingState = PARSING_DONE;
 				break ;
-			chunkEnd += 2;
-			std::copy(chunkEnd, chunkEnd + chunkLen, std::back_inserter(dechunkedBody));
-			if (dechunkedBody.size() > maxSize)
-			{
-				requestStatus = 413;
-				break ;
-			}
-			iter = chunkEnd + chunkLen + 2;
+			case PARSING_DONE:
+				throw InvalidRequest("Request already parsed");
 		}
-		catch (std::exception &e)
+
+		if (parsedIndex < len - 1)
 		{
-			requestStatus = 400;
-			break ;
+			if (parsingState == PARSING_DONE)
+				throw InvalidRequest("Request already parsed");
+			saveUnparsed(data, len, parsedIndex);
 		}
+		return (true);
+	} catch (InvalidRequest&) {
+		return (false);
 	}
-	return dechunkedBody;
+
 }
 
-RouteConfig HttpRequest::findRoute() {
-    size_t latestSlash = requestTarget.rfind('/');
-	std::string routeMatch = requestTarget;
-    std::map<std::string, RouteConfig> routes = serv.getRoutes();
-    if (routes.find(requestTarget) != routes.end()) {
-        return routes.at(requestTarget);
-    }
-    while (latestSlash != std::string::npos) {
-        routeMatch = requestTarget.substr(0, latestSlash + 1);
-        if (routes.find(routeMatch) != routes.end())
-		{
-			requestedResource = requestTarget.substr(latestSlash + 1);
-			// if (!requestedResource.empty() && requestedResource[0] == '/')
-			// 	requestedResource = requestedResource.substr(1);
-            return routes.at(routeMatch);
-        }
-        routeMatch = routeMatch.substr(0, latestSlash);
-        latestSlash = routeMatch.rfind('/');
-    }
-    if (routes.find("/") != routes.end()) {
-        return routes.at("/");
-    }
-    throw std::runtime_error("Failed to find a route for: " + requestTarget);
-}
-
- bool HttpRequest::checkRedirs(const RouteConfig& rt)
+void HttpRequest::saveUnparsed(const u_char* data, const size_t len, const int parsedIndex)
 {
-	if (!rt.getRedirection().path.empty())
-	{
-		RouteConfig::t_redirection redir = rt.getRedirection();
-		requestStatus = redir.code;
-		requestTarget = redir.path;
-		if (!requestedResource.empty())
-			requestTarget.append(requestedResource);
-		return true;
-	}
-	return false;
+	for (int i = parsedIndex; i < len; i++)
+		unparsedData.push_back(static_cast<u_char>(data[i]));
 }
 
-void HttpRequest::validateRoute(const RouteConfig& rt)
-{
-	hasListing = rt.getListing();
-	if (requestMethod == "POST")
-	{
-		if (!rt.getPOST())
-			throw std::runtime_error("method not supported");
-	}
-	else if (requestMethod == "DELETE")
-	{
-		if (!rt.getDELETE())
-			throw std::runtime_error("method not supported");
-	}
-	else if (requestMethod == "GET")
-	{
-		if (!rt.getGET())
-			throw std::runtime_error("method not supported");
-	}
+//----GETTERS-----
+
+e_method HttpRequest::getMethod() const {
+	return (method);
 }
 
-void HttpRequest::buildPath()
-{
-	try
-	{
-		RouteConfig route = findRoute();
-		if(checkRedirs(route))
-			return ;
-		try {
-			validateRoute(route);
-		} catch (std::exception &e) {
-			requestStatus = 405;
-			serveError(405);
-			return ;
-		}
-		requestPath = route.getRootDir();
-		if (requestedResource.empty() && requestMethod == "GET")
-			requestPath.append(route.getIndex());
-		else
-			requestPath.append(requestedResource);
-		requestPath.insert(0, ".");
-		updateCGI();
-		if (requestMethod == "POST" && !cgiStatus)
-		{
-			if (!std::filesystem::exists(requestPath))
-			{
-				serveError(404);
-				return ;
-			}
-			requestPath.append(route.getUploadDir());
-			return ;
-		}
-		if (!std::filesystem::exists(requestPath))
-			serveError(404);
-		else if (std::filesystem::is_directory(requestPath) && !requestPath.ends_with('/'))
-			serveError(404);
-	}
-	catch (std::exception &e)
-	{
-		requestStatus = 404;
-		requestPath = serv.getErrorsPages().at(404);
-	}
-}
-void	HttpRequest::serveError(int status)
-{
-	requestStatus = status;
-	requestPath = serv.getErrorsPages().at(status);
-	requestPath.insert(0, ".");
+const std::string& HttpRequest::getTarget() const {
+	return (target);
 }
 
-void	HttpRequest::updateCGI()
-{
-	if (requestPath == "./www/cgi-bin/")
-		return ;
-	if (requestPath.find("/cgi-bin/") != std::string::npos)
-	{
-		if (requestedResource.substr(requestedResource.length() - 3) == ".py")
-		{
-			cgiStatus = PY;
-			return ;
-		}
-		if (requestedResource.substr(requestedResource.length() - 4) == ".cgi")
-		{
-			cgiStatus = CGI_E;
-			return ;
-		}
-	}
-	cgiStatus = NO_CGI;
-	return ;
+const std::string& HttpRequest::getVersion() const {
+	return (version);
 }
 
-std::string HttpRequest::getMapValue(std::string key) {
-	auto found = requestHeader.find(key);
-	if (found == requestHeader.end())
-		return ("");
-	else 
-		return (found->second);
+const std::string& HttpRequest::getHeader(const std::string& key) const {
+	return (headers.at(key));
 }
 
-void HttpRequest::appendR(int fd) {
-	readSocket(fd, false);
+const std::vector<u_char>& HttpRequest::getBody() const {
+	return (body);
 }
+
+//----GETTERS-----
