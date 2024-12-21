@@ -31,23 +31,23 @@ void	WebservController::run() {
 		eventsWaiting = epoll_wait(epollFD, eventWaitlist, MAX_EVENTS, -1);
 		for (int i = 0; i < eventsWaiting; i++) {
 			int currentFD = eventWaitlist[i].data.fd;
-			if (std::find(listenFDs.cbegin(), listenFDs.cend(), currentFD) != std::end(listenFDs)) {
-				try {
-					acceptConnection(currentFD); 
-				}
-				catch (const std::runtime_error &e) {
-					errorHandler(e, true);
-				}
-			}
+			if (std::find(listenFDs.cbegin(), listenFDs.cend(), currentFD) != std::end(listenFDs))
+				acceptConnection(currentFD); 
 			else if (eventWaitlist[i].events & EPOLLRDHUP) {
 				epollDelete(epollFD, currentFD);
 				close(currentFD);
 				clients.at(currentFD).clearClear();
+				std::cout << "debug" << std::endl;
 			}
 			else if (eventWaitlist[i].events & EPOLLIN)
 				makeRequest(currentFD);
 			else if (eventWaitlist[i].events & EPOLLOUT && clients.at(currentFD).getRequest())
 				makeResponse(currentFD);
+			else if (clients.at(currentFD).getRequestStatus()) {
+				std::cout << "debug" << std::endl;
+				for (auto c : clients.at(currentFD).getRawRequest())
+					std::cout << c;
+			}
 		}
 	}
 }
@@ -72,8 +72,10 @@ void WebservController::acceptConnection(int listenFD) {
 	sockaddr_in		clientTemp;
 	unsigned int	clientSize = sizeof(clientTemp);
 	std::memset(&clientTemp, 0 , clientSize);
-	if ((connectionFD = accept(listenFD, (sockaddr *)&clientTemp, &clientSize)) == -1)
-		throw std::runtime_error("Failed in accept connection");
+	if ((connectionFD = accept(listenFD, (sockaddr *)&clientTemp, &clientSize)) == -1) {
+		errorLogger("Syscall 'accept' failed because: " + std::string(strerror(errno)));
+		return ; 
+	}
 	auto found = std::find_if(servers.cbegin(), servers.cend(),
 	[listenFD](const Server &server)
 	{ return server.getServerFD() == listenFD; });
@@ -86,6 +88,28 @@ void WebservController::acceptConnection(int listenFD) {
 }
 
 void WebservController::makeRequest(int fd) {
+	std::vector<unsigned char>	buffer(BUF_SIZE);
+	std::vector<unsigned char>  &request = clients.at(fd).getRawRequest();
+	std::string end = "\r\n\r\n";
+	int rb;
+	std::cout << "here?" << std::endl;
+	if (!(clients.at(fd).getRequestStatus())) {
+		if ((rb = read(fd, buffer.data(), BUF_SIZE)) > 0) {
+			buffer.resize(rb);
+			request.insert(request.end(), buffer.begin(), buffer.end());
+		}
+		std::cout << rb << std::endl;
+		std::string ending(request.end() - 4, request.end());
+		if (end == ending) {
+			clients.at(fd).setRequestStatus(true);
+		}
+		if (rb == -1)
+			std::cerr << "failure of everything" << std::endl;
+	}
+}
+
+
+/*void WebservController::makeRequest(int fd) {
 	try {
 		clients.at(fd).buildRequest();
 	}
@@ -95,7 +119,7 @@ void WebservController::makeRequest(int fd) {
 		clients.at(fd).clearClear();
 		errorHandler(e, false);
 	}
-}
+}*/
 
 void WebservController::makeResponse(int fd) {
 	int wb;
@@ -147,7 +171,7 @@ void WebservController::cleanResources() {
 }
 
 static void sigHandler(int signal) {
-	if (signal == SIGINT || signal == SIGTERM || signal == SIGKILL || signal == SIGQUIT)
+	if (signal == SIGINT || signal == SIGTERM || signal == SIGQUIT)
 		running = false;
 }
 
