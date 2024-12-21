@@ -37,14 +37,33 @@ RouteConfig RouteConfig::fromLocationBlock(std::string& locationBlock) {
 	return (RouteConfig(GET, POST, DELETE, index, listing, rootDir, uploadDir, redirection));
 }
 
+bool RouteConfig::isRedirection() const
+{
+	return (redirection.code != 0);
+}
+
+bool RouteConfig::isMethodAllowed(const t_method method) const
+{
+	switch (method) {
+		case e_method::GET:
+			return (GET);
+		case e_method::POST:
+			return (POST);
+		case e_method::DELETE:
+			return (DELETE);
+		default:
+			throw MethodNotAllowedException();
+	}
+}
+
 RouteConfig::RouteConfig(const bool& GET,
-	const bool& POST,
-	const bool& DELETE,
-	const std::string& index,
-	const bool& listing,
-	const std::string& rootDir,
-	const std::string& uploadDir,
-	const t_redirection& redirection):
+						const bool& POST,
+						const bool& DELETE,
+						const std::string& index,
+						const bool& listing,
+						const std::string& rootDir,
+						const std::string& uploadDir,
+						const t_redirection& redirection):
 	GET(GET),
 	POST(POST),
 	DELETE(DELETE),
@@ -141,7 +160,7 @@ RouteConfig::t_redirection RouteConfig::extractRedirection(std::string& location
 		throw ServerConfig::InvalidConfigFileException();
 
 	redirection.code = StrictUtoi::strictUtoi(methodsVector.front());
-	if (redirection.code < 300 || redirection.code > 399)
+	if (redirection.code < 300 || redirection.code > 399 || !httpErrors.contains(redirection.code))
 		throw ServerConfig::InvalidConfigFileException();
 	redirection.path = methodsVector.back();
 

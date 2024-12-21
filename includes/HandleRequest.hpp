@@ -1,44 +1,75 @@
 //
-// Created by jules on 14/11/2024.
+// Created by jules on 20/12/2024.
 //
 
 #ifndef HANDLEREQUEST_HPP
 #define HANDLEREQUEST_HPP
 
-#include <BodyChunk.hpp>
-#include <string>
-#include <fstream>
-#include <sstream>
-#include <dirent.h>
-#include <sys/stat.h>
-#include <unistd.h>
-#include <Parsing.hpp>
-#include <CppSplit.hpp>
-#include <map>
 #include <HttpRequest.hpp>
-#include <CGIHandler.hpp>
-#include <fcntl.h>
-
 
 class HandleRequest {
-	private:
-		HandleRequest();
-		HandleRequest(const HandleRequest &);
-		~HandleRequest();
-
-		HandleRequest &operator=(const HandleRequest &);
-
-		static bool			isDirectory(const std::string& path);
-		static std::string	listingBody(const std::string& targetUrl, const std::string& serverLocation);
-		static std::string getContentType(const std::string& filePath);
-
 	public:
-		static std::string	handleGet(const std::string& targetUrl, const std::string& serverLocation, bool listing, std::string& contentType);
-		static std::string	handleDelete(const std::string& fileToDelete);
-		static std::string	handlePost(const std::string& uploadLocation, const std::string& contentType, std::vector<unsigned char>& content);
-		static std::string	handleCGI(HttpRequest request);
+		static int	handleRequest(const HttpRequest& request, std::string& locationDest, std::string& contentTypeDest,
+			std::vector<u_char>& bodyDest);
+
+		HandleRequest() = delete;
+		~HandleRequest() = delete;
+
+	private:
+		static RouteConfig&	parseTarget(const std::string& requestTarget, const std::string& requestHostname,
+											const ServerConfig& server, std::string& remainingPathDest);
+
+		static int	handleInvalidRequest(const HttpRequest& request, std::string& contentTypeDest,
+			std::vector<u_char>& bodyDest);
+		static int	handleRedirection(const std::string& remainingPath, const RouteConfig::t_redirection& redirection,
+			std::string& locationDest);
+		static int	handleGet(const std::string& remainingPath, const RouteConfig& routeConfig,
+			std::string& contentTypeDest, std::vector<u_char>& bodyDest);
+		static int	handlePost(const std::string& remainingPath, const RouteConfig& routeConfig,
+			const HttpRequest& request);
+		static int	handleDelete(const std::string& remainingPath, const RouteConfig& routeConfig);
+
+		static int			buildError(int errorCode, const ServerConfig& server, std::string& contentTypeDest,
+			std::vector<u_char>& bodyDest);
+		static std::string	buildErrorPage(int errorCode, const ServerConfig& server);
 };
 
+class NotFoundException final : public std::runtime_error {
+	public:
+		NotFoundException() : std::runtime_error("No route found") {}
+};
 
+class MethodNotAllowedException final : public std::runtime_error {
+	public:
+		MethodNotAllowedException() : std::runtime_error("Method not allowed") {}
+};
+
+static const std::string	HTTP_START = "http://";
+
+static const std::string	SAKU_ERROR_PAGE =
+	"<!DOCTYPE html>"
+	"<html lang=\"en\">"
+		"<head>"
+			"<meta charset=\"UTF-8\">"
+			"<meta name=\"viewport\" content=\"width=device-width, initial-scale=1.0\">"
+			"<title>Saku's Error</title>"
+			"<style>"
+				"body {"
+					"font-family: Arial, sans-serif;"
+					"display: flex;"
+					"justify-content: center;"
+					"align-items: center;"
+					"height: 100vh; margin: 0;"
+					"background-color: #f0f8ff;"
+				"}"
+				"h1 {"
+					"color: #333;"
+				"}"
+			"</style>"
+		"</head>"
+		"<body>"
+		"<h1>{{{ERROR}}}</h1>"
+		"</body>"
+	"</html>";
 
 #endif //HANDLEREQUEST_HPP

@@ -9,20 +9,20 @@
 #include <string>
 #include <vector>
 
-static const std::string GET_STR = "GET ";
-static const std::string POST_STR = "POST ";
-static const std::string DELETE_STR = "DELETE ";
+#include <HttpResponse.hpp>
+#include <ServerConfig.hpp>
+#include <StrictUtoi.hpp>
+#include <VecBuffCmp.hpp>
+#include <http_methods.h>
 
-static const std::string HTTP_VERSION_STR = "HTTP/1.1\n";
+static const std::string GET_STR = "GET";
+static const std::string POST_STR = "POST";
+static const std::string DELETE_STR = "DELETE";
 
+static const std::string HTTP_VERSION_STR = "HTTP/1.1";
+
+static const std::string CRLF = "\r\n";
 static const std::string HEADER_END_STR = "\r\n\r\n";
-
-typedef enum e_method {
-	GET = (GET_STR),
-	POST = (POST_STR),
-	DELETE = (DELETE_STR),
-	UNINITIALIZED,
-}	t_method;
 
 typedef enum e_parsing_state {
 	PARSING_METHOD,
@@ -31,11 +31,21 @@ typedef enum e_parsing_state {
 	PARSING_HEADER,
 	PARSING_BODY,
 	PARSING_DONE,
-	PARSING_ERROR,
 }	t_parsing_state;
+
+typedef enum e_request_state {
+	REQUEST_PARSING,
+	REQUEST_OK,
+	REQUEST_INVALID,
+	REQUEST_BODY_TOO_LARGE,
+	REQUEST_LEN_REQUIRED
+}	t_request_state;
+
+class HttpResponse;
 
 class HttpRequest {
 	private:
+		t_request_state		requestState;
 		t_parsing_state		parsingState;
 		std::vector<u_char>	unparsedData;
 		size_t				parseIndex;
@@ -46,9 +56,11 @@ class HttpRequest {
 		std::map<std::string, std::string>	headers;
 		std::vector<u_char>					body;
 
+		ServerConfig*						serverConfig;
+
 	public:
-		HttpRequest();
-		HttpRequest(const u_char* data, size_t len);
+		explicit HttpRequest(ServerConfig* serverConfig);
+		HttpRequest(ServerConfig* serverConfig, const u_char* data, size_t len);
 		HttpRequest(const HttpRequest &) = default;
 		~HttpRequest() = default;
 
@@ -58,18 +70,33 @@ class HttpRequest {
 
 		bool	parseData(const u_char* data, size_t len);
 
-		[[nodiscard]] e_parsing_state				getParsingState() const;
+		[[nodiscard]] HttpResponse					handle() const;
 
+		[[nodiscard]] t_request_state				getRequestState() const;
 		[[nodiscard]] e_method						getMethod() const;
 		[[nodiscard]] const std::string&			getTarget() const;
 		[[nodiscard]] const std::string&			getVersion() const;
 		[[nodiscard]] const std::string&			getHeader(const std::string &key) const;
 		[[nodiscard]] const std::vector<u_char>&	getBody() const;
 
-		class InvalidRequest final : public std::exception {
+		[[nodiscard]] const ServerConfig&			getServerConfig() const;
+
+		class InvalidRequest : public std::exception {
 			public:
 				InvalidRequest() = default;
 				explicit InvalidRequest(const char* str);
+		};
+
+		class RequestBodyTooLarge final : public InvalidRequest {
+			public:
+				RequestBodyTooLarge() = default;
+				explicit RequestBodyTooLarge(const char* str);
+		};
+
+		class RequestContentLengthMissing final : public InvalidRequest {
+			public:
+				RequestContentLengthMissing() = default;
+				explicit RequestContentLengthMissing(const char* str);
 		};
 
 	private:
@@ -79,7 +106,11 @@ class HttpRequest {
 		bool	parseHeaders();
 		bool	parseBody();
 
-		[[nodiscard]] bool validateHeaders() const;
+		[[nodiscard]] void validateHeaders() const;
+
+		[[nodiscard]] bool	exceptSpace(size_t offset) const;
+
+		[[nodiscard]] bool	isCRLF(size_t offset) const;
 
 		static bool	isTargetChar(unsigned char c);
 		static bool	isHeaderKeyChar(unsigned char c);

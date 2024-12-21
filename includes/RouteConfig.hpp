@@ -14,6 +14,9 @@
 #include <CppSplit.hpp>
 #include <Parsing.hpp>
 #include <ServerConfig.hpp>
+#include <HandleRequest.hpp>
+
+#include <http_methods.h>
 
 class ServerConfig;
 
@@ -62,6 +65,9 @@ class RouteConfig {
 
 		static RouteConfig	fromLocationBlock(std::string& locationBlock);
 
+		bool			isRedirection() const;
+		bool			isMethodAllowed(t_method method) const;
+	
 		bool			getGET() const;
 		bool			getPOST() const;
 		bool			getDELETE() const;

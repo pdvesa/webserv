@@ -3,24 +3,24 @@
 //
 
 #include <HttpRequest.hpp>
-#include <StrictUtoi.hpp>
-#include <VecBuffCmp.hpp>
 
-HttpRequest::HttpRequest() :
+HttpRequest::HttpRequest(ServerConfig* serverConfig) :
+	requestState(REQUEST_PARSING),
 	parsingState(PARSING_METHOD),
 	parseIndex(0),
-	method(UNINITIALIZED)
+	method(UNINITIALIZED),
+	serverConfig(serverConfig)
 { }
 
-HttpRequest::HttpRequest(const u_char* data, const size_t len) :
-	HttpRequest()
+HttpRequest::HttpRequest(ServerConfig* serverConfig, const u_char* data, const size_t len) :
+	HttpRequest(serverConfig)
 {
 	parseData(data, len);
 }
 
 bool HttpRequest::parseData(const u_char* data, const size_t len)
 {
-	if (parsingState == PARSING_ERROR)
+	if (requestState != REQUEST_PARSING)
 		return (false);
 	try {
 		unparsedData.insert(unparsedData.end(), data, data + len);
@@ -51,8 +51,7 @@ bool HttpRequest::parseData(const u_char* data, const size_t len)
 			case PARSING_HEADER:
 				if (!parseHeaders())
 					break ;
-				if (!validateHeaders())
-					throw InvalidRequest("Invalid headers");
+				validateHeaders();
 				if (method != POST)
 				{
 					parsingState = PARSING_DONE;
@@ -74,17 +73,28 @@ bool HttpRequest::parseData(const u_char* data, const size_t len)
 		unparsedData.erase(unparsedData.begin(), unparsedData.begin() + parseIndex); // NOLINT(*-narrowing-conversions)
 		parseIndex = 0;
 
-		if (parsingState == PARSING_DONE && !unparsedData.empty())
-			throw InvalidRequest("Invalid parsing state");
+		if (parsingState == PARSING_DONE)
+		{
+			if (!unparsedData.empty())
+				throw InvalidRequest("Invalid parsing state");
+			requestState = REQUEST_OK;
+		}
 
 		return (true);
-	} catch (InvalidRequest&) {
+	} catch (RequestBodyTooLarge&) {
+		requestState = REQUEST_BODY_TOO_LARGE;
 		unparsedData.clear();
 		parseIndex = 0;
-		parsingState = PARSING_ERROR;
-		return (false);
+	} catch (RequestContentLengthMissing&) {
+		requestState = REQUEST_LEN_REQUIRED;
+		unparsedData.clear();
+		parseIndex = 0;
+	} catch (InvalidRequest&) {
+		requestState = REQUEST_INVALID;
+		unparsedData.clear();
+		parseIndex = 0;
 	}
-
+	return (false);
 }
 
 bool HttpRequest::parseMethod()
@@ -96,8 +106,10 @@ bool HttpRequest::parseMethod()
 	{
 		if (unparsedSize >= GET_STR.size())
 		{
+			if (!exceptSpace(GET_STR.size()))
+				return (false);
 			method = GET;
-			parseIndex += GET_STR.size();
+			parseIndex += GET_STR.size() + 1;
 			return (true);
 		}
 		return (false);
@@ -107,8 +119,10 @@ bool HttpRequest::parseMethod()
 	{
 		if (unparsedSize >= POST_STR.size())
 		{
+			if (!exceptSpace(POST_STR.size()))
+				return (false);
 			method = POST;
-			parseIndex += POST_STR.size();
+			parseIndex += POST_STR.size() + 1;
 			return (true);
 		}
 		return (false);
@@ -118,8 +132,10 @@ bool HttpRequest::parseMethod()
 	{
 		if (unparsedSize >= DELETE_STR.size())
 		{
+			if (!exceptSpace(DELETE_STR.size()))
+				return (false);
 			method = DELETE;
-			parseIndex += DELETE_STR.size();
+			parseIndex += DELETE_STR.size() + 1;
 			return (true);
 		}
 		return (false);
@@ -150,10 +166,12 @@ bool HttpRequest::parseVersion()
 	if (VecBuffCmp::vecBuffCmp(unparsedData, parseIndex, HTTP_VERSION_STR.c_str(), 0,
 		std::min(unparsedData.size() - parseIndex, HTTP_VERSION_STR.size())) == 0)
 	{
-		if (unparsedData.size() - parseIndex >= HTTP_VERSION_STR.size())
+		if (unparsedData.size() - parseIndex >= HTTP_VERSION_STR.size() + (CRLF.length() - 1))
 		{
+			if (!isCRLF(HTTP_VERSION_STR.size()))
+				throw InvalidRequest("Excepted CRLF");
 			version = HTTP_VERSION_STR;
-			parseIndex += HTTP_VERSION_STR.size();
+			parseIndex += HTTP_VERSION_STR.size() + CRLF.length();
 			return (true);
 		}
 		return (false);
@@ -192,18 +210,20 @@ bool HttpRequest::parseHeaders()
 			throw InvalidRequest("Duplicate header key");
 
 		i++;
-		while (parseIndex + i < unparsedData.size() && unparsedData[parseIndex + i] != '\n')
+		while (parseIndex + i + (CRLF.length() - 1) < unparsedData.size())
 		{
+			if (isCRLF(i))
+				break ;
 			if (!isHeaderValueChar(unparsedData[parseIndex + i]))
 				throw InvalidRequest("Invalid header value");
 			value += static_cast<char>(unparsedData[parseIndex + i]);
 			i++;
 		}
-		if (parseIndex + i == unparsedData.size())
+		if (parseIndex + i + (CRLF.length() - 1) == unparsedData.size())
 			return (false);
 		if (value.empty())
 			throw InvalidRequest("Invalid header value");
-		i++;
+		i += CRLF.length(); // NOLINT(*-narrowing-conversions)
 
 		headers.insert(std::make_pair(key, value));
 		parseIndex += i;
@@ -213,7 +233,9 @@ bool HttpRequest::parseHeaders()
 bool HttpRequest::parseBody()
 {
 	try {
-		static ssize_t	contentLength = StrictUtoi::strictUtoi(headers.at("Content-Length"));
+		static size_t	contentLength = StrictUtoi::strictUtoi(headers.at("Content-Length"));
+		if (contentLength > serverConfig->getMaxClientBodySize())
+			throw RequestBodyTooLarge("Body too large");
 
 		while (parseIndex < unparsedData.size() && body.size() < contentLength)
 			body.push_back(unparsedData[parseIndex++]);
@@ -226,17 +248,35 @@ bool HttpRequest::parseBody()
 	}
 }
 
-bool HttpRequest::validateHeaders() const
-{
+void HttpRequest::validateHeaders() const {
 	if (!headers.contains("Host"))
-		return (false);
+		throw InvalidRequest("Missing Host header");
 	if (method == POST)
 	{
-		if (!headers.contains("Content-Length"))
-			return (false);
+		if (!headers.contains("Content-Length")) {
+			throw RequestContentLengthMissing("Missing Content-Length header");
+		}
 		if (!headers.contains("Content-Type"))
-			return (false);
+			throw InvalidRequest("Missing Content-Type header");
 	}
+}
+
+bool HttpRequest::exceptSpace(const size_t offset) const
+{
+	if (parseIndex + offset >= unparsedData.size())
+		return (false);
+	if (unparsedData[parseIndex + offset] != ' ')
+		throw InvalidRequest("Space expected");
+	return (true);
+}
+
+bool HttpRequest::isCRLF(const size_t offset) const
+{
+	if (parseIndex + offset + CRLF.length() - 1 >= unparsedData.size())
+		return (false);
+	if (VecBuffCmp::vecBuffCmp(unparsedData, parseIndex + offset, CRLF.c_str(), 0,
+		CRLF.length()) != 0)
+		return (false);
 	return (true);
 }
 
@@ -270,6 +310,10 @@ bool HttpRequest::isHeaderValueChar(const unsigned char c)
 }
 
 //----GETTERS-----
+
+t_request_state HttpRequest::getRequestState() const {
+	return (requestState);
+}
 
 e_method HttpRequest::getMethod() const {
 	return (method);
