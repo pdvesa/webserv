@@ -134,7 +134,7 @@ std::string RouteConfig::extractIndex(std::string& locationBlock) {
 }
 
 bool RouteConfig::extractListing(std::string& locationBlock) {
-	std::string	listing	= Parsing::extractVariable(locationBlock, "listing");
+	const std::string	listing	= Parsing::extractVariable(locationBlock, "listing");
 
 	if (listing == "on")
 		return (true);
@@ -152,9 +152,9 @@ std::string RouteConfig::extractUploadDir(std::string& locationBlock) {
 }
 
 RouteConfig::t_redirection RouteConfig::extractRedirection(std::string& locationBlock) {
-	t_redirection				redirection = {"", 0};
-	std::string					redirection_string = Parsing::extractVariable(locationBlock, "return");
-	std::vector<std::string>	methodsVector = CppSplit::cppSplit(redirection_string, ' ');
+	t_redirection			        redirection = {"", 0};
+	const std::string				redirection_string = Parsing::extractVariable(locationBlock, "return");
+	const std::vector<std::string>	methodsVector = CppSplit::cppSplit(redirection_string, ' ');
 
 	if (methodsVector.size() != 2)
 		throw ServerConfig::InvalidConfigFileException();

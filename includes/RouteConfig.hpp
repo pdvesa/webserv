@@ -38,9 +38,6 @@ class RouteConfig {
 		std::string		uploadDir;
 		t_redirection	redirection;
 
-		RouteConfig();
-
-
 		static void				extractMethods(bool& GET, bool& POST, bool& DELETE, std::string& locationBlock);
 		static std::string		extractIndex(std::string& locationBlock);
 		static bool				extractListing(std::string& locationBlock);
@@ -49,6 +46,7 @@ class RouteConfig {
 		static t_redirection	extractRedirection(std::string& locationBlock);
 
 	public:
+		RouteConfig() = default;
 		RouteConfig(const bool& GET,
 			const bool& POST,
 			const bool& DELETE,

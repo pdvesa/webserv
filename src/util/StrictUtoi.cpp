@@ -10,7 +10,7 @@ u_int StrictUtoi::strictUtoi(const std::string& str) {
 		throw std::invalid_argument("str is not a number");
 
 	size_t	treatedChar;
-	u_int result = std::stoul(str, &treatedChar, 10);
+	const u_int result = std::stoul(str, &treatedChar, 10);
 
 	if (treatedChar != str.size())
 		throw std::invalid_argument("str is not a number");

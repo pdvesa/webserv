@@ -3,9 +3,23 @@
 //
 
 #ifndef HANDLEREQUEST_HPP
-#define HANDLEREQUEST_HPP
+# define HANDLEREQUEST_HPP
 
 #include <HttpRequest.hpp>
+#include <HttpResponse.hpp>
+#include <dirent.h>
+#include <filesystem>
+#include <bits/fs_fwd.h>
+#include <bits/fs_ops.h>
+#include <bits/fs_path.h>
+#include <unistd.h>
+#include <RequestException.hpp>
+#include <RouteConfig.hpp>
+#include <ServerConfig.hpp>
+
+class HttpRequest;
+class RouteConfig;
+class ServerConfig;
 
 class HandleRequest {
 	public:
@@ -23,25 +37,21 @@ class HandleRequest {
 			std::vector<u_char>& bodyDest);
 		static int	handleRedirection(const std::string& remainingPath, const RouteConfig::t_redirection& redirection,
 			std::string& locationDest);
+
 		static int	handleGet(const std::string& remainingPath, const RouteConfig& routeConfig,
-			std::string& contentTypeDest, std::vector<u_char>& bodyDest);
-		static int	handlePost(const std::string& remainingPath, const RouteConfig& routeConfig,
-			const HttpRequest& request);
+							const std::string& requestTarget, std::string& contentTypeDest, std::vector<u_char>& bodyDest);
+		static int	handlePost(const std::string& remainingPath, const RouteConfig& routeConfig, const HttpRequest& request);
 		static int	handleDelete(const std::string& remainingPath, const RouteConfig& routeConfig);
 
 		static int			buildError(int errorCode, const ServerConfig& server, std::string& contentTypeDest,
 			std::vector<u_char>& bodyDest);
+
+		static std::string	buildListingPage(const std::string& serverTarget, const std::string& requestTarget);
 		static std::string	buildErrorPage(int errorCode, const ServerConfig& server);
-};
 
-class NotFoundException final : public std::runtime_error {
-	public:
-		NotFoundException() : std::runtime_error("No route found") {}
-};
+		static int saveFile(const std::string& serverTarget, const std::vector<u_char>& content);
 
-class MethodNotAllowedException final : public std::runtime_error {
-	public:
-		MethodNotAllowedException() : std::runtime_error("Method not allowed") {}
+		static std::string							getContentType(const std::string& filePath);
 };
 
 static const std::string	HTTP_START = "http://";
@@ -71,5 +81,38 @@ static const std::string	SAKU_ERROR_PAGE =
 		"<h1>{{{ERROR}}}</h1>"
 		"</body>"
 	"</html>";
+
+static const std::map<std::string, std::string> extension_to_mime_type = {
+	{".html", "text/html"},
+	{".css", "text/css"},
+	{".js", "application/javascript"},
+	{".json", "application/json"},
+	{".png", "image/png"},
+	{".jpg", "image/jpeg"},
+	{".jpeg", "image/jpeg"},
+	{".gif", "image/gif"},
+	{".txt", "text/plain"},
+	{".xml", "application/xml"},
+	{".svg", "image/svg+xml"},
+	{".ico", "image/vnd.microsoft.icon"},
+	{".ttf", "font/ttf"},
+	{".woff", "font/woff"},
+	{".woff2", "font/woff2"},
+	{".mp3", "audio/mpeg"},
+	{".mp4", "video/mp4"},
+	{".pdf", "application/pdf"},
+	{".zip", "application/zip"},
+	{".rar", "application/vnd.rar"},
+	{".csv", "text/csv"},
+	{".bmp", "image/bmp"},
+	{".webp", "image/webp"},
+	{".ogg", "audio/ogg"},
+	{".wav", "audio/wav"},
+	{".avi", "video/x-msvideo"},
+	{".mov", "video/quicktime"},
+	{".mpeg", "video/mpeg"},
+	{".flv", "video/x-flv"},
+	{".wasm", "application/wasm"}
+};
 
 #endif //HANDLEREQUEST_HPP

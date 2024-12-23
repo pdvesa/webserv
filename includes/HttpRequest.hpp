@@ -9,15 +9,11 @@
 #include <string>
 #include <vector>
 
-#include <HttpResponse.hpp>
 #include <ServerConfig.hpp>
 #include <StrictUtoi.hpp>
 #include <VecBuffCmp.hpp>
 #include <http_methods.h>
-
-static const std::string GET_STR = "GET";
-static const std::string POST_STR = "POST";
-static const std::string DELETE_STR = "DELETE";
+#include <RequestException.hpp>
 
 static const std::string HTTP_VERSION_STR = "HTTP/1.1";
 
@@ -38,10 +34,9 @@ typedef enum e_request_state {
 	REQUEST_OK,
 	REQUEST_INVALID,
 	REQUEST_BODY_TOO_LARGE,
-	REQUEST_LEN_REQUIRED
+	REQUEST_LEN_REQUIRED,
+	REQUEST_UNIMPLEMENTED
 }	t_request_state;
-
-class HttpResponse;
 
 class HttpRequest {
 	private:
@@ -54,7 +49,7 @@ class HttpRequest {
 		std::string							target;
 		std::string							version;
 		std::map<std::string, std::string>	headers;
-		std::vector<u_char>					body;
+		std::vector<u_char>					rawBody;
 
 		ServerConfig*						serverConfig;
 
@@ -70,7 +65,8 @@ class HttpRequest {
 
 		bool	parseData(const u_char* data, size_t len);
 
-		[[nodiscard]] HttpResponse					handle() const;
+		[[nodiscard]] std::vector<u_char>			parseMultiPartFormDataBody(
+			std::map<std::string, std::string>& contentDispositionDest) const;
 
 		[[nodiscard]] t_request_state				getRequestState() const;
 		[[nodiscard]] e_method						getMethod() const;
@@ -81,37 +77,22 @@ class HttpRequest {
 
 		[[nodiscard]] const ServerConfig&			getServerConfig() const;
 
-		class InvalidRequest : public std::exception {
-			public:
-				InvalidRequest() = default;
-				explicit InvalidRequest(const char* str);
-		};
-
-		class RequestBodyTooLarge final : public InvalidRequest {
-			public:
-				RequestBodyTooLarge() = default;
-				explicit RequestBodyTooLarge(const char* str);
-		};
-
-		class RequestContentLengthMissing final : public InvalidRequest {
-			public:
-				RequestContentLengthMissing() = default;
-				explicit RequestContentLengthMissing(const char* str);
-		};
+		static std::map<std::string, std::string>	splitHeaderAttributes(const std::string& headerValue);
 
 	private:
-		bool	parseMethod();
-		bool	parseTarget();
-		bool	parseVersion();
-		bool	parseHeaders();
-		bool	parseBody();
+		bool	readParseMethod();
+		bool	readParseTarget();
+		bool	readParseVersion();
+		bool	readParseHeaders();
+		bool	readBody();
 
-		[[nodiscard]] void validateHeaders() const;
+		void validateHeaders() const;
 
 		[[nodiscard]] bool	exceptSpace(size_t offset) const;
 
-		[[nodiscard]] bool	isCRLF(size_t offset) const;
+		static bool parseHeaders(const std::vector<u_char>& data, size_t& parseIndex, std::map<std::string, std::string>& dest);
 
+		static bool	isCrlf(const std::vector<u_char>& data, size_t start);
 		static bool	isTargetChar(unsigned char c);
 		static bool	isHeaderKeyChar(unsigned char c);
 		static bool	isHeaderValueChar(unsigned char c);

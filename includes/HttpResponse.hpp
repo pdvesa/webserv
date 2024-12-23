@@ -6,12 +6,10 @@
 #define HTTPRESPONSE_HPP
 
 #include <string>
-#include <HttpRequest.hpp>
 #include <HandleRequest.hpp>
 #include <vector>
 #include <map>
-
-class HttpRequest;
+#include <RouteConfig.hpp>
 
 class HttpResponse {
 	private:
