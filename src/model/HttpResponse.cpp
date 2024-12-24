@@ -41,7 +41,7 @@ std::vector<u_char> HttpResponse::asResponseBuffer() const
 
 std::string HttpResponse::createResponseStatusLine() const
 {
-	return (HTTP_VERSION + ' ' + std::to_string(statusCode) + ' ' + httpErrors.at(statusCode));
+	return (HTTP_VERSION + ' ' + std::to_string(statusCode) + ' ' + httpCodes.at(statusCode));
 }
 
 std::string HttpResponse::createLocationLine() const

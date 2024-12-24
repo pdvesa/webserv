@@ -32,7 +32,7 @@ RouteConfig RouteConfig::fromLocationBlock(std::string& locationBlock) {
 	}
 
 	if (!IsBlank::isBlank(locationBlock))
-		throw ServerConfig::InvalidConfigFileException();
+		throw InvalidConfigFileException();
 
 	return (RouteConfig(GET, POST, DELETE, index, listing, rootDir, uploadDir, redirection));
 }
@@ -52,7 +52,7 @@ bool RouteConfig::isMethodAllowed(const t_method method) const
 		case e_method::DELETE:
 			return (DELETE);
 		default:
-			throw MethodNotAllowedException();
+			throw std::runtime_error("Invalid method");
 	}
 }
 
@@ -116,7 +116,7 @@ void RouteConfig::extractMethods(bool& GET, bool& POST, bool& DELETE, std::strin
 		Parsing::extractVariable(locationBlock,"methods"), ' ');
 
 	if (methodsVector.empty())
-		throw ServerConfig::InvalidConfigFileException();
+		throw InvalidConfigFileException();
 
 	if (std::find(methodsVector.cbegin(), methodsVector.cend(), "GET") != std::end(methodsVector))
 		GET = true;
@@ -126,7 +126,7 @@ void RouteConfig::extractMethods(bool& GET, bool& POST, bool& DELETE, std::strin
 		DELETE = true;
 
 	if (static_cast<int>(methodsVector.size()) != static_cast<int>(GET) + static_cast<int>(POST) + static_cast<int>(DELETE))
-		throw ServerConfig::InvalidConfigFileException();
+		throw InvalidConfigFileException();
 }
 
 std::string RouteConfig::extractIndex(std::string& locationBlock) {
@@ -140,7 +140,7 @@ bool RouteConfig::extractListing(std::string& locationBlock) {
 		return (true);
 	if (listing == "off")
 		return (false);
-	throw ServerConfig::InvalidConfigFileException();
+	throw InvalidConfigFileException();
 }
 
 std::string RouteConfig::extractRootDir(std::string& locationBlock) {
@@ -157,11 +157,11 @@ RouteConfig::t_redirection RouteConfig::extractRedirection(std::string& location
 	const std::vector<std::string>	methodsVector = CppSplit::cppSplit(redirection_string, ' ');
 
 	if (methodsVector.size() != 2)
-		throw ServerConfig::InvalidConfigFileException();
+		throw InvalidConfigFileException();
 
 	redirection.code = StrictUtoi::strictUtoi(methodsVector.front());
-	if (redirection.code < 300 || redirection.code > 399 || !httpErrors.contains(redirection.code))
-		throw ServerConfig::InvalidConfigFileException();
+	if (redirection.code < 300 || redirection.code > 399 || !httpCodes.contains(redirection.code))
+		throw InvalidConfigFileException();
 	redirection.path = methodsVector.back();
 
 	return (redirection);

@@ -11,10 +11,12 @@
 #include <sstream>
 #include <iostream>
 
+#include <RouteConfig.hpp>
+
 #include <IsBlank.hpp>
 #include <CppSplit.hpp>
-#include <RouteConfig.hpp>
 #include <Parsing.hpp>
+#include <InvalidConfigFileException.hpp>
 
 #ifndef CLIENT_MAX_BODY_SIZE_LIMIT
 # define CLIENT_MAX_BODY_SIZE_LIMIT 8192
@@ -39,7 +41,7 @@ class ServerConfig {
 				const std::map<u_int, std::string>& errorsPages, const u_int& maxClientBodySize,
 				const std::map<std::string, RouteConfig>& routes);
 		ServerConfig(const ServerConfig&);
-		~ServerConfig();
+		~ServerConfig() = default;
 
 		ServerConfig&	operator=(const ServerConfig&);
 		bool			operator==(const ServerConfig&) const;
@@ -50,22 +52,6 @@ class ServerConfig {
     	std::map<u_int, std::string>		getErrorsPages() const;
     	u_int								getMaxClientBodySize() const;
     	std::map<std::string, RouteConfig>	getRoutes() const;
-
-		class InvalidConfigFileException : public std::exception {
-			std::string	message;
-
-			public:
-				InvalidConfigFileException();
-				explicit InvalidConfigFileException(const std::string& msg);
-				~InvalidConfigFileException() override;
-
-				const char* what() const noexcept override;
-
-			private:
-				InvalidConfigFileException(const InvalidConfigFileException& other);
-
-				InvalidConfigFileException& operator=(const InvalidConfigFileException& other);
-		};
 
 	private:
 		ServerConfig();

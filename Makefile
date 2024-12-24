@@ -38,19 +38,6 @@ SRCS = $(SRCDIR)/run/main.cpp \
 	   $(SRCDIR)/model/CGIHandler.cpp \
 	   $(SRCDIR)/util/VecBuffCmp.cpp
 
-SRCS_REQUEST_TEST = $(SRCDIR)/model/HttpRequest.cpp \
-					$(SRCDIR)/model/HttpResponse.cpp \
-					$(SRCDIR)/model/HandleRequest.cpp \
-					$(SRCDIR)/util/VecBuffCmp.cpp \
-					$(SRCDIR)/util/CppSplit.cpp
-
-REQUEST_TEST_OBJS = $(patsubst $(SRCDIR)/%.cpp, $(OBJDIR)/%.o, $(SRCS_REQUEST_TEST))
-
-request_test: $(REQUEST_TEST_OBJS)
-	@$(CC) $(CFLAGS) $(REQUEST_TEST_OBJS) -o request_test -I $(INCDIR)
-	@echo "Compiling request_test"
-	@echo "Compilation for request_test finished :)"
-
 OBJS = $(patsubst $(SRCDIR)/%.cpp, $(OBJDIR)/%.o, $(SRCS))
 
 all: $(NAME)

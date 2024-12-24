@@ -5,20 +5,16 @@
 #ifndef ROUTE_HPP
 # define ROUTE_HPP
 
-#include <list>
-#include <map>
 #include <string>
 #include <vector>
 #include <algorithm>
 
 #include <CppSplit.hpp>
 #include <Parsing.hpp>
-#include <ServerConfig.hpp>
-#include <HandleRequest.hpp>
-
+#include <IsBlank.hpp>
+#include <InvalidConfigFileException.hpp>
+#include <HttpCodes.hpp>
 #include <http_methods.h>
-
-class ServerConfig;
 
 class RouteConfig {
 
@@ -29,11 +25,11 @@ class RouteConfig {
 		};
 
 	private:
-		bool			GET;
-		bool			POST;
-		bool			DELETE;
+		bool			GET{};
+		bool			POST{};
+		bool			DELETE{};
 		std::string		index;
-		bool			listing;
+		bool			listing{};
 		std::string		rootDir;
 		std::string		uploadDir;
 		t_redirection	redirection;

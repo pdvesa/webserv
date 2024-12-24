@@ -5,21 +5,17 @@
 #ifndef HANDLEREQUEST_HPP
 # define HANDLEREQUEST_HPP
 
-#include <HttpRequest.hpp>
-#include <HttpResponse.hpp>
 #include <dirent.h>
 #include <filesystem>
 #include <bits/fs_fwd.h>
 #include <bits/fs_ops.h>
 #include <bits/fs_path.h>
 #include <unistd.h>
-#include <RequestException.hpp>
-#include <RouteConfig.hpp>
+
+#include <HttpRequest.hpp>
 #include <ServerConfig.hpp>
 
-class HttpRequest;
-class RouteConfig;
-class ServerConfig;
+#include <RequestException.hpp>
 
 class HandleRequest {
 	public:

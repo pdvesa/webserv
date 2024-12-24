@@ -3,6 +3,7 @@
 //
 
 #include <HttpRequest.hpp>
+#include <SpacesClean.hpp>
 
 HttpRequest::HttpRequest(ServerConfig* serverConfig) :
 	requestState(REQUEST_PARSING),
@@ -93,7 +94,8 @@ bool HttpRequest::parseData(const u_char* data, const size_t len)
 		requestState = REQUEST_LEN_REQUIRED;
 		unparsedData.clear();
 		parseIndex = 0;
-	} catch (InvalidRequestException&) {
+	} catch (InvalidRequestException& e) {
+		std::cerr << e.what() << std::endl;
 		requestState = REQUEST_INVALID;
 		unparsedData.clear();
 		parseIndex = 0;
@@ -107,7 +109,7 @@ std::vector<u_char> HttpRequest::parseMultiPartFormDataBody(std::map<std::string
 	if (requestState != REQUEST_OK)
 		throw std::runtime_error("Invalid request state");
 	const std::string	contentType = headers.at("Content-Type");
-	if (contentType.compare("multipart/form-data;") != 0)
+	if (contentType != "multipart/form-data;")
 		throw std::runtime_error("Server shouldn't call this code with that");
 
 	std::map<std::string, std::string> attributes = splitHeaderAttributes(contentType);
@@ -172,7 +174,7 @@ std::map<std::string, std::string> HttpRequest::splitHeaderAttributes(const std:
 	std::vector<std::string>	attributes = CppSplit::cppSplit(headerValue, ';');
 
 	std::map<std::string, std::string>	attributesMap;
-	for (std::string attribute : attributes)
+	for (const std::string& attribute : attributes)
 	{
 		const size_t equalIndex = attribute.find('=');
 		if (equalIndex == std::string::npos || equalIndex == 0 || equalIndex == attribute.size() - 1)
@@ -233,8 +235,9 @@ bool HttpRequest::readParseVersion()
 	{
 		if (unparsedData.size() - parseIndex >= HTTP_VERSION_STR.size() + (CRLF.length() - 1))
 		{
-			if (!isCrlf(unparsedData,HTTP_VERSION_STR.size()))
+			if (!isCrlf(unparsedData, parseIndex + HTTP_VERSION_STR.size())) {
 				throw InvalidRequestException();
+			}
 			version = HTTP_VERSION_STR;
 			parseIndex += HTTP_VERSION_STR.size() + CRLF.length();
 			return (true);
@@ -253,7 +256,7 @@ bool HttpRequest::readBody()
 {
 	try {
 		static size_t	contentLength = StrictUtoi::strictUtoi(headers.at("Content-Length"));
-		if (contentLength > serverConfig->getMaxClientBodySize())
+		if (contentLength > 600) // TODO Replace :)
 			throw RequestBodyTooLargeException();
 
 		while (parseIndex < unparsedData.size() && rawBody.size() < contentLength)
@@ -281,60 +284,52 @@ void HttpRequest::validateHeaders() const
 	}
 }
 
-bool HttpRequest::exceptSpace(const size_t offset) const
-{
-	if (parseIndex + offset >= unparsedData.size())
-		return (false);
-	if (unparsedData[parseIndex + offset] != ' ')
-		throw InvalidRequestException();
-	return (true);
-}
-
 bool HttpRequest::parseHeaders(const std::vector<u_char>& data, size_t& parseIndex, std::map<std::string,
 	std::string>& dest)
 {
 	while (true)
 	{
-		size_t	i = parseIndex;
+		size_t	i = 0;
 		std::string	key;
 		std::string	value;
 
-		if (data.size() - i >= 4 &&
-			VecBuffCmp::vecBuffCmp(data, i, HEADER_END_STR.c_str(), 0,
-				HEADER_END_STR.size()) == 0)
+		if (data.size() - parseIndex >= 2 &&
+			VecBuffCmp::vecBuffCmp(data, parseIndex, CRLF.c_str(), 0,
+				CRLF.size()) == 0)
 		{
-			parseIndex += HEADER_END_STR.size();
+			parseIndex += CRLF.size();
 			return (true);
 		}
 
-		while (i < data.size() && data[i] != ':')
+		while ((i + parseIndex) < data.size() && data[(i + parseIndex)] != ':')
 		{
-			if (!isHeaderKeyChar(data[i]))
-				throw InvalidRequestException();
-			key += static_cast<char>(data[i]);
+			if (!isHeaderKeyChar(data[(i + parseIndex)]))
+				throw InvalidRequestException("Not a valid header key char");
+			key += static_cast<char>(data[(i + parseIndex)]);
 			i++;
 		}
-		if (i == data.size())
+		if ((i + parseIndex) == data.size())
 			return (false);
 		if (key.empty())
-			throw InvalidRequestException();
+			throw InvalidRequestException("Empty header key");
 		if (dest.contains(key))
-			throw InvalidRequestException();
+			throw InvalidRequestException("Duplicate header key");
 
 		i++;
-		while (i + (CRLF.length() - 1) < data.size())
+		while ((i + parseIndex) + (CRLF.length() - 1) < data.size())
 		{
-			if (isCrlf(data, i))
+			if (isCrlf(data, (i + parseIndex)))
 				break ;
-			if (!isHeaderValueChar(data[i]))
+			if (!isHeaderValueChar(data[(i + parseIndex)]))
 				throw InvalidRequestException();
-			value += static_cast<char>(data[i]);
+			value += static_cast<char>(data[(i + parseIndex)]);
 			i++;
 		}
-		if (i + (CRLF.length() - 1) == data.size())
+		if ((i + parseIndex) + (CRLF.length() - 1) == data.size())
 			return (false);
+		value = SpacesClean::cleanSpaces(value);
 		if (value.empty())
-			throw InvalidRequestException();
+			throw InvalidRequestException("Empty header value");
 		i += CRLF.length(); // NOLINT(*-narrowing-conversions)
 
 		dest.insert(std::make_pair(key, value));
@@ -376,9 +371,9 @@ bool HttpRequest::isHeaderKeyChar(const unsigned char c)
 //TODO Mouais mouais mouais
 bool HttpRequest::isHeaderValueChar(const unsigned char c)
 {
-	return (isalnum(c) || c == '-' || c == '_' || c == '.' || c == '!' || c == '~' || c == '*' || c == '\'' || c == '('
-		|| c == ')' || c == '/' || c == ':' || c == '@' || c == '&' || c == '+' || c == '$' || c == ',' || c == ';'
-		|| c == '=' || c == '%');
+	return (isalnum(c) || isspace(c) || c == '-' || c == '_' || c == '.' || c == '!' || c == '~' || c == '*' ||
+		c == '\'' || c == '(' || c == ')' || c == '/' || c == ':' || c == '@' || c == '&' || c == '+' || c == '$'
+		|| c == ',' || c == ';' || c == '=' || c == '%');
 }
 
 //----GETTERS-----

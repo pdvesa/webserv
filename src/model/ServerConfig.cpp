@@ -4,7 +4,6 @@
 
 #include <ServerConfig.hpp>
 
-
 std::vector<ServerConfig> ServerConfig::fromConfigFile(const std::string& filePath) {
 	std::ifstream	configFile(filePath);
 
@@ -81,7 +80,7 @@ ServerConfig ServerConfig::parseServer(std::string& content) {
 	const std::map<std::string, RouteConfig>	parsedRoutes = parseServerRoutes(serverBlock); //Mandatory
 
 	if (!IsBlank::isBlank(serverBlock))
-		throw ServerConfig::InvalidConfigFileException();
+		throw InvalidConfigFileException();
 
 	return (ServerConfig(parsedHost, parsedPort, parsedServerName, parsedErrorPages, parsedBodySize, parsedRoutes));
 }
@@ -178,19 +177,3 @@ u_int ServerConfig::getMaxClientBodySize() const {
 std::map<std::string, RouteConfig> ServerConfig::getRoutes() const {
     return (routes);
 }
-
-ServerConfig::InvalidConfigFileException::InvalidConfigFileException() { }
-
-ServerConfig::InvalidConfigFileException::InvalidConfigFileException(const std::string& msg): message(msg) { }
-
-ServerConfig::InvalidConfigFileException::~InvalidConfigFileException() { }
-
-const char* ServerConfig::InvalidConfigFileException::what() const noexcept {
-	if (message.empty()) {
-		return "Invalid config file";
-	} else {
-		return message.c_str();
-	}
-}
-
-ServerConfig::~ServerConfig() { }

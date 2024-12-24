@@ -10,6 +10,7 @@
 class InvalidRequestException final : public std::runtime_error {
 	public:
 	InvalidRequestException() : std::runtime_error("Invalid request") {}
+	explicit InvalidRequestException(const std::string &msg) : std::runtime_error(msg) {}
 };
 
 class NotFoundException final : public std::runtime_error {

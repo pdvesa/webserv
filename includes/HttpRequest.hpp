@@ -10,6 +10,7 @@
 #include <vector>
 
 #include <ServerConfig.hpp>
+
 #include <StrictUtoi.hpp>
 #include <VecBuffCmp.hpp>
 #include <http_methods.h>
@@ -87,8 +88,6 @@ class HttpRequest {
 		bool	readBody();
 
 		void validateHeaders() const;
-
-		[[nodiscard]] bool	exceptSpace(size_t offset) const;
 
 		static bool parseHeaders(const std::vector<u_char>& data, size_t& parseIndex, std::map<std::string, std::string>& dest);
 

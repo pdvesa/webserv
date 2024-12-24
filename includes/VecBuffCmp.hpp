@@ -9,7 +9,7 @@
 
 class VecBuffCmp {
 	public:
-		static int	vecBuffCmp(std::vector<unsigned char> vec, size_t startVec, const void* buff, size_t startBuff,
+		static int	vecBuffCmp(const std::vector<unsigned char>& vec, size_t startVec, const void* buff, size_t startBuff,
 		size_t n);
 
 		VecBuffCmp() = delete;

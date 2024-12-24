@@ -238,7 +238,7 @@ std::string HandleRequest::buildErrorPage(const int errorCode, const ServerConfi
 	std::string	errorStr;
 	int	index;
 	try {
-		errorStr = std::to_string(errorCode) + " " + httpErrors.at(errorCode);
+		errorStr = std::to_string(errorCode) + " " + httpCodes.at(errorCode);
 		index = errorPage.find("{{{ERROR}}}");
 		if (index == static_cast<int>(std::string::npos))
 			throw std::runtime_error("Error not found");
