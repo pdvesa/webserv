@@ -3,7 +3,6 @@
 //
 
 #include <HttpRequest.hpp>
-#include <SpacesClean.hpp>
 
 HttpRequest::HttpRequest(ServerConfig* serverConfig) :
 	requestState(REQUEST_PARSING),
@@ -58,6 +57,7 @@ bool HttpRequest::parseData(const u_char* data, const size_t len)
 					parsingState = PARSING_DONE;
 					break ;
 				}
+				requestState = REQUEST_BODY_PARSING;
 				parsingState = PARSING_BODY;
 				//Fallthrough
 
@@ -128,7 +128,7 @@ std::vector<u_char> HttpRequest::parseMultiPartFormDataBody(std::map<std::string
 		throw InvalidRequestException();
 	contentIndex += CRLF.length();
 
-	const ssize_t endIndex = rawBody.size() - boundary.size() - 4;
+	const ssize_t endIndex = static_cast<ssize_t>(rawBody.size()) - boundary.size() - 4; // NOLINT(*-narrowing-conversions)
 	if (endIndex < 0)
 		throw InvalidRequestException();
 	if (VecBuffCmp::vecBuffCmp(rawBody, endIndex, (std::string("--") + boundary +
@@ -254,33 +254,100 @@ bool HttpRequest::readParseHeaders()
 
 bool HttpRequest::readBody()
 {
-	try {
-		static size_t	contentLength = StrictUtoi::strictUtoi(headers.at("Content-Length"));
-		if (contentLength > 600) // TODO Replace :)
-			throw RequestBodyTooLargeException();
+	if (!chunked)
+	{
+		try {
+			static size_t	contentLength = StrictUtoi::strictUtoi(headers.at("Content-Length"));
+			if (contentLength > serverConfig->getMaxClientBodySize())
+				throw RequestBodyTooLargeException();
 
-		while (parseIndex < unparsedData.size() && rawBody.size() < contentLength)
-			rawBody.push_back(unparsedData[parseIndex++]);
+			while (parseIndex < unparsedData.size() && rawBody.size() < contentLength)
+				rawBody.push_back(unparsedData[parseIndex++]);
 
-		if (rawBody.size() == contentLength)
-			return (true);
+			if (rawBody.size() == contentLength)
+				return (true);
+			return (false);
+		} catch (...) {
+			throw InvalidRequestException();
+		}
+	}
+	else
+		return (readChunk());
+}
+
+bool HttpRequest::readChunk()
+{
+	while (true)
+	{
+		static ssize_t	currentChunkSize = -1;
+		if (currentChunkSize == -1)
+		{
+			size_t	endLinePos = parseIndex;
+			while (endLinePos < unparsedData.size() - 1)
+			{
+				if (isCrlf(unparsedData, endLinePos))
+					break ;
+				if (!isdigit(unparsedData[endLinePos]) && !islower(unparsedData[endLinePos]))
+					throw InvalidRequestException();
+				endLinePos++;
+			}
+			if (endLinePos == unparsedData.size() - 1)
+				return (false);
+
+			currentChunkSize = std::stoi(std::string(unparsedData.begin() + parseIndex,
+				unparsedData.begin() + endLinePos), nullptr, 16);
+			if (currentChunkSize > serverConfig->getMaxClientBodySize())
+				throw RequestBodyTooLargeException();
+
+			if (currentChunkSize == 0)
+			{
+				if (endLinePos + CRLF.length() + CRLF.length() >= unparsedData.size())
+				{
+					if (!isCrlf(unparsedData, endLinePos + CRLF.length()))
+						throw InvalidRequestException();
+					parseIndex = endLinePos + CRLF.length() + CRLF.length();
+					return (true);
+				}
+				else
+				{
+					currentChunkSize = - 1;
+					return (false);
+				}
+			}
+			else
+				parseIndex = endLinePos + CRLF.length();
+		}
+
+		while (currentChunkSize > 0 && parseIndex < unparsedData.size())
+		{
+			rawBody.push_back(unparsedData[parseIndex]);
+			currentChunkSize--;
+			parseIndex++;
+		}
+		if (parseIndex >= unparsedData.size() - 1)
+			return (false);
+		if (!isCrlf(unparsedData, parseIndex))
+			throw InvalidRequestException();
+
+		parseIndex += CRLF.length();
+		currentChunkSize = -1;
 		return (false);
-	} catch (...) {
-		throw InvalidRequestException();
 	}
 }
 
-void HttpRequest::validateHeaders() const
+void HttpRequest::validateHeaders()
 {
 	if (!headers.contains("Host"))
 		throw InvalidRequestException();
 	if (method == POST)
 	{
-		if (!headers.contains("Content-Length")) {
-			throw RequestContentLengthMissingException();
-		}
 		if (!headers.contains("Content-Type"))
 			throw InvalidRequestException();
+		if (!headers.contains("Content-Length")) {
+			if (!headers.contains("Transfer-Encoding") || headers.at("Transfer-Encoding") != "chunked")
+				throw RequestContentLengthMissingException();
+			chunked = true;
+		}
 	}
 }
 
@@ -347,10 +414,10 @@ bool HttpRequest::isCrlf(const std::vector<u_char>& data, const size_t start)
 	return (true);
 }
 
-//TODO Mouais
+//TODO Mouais unimplemented
 bool HttpRequest::isTargetChar(const unsigned char c)
 {
-	if (isalnum(c) || c == '-' || c == '_' || c == '.' || c == '~')
+	if (std::isalnum(c) || c == '-' || c == '_' || c == '.' || c == '~')
 		return (true);
 	if (c == ':' || c == '/' || c == '?' || c == '#' || c == '[' || c == ']' || c == '@')
 		return (true);
@@ -362,17 +429,16 @@ bool HttpRequest::isTargetChar(const unsigned char c)
 	return (false);
 }
 
-//TODO Mouais mouais
 bool HttpRequest::isHeaderKeyChar(const unsigned char c)
 {
-	return (isalnum(c) || c == '-' || c == '_');
+	return (std::isalnum(c) || c == '-' || c == '_');
 }
 
 //TODO Mouais mouais mouais
 bool HttpRequest::isHeaderValueChar(const unsigned char c)
 {
-	return (isalnum(c) || isspace(c) || c == '-' || c == '_' || c == '.' || c == '!' || c == '~' || c == '*' ||
-		c == '\'' || c == '(' || c == ')' || c == '/' || c == ':' || c == '@' || c == '&' || c == '+' || c == '$'
+	return (std::isalnum(c) || std::isspace(c) || c == '-' || c == '_' || c == '.' || c == '!' || c == '~' || c == '*'
+		|| c == '\'' || c == '(' || c == ')' || c == '/' || c == ':' || c == '@' || c == '&' || c == '+' || c == '$'
 		|| c == ',' || c == ';' || c == '=' || c == '%');
 }
 

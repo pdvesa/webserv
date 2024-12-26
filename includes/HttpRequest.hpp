@@ -15,6 +15,7 @@
 #include <VecBuffCmp.hpp>
 #include <http_methods.h>
 #include <RequestException.hpp>
+#include <SpacesClean.hpp>
 
 static const std::string HTTP_VERSION_STR = "HTTP/1.1";
 
@@ -32,6 +33,7 @@ typedef enum e_parsing_state {
 
 typedef enum e_request_state {
 	REQUEST_PARSING,
+	REQUEST_BODY_PARSING,
 	REQUEST_OK,
 	REQUEST_INVALID,
 	REQUEST_BODY_TOO_LARGE,
@@ -45,6 +47,7 @@ class HttpRequest {
 		t_parsing_state		parsingState;
 		std::vector<u_char>	unparsedData;
 		size_t				parseIndex;
+		bool				chunked;
 
 		t_method							method;
 		std::string							target;
@@ -86,8 +89,9 @@ class HttpRequest {
 		bool	readParseVersion();
 		bool	readParseHeaders();
 		bool	readBody();
+		bool	readChunk();
 
-		void validateHeaders() const;
+		void validateHeaders();
 
 		static bool parseHeaders(const std::vector<u_char>& data, size_t& parseIndex, std::map<std::string, std::string>& dest);
 

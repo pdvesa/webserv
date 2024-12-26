@@ -2,8 +2,6 @@
 // Created by jules on 19/12/2024.
 //
 
-#include <iostream>
-#include <ostream>
 #include <VecBuffCmp.hpp>
 
 int VecBuffCmp::vecBuffCmp(const std::vector<unsigned char>& vec, size_t startVec, const void* buff, size_t startBuff,
