@@ -7,22 +7,25 @@
 
 #include <string>
 #include <vector>
+#include <sstream>
 
-#include <HttpRequest.hpp>
-#include <HandleRequest.hpp>
+#include <HttpCodes.hpp>
+#include <http_methods.h>
+
 
 class HttpResponse {
 	private:
 		int					statusCode;
 		std::string			location;
 		std::string			contentType;
-		int					contentLength;
+		ssize_t				contentLength;
 		std::string			connection;
 		std::vector<u_char>	responseBody;
 
 	public:
 		HttpResponse() = delete;
-		explicit HttpResponse(const HttpRequest & request);
+		HttpResponse(int statusCode, const std::string& location, const std::string& contentType,
+			const std::vector<u_char>& responseBody, e_method method);
 		HttpResponse(const HttpResponse & other) = default;
 		~HttpResponse() = default;
 

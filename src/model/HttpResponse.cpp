@@ -4,13 +4,17 @@
 
 #include <HttpResponse.hpp>
 
-HttpResponse::HttpResponse(const HttpRequest& request)
+HttpResponse::HttpResponse(const int statusCode, const std::string& location, const std::string& contentType,
+							const std::vector<u_char>& responseBody, const e_method method) :
+	statusCode(statusCode),
+	location(location),
+	contentType(contentType),
+	responseBody(responseBody)
 {
-	statusCode = HandleRequest::handleRequest(request, location, contentType, responseBody);
-	contentLength = responseBody.size(); // NOLINT(*-narrowing-conversions)
-	if (contentLength == 0 && request.getMethod() != GET)
+	contentLength = responseBody.size();
+	if (contentLength == 0 && method != GET)
 		contentLength = -1;
-	connection = "close";
+	this->connection = "close";
 }
 
 std::vector<u_char> HttpResponse::asResponseBuffer() const

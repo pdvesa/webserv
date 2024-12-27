@@ -8,7 +8,9 @@ HttpRequest::HttpRequest(ServerConfig* serverConfig) :
 	requestState(REQUEST_PARSING),
 	parsingState(PARSING_METHOD),
 	parseIndex(0),
+	chunked(false),
 	method(UNINITIALIZED),
+	body(nullptr),
 	serverConfig(serverConfig)
 { }
 
@@ -16,6 +18,11 @@ HttpRequest::HttpRequest(ServerConfig* serverConfig, const u_char* data, const s
 	HttpRequest(serverConfig)
 {
 	parseData(data, len);
+}
+
+HttpRequest::~HttpRequest()
+{
+	delete body;
 }
 
 bool HttpRequest::parseData(const u_char* data, const size_t len)
@@ -51,13 +58,12 @@ bool HttpRequest::parseData(const u_char* data, const size_t len)
 			case PARSING_HEADER:
 				if (!readParseHeaders())
 					break ;
-				validateHeaders();
+				validateHeadersInitBody();
 				if (method != POST)
 				{
 					parsingState = PARSING_DONE;
 					break ;
 				}
-				requestState = REQUEST_BODY_PARSING;
 				parsingState = PARSING_BODY;
 				//Fallthrough
 
@@ -99,73 +105,13 @@ bool HttpRequest::parseData(const u_char* data, const size_t len)
 		requestState = REQUEST_INVALID;
 		unparsedData.clear();
 		parseIndex = 0;
+	} catch (std::exception& e) {
+		std::cerr << e.what() << std::endl;
+		requestState = SERVER_ERROR;
+		unparsedData.clear();
+		parseIndex = 0;
 	}
 	return (false);
-}
-
-std::vector<u_char> HttpRequest::parseMultiPartFormDataBody(std::map<std::string, std::string>& contentDispositionDest)
-	const
-{
-	if (requestState != REQUEST_OK)
-		throw std::runtime_error("Invalid request state");
-	const std::string	contentType = headers.at("Content-Type");
-	if (contentType != "multipart/form-data;")
-		throw std::runtime_error("Server shouldn't call this code with that");
-
-	std::map<std::string, std::string> attributes = splitHeaderAttributes(contentType);
-	if (!attributes.contains("boundary"))
-		throw InvalidRequestException();
-	const std::string boundary = attributes["boundary"];
-	if (boundary.size() < 2)
-		throw InvalidRequestException();
-
-	size_t contentIndex = 0;
-	if (VecBuffCmp::vecBuffCmp(rawBody, contentIndex, (std::string("--") + boundary).c_str()
-		, 0, boundary.size() + 2) != 0)
-		throw InvalidRequestException();
-	contentIndex += (2 + boundary.size());
-	if (!isCrlf(rawBody, contentIndex))
-		throw InvalidRequestException();
-	contentIndex += CRLF.length();
-
-	const ssize_t endIndex = static_cast<ssize_t>(rawBody.size()) - boundary.size() - 4; // NOLINT(*-narrowing-conversions)
-	if (endIndex < 0)
-		throw InvalidRequestException();
-	if (VecBuffCmp::vecBuffCmp(rawBody, endIndex, (std::string("--") + boundary +
-		std::string("--")).c_str(), 0, boundary.size() + 4) != 0)
-		throw InvalidRequestException();
-
-	std::map<std::string, std::string>	bodyHeaders;
-	if (!parseHeaders(rawBody, contentIndex, bodyHeaders))
-		throw InvalidRequestException();
-
-	if (!bodyHeaders.contains(std::string("Content-Disposition")))
-		throw InvalidRequestException();
-
-	contentDispositionDest = splitHeaderAttributes(bodyHeaders.at(std::string("Content-Disposition")));
-	if (!contentDispositionDest.contains(std::string("filename")))
-		throw InvalidRequestException();
-
-	while (contentIndex < endIndex - HEADER_END_STR.size())
-	{
-		if (VecBuffCmp::vecBuffCmp(rawBody, contentIndex, HEADER_END_STR.c_str(),
-			0, HEADER_END_STR.size()) == 0)
-		{
-			contentIndex += HEADER_END_STR.size();
-			break;
-		}
-		contentIndex++;
-	}
-	if (static_cast<ssize_t>(contentIndex) == endIndex)
-		throw InvalidRequestException();
-
-	std::vector<u_char>	bodyContent;
-	while (static_cast<ssize_t>(contentIndex) < endIndex)
-	{
-		bodyContent.push_back(rawBody[contentIndex]);
-		contentIndex++;
-	}
-	return (bodyContent);
 }
 
 //TODO Really bad not actual parsing of "" or escaped char to improve GREATLY :P
@@ -199,8 +145,8 @@ bool HttpRequest::readParseMethod()
 	}
 	if (unparsedData[parseIndex + spacePos] != ' ')
 		return (false);
-	const std::string methodStr = std::string(unparsedData.begin() + parseIndex,
-		unparsedData.begin() + parseIndex + spacePos);
+	const std::string methodStr = std::string(unparsedData.begin() + parseIndex, // NOLINT(*-narrowing-conversions)
+		unparsedData.begin() + parseIndex + spacePos); // NOLINT(*-narrowing-conversions)
 
 	method = stringToMethod(methodStr);
 	if (method == UNINITIALIZED)
@@ -233,7 +179,7 @@ bool HttpRequest::readParseVersion()
 	if (VecBuffCmp::vecBuffCmp(unparsedData, parseIndex, HTTP_VERSION_STR.c_str(), 0,
 		std::min(unparsedData.size() - parseIndex, HTTP_VERSION_STR.size())) == 0)
 	{
-		if (unparsedData.size() - parseIndex >= HTTP_VERSION_STR.size() + (CRLF.length() - 1))
+		if (unparsedData.size() - parseIndex >= HTTP_VERSION_STR.size() + CRLF.length())
 		{
 			if (!isCrlf(unparsedData, parseIndex + HTTP_VERSION_STR.size())) {
 				throw InvalidRequestException();
@@ -254,22 +200,24 @@ bool HttpRequest::readParseHeaders()
 
 bool HttpRequest::readBody()
 {
+	if (!body)
+		throw (std::runtime_error("Parsing body with body pointer uninitialized"));
 	if (!chunked)
 	{
-		try {
-			static size_t	contentLength = StrictUtoi::strictUtoi(headers.at("Content-Length"));
-			if (contentLength > serverConfig->getMaxClientBodySize())
-				throw RequestBodyTooLargeException();
+		static size_t	contentLength = StrictUtoi::strictUtoi(headers.at("Content-Length"));
+		if (contentLength > serverConfig->getMaxClientBodySize())
+			throw RequestBodyTooLargeException();
 
-			while (parseIndex < unparsedData.size() && rawBody.size() < contentLength)
-				rawBody.push_back(unparsedData[parseIndex++]);
+		std::vector<u_char>	bodyData;
+		while (parseIndex < unparsedData.size() && bodyData.size() < contentLength)
+			bodyData.push_back(unparsedData[parseIndex++]);
 
-			if (rawBody.size() == contentLength)
-				return (true);
-			return (false);
-		} catch (...) {
+		if (!body->addData(bodyData))
 			throw InvalidRequestException();
-		}
+
+		if (body->getSize() == contentLength)
+			return (true);
+		return (false);
 	}
 	else
 		return (readChunk());
@@ -294,8 +242,8 @@ bool HttpRequest::readChunk()
 			if (endLinePos == unparsedData.size() - 1)
 				return (false);
 
-			currentChunkSize = std::stoi(std::string(unparsedData.begin() + parseIndex,
-				unparsedData.begin() + endLinePos), nullptr, 16);
+			currentChunkSize = std::stoi(std::string(unparsedData.begin() + parseIndex, // NOLINT(*-narrowing-conversions)
+				unparsedData.begin() + endLinePos), nullptr, 16); // NOLINT(*-narrowing-conversions)
 			if (currentChunkSize > serverConfig->getMaxClientBodySize())
 				throw RequestBodyTooLargeException();
 
@@ -318,12 +266,17 @@ bool HttpRequest::readChunk()
 				parseIndex = endLinePos + CRLF.length();
 		}
 
+		std::vector<u_char>	bodyData;
 		while (currentChunkSize > 0 && parseIndex < unparsedData.size())
 		{
-			rawBody.push_back(unparsedData[parseIndex]);
+			bodyData.push_back(unparsedData[parseIndex]);
 			currentChunkSize--;
 			parseIndex++;
 		}
+
+		if (!body->addData(bodyData))
+			throw InvalidRequestException();
+
 		if (parseIndex >= unparsedData.size() - 1)
 			return (false);
 		if (!isCrlf(unparsedData, parseIndex))
@@ -335,7 +288,7 @@ bool HttpRequest::readChunk()
 	}
 }
 
-void HttpRequest::validateHeaders()
+void HttpRequest::validateHeadersInitBody()
 {
 	if (!headers.contains("Host"))
 		throw InvalidRequestException();
@@ -343,11 +296,24 @@ void HttpRequest::validateHeaders()
 	{
 		if (!headers.contains("Content-Type"))
 			throw InvalidRequestException();
-		if (!headers.contains("Content-Length")) {
-			if (!headers.contains("Transfer-Encoding") || headers.at("Transfer-Encoding") != "chunked")
-				throw RequestContentLengthMissingException();
+		if (headers.contains("Transfer-Encoding") && headers.at("Transfer-Encoding") == "chunked")
+		{
 			chunked = true;
+			requestState = REQUEST_CHUNK_RECEIVING;
 		}
+		else if (!headers.contains("Content-Length"))
+			throw RequestContentLengthMissingException();
+
+		if (const std::string& contentType = headers.at("Content-Type"); contentType == "multipart/form-data")
+		{
+			const std::map<std::string, std::string> attributes = splitHeaderAttributes(contentType);
+			if (!attributes.contains("boundary"))
+				throw InvalidRequestException();
+
+			body = new MultipartFormDataBody(attributes.at("boundary"));
+		}
+		else
+			body = new RequestBody();
 	}
 }
 
@@ -444,6 +410,11 @@ bool HttpRequest::isHeaderValueChar(const unsigned char c)
 
 //----GETTERS-----
 
+bool HttpRequest::isChunked() const
+{
+	return (chunked);
+}
+
 t_request_state HttpRequest::getRequestState() const {
 	return (requestState);
 }
@@ -462,10 +433,6 @@ const std::string& HttpRequest::getVersion() const {
 
 const std::string& HttpRequest::getHeader(const std::string& key) const {
 	return (headers.at(key));
-}
-
-const std::vector<u_char>& HttpRequest::getBody() const {
-	return (rawBody);
 }
 
 const ServerConfig& HttpRequest::getServerConfig() const {

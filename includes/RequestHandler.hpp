@@ -1,9 +1,9 @@
 //
-// Created by jules on 20/12/2024.
+// Created by jules on 27/12/2024.
 //
 
-#ifndef HANDLEREQUEST_HPP
-# define HANDLEREQUEST_HPP
+#ifndef REQUESTHANDLER_HPP
+# define REQUESTHANDLER_HPP
 
 #include <dirent.h>
 #include <filesystem>
@@ -12,42 +12,68 @@
 #include <bits/fs_path.h>
 #include <unistd.h>
 
-#include <HttpRequest.hpp>
 #include <ServerConfig.hpp>
-
+#include <HttpRequest.hpp>
+#include <HttpResponse.hpp>
 #include <RequestException.hpp>
 
-class HandleRequest {
-	public:
-		static int	handleRequest(const HttpRequest& request, std::string& locationDest, std::string& contentTypeDest,
-			std::vector<u_char>& bodyDest);
+class RequestHandler {
+	private:
+		enum e_handling_state {
+			STATE_NO,
+			STATE_WAITING_CHUNK,
+			STATE_YES
+		};
 
-		HandleRequest() = delete;
-		~HandleRequest() = delete;
+		const HttpRequest&	request;
+		RouteConfig*		route;
+		std::string			remainingPath;
+
+		std::string			location;
+		std::string			contentType;
+		std::vector<u_char>	responseBody;
+		int					statusCode;
+
+		e_handling_state	handlingState;
+
+		std::string			filePartPath;
+
+	public:
+		explicit RequestHandler(const HttpRequest& request);
+		RequestHandler(const RequestHandler&) = delete;
+		~RequestHandler() = default;
+
+		RequestHandler	&operator=(const RequestHandler&) = delete;
+
+		bool						handle();
+		[[nodiscard]] HttpResponse	buildResponse() const;
+
+		[[nodiscard]] bool			isHandled() const;
 
 	private:
-		static RouteConfig&	parseTarget(const std::string& requestTarget, const std::string& requestHostname,
-											const ServerConfig& server, std::string& remainingPathDest);
+		RouteConfig*	parseTarget();
 
-		static int	handleInvalidRequest(const HttpRequest& request, std::string& contentTypeDest,
-			std::vector<u_char>& bodyDest);
-		static int	handleRedirection(const std::string& remainingPath, const RouteConfig::t_redirection& redirection,
-			std::string& locationDest);
+		void	handleInvalid();
+		void	handleRedirection();
+		void	handleGet();
 
-		static int	handleGet(const std::string& remainingPath, const RouteConfig& routeConfig,
-							const std::string& requestTarget, std::string& contentTypeDest, std::vector<u_char>& bodyDest);
-		static int	handlePost(const std::string& remainingPath, const RouteConfig& routeConfig, const HttpRequest& request);
-		static int	handleDelete(const std::string& remainingPath, const RouteConfig& routeConfig);
+		void	handlePost();
+		void	handleDelete();
 
-		static int			buildError(int errorCode, const ServerConfig& server, std::string& contentTypeDest,
-			std::vector<u_char>& bodyDest);
+		[[nodiscard]] std::string	getPostUploadFileName() const;
+
+		bool	savePart(const std::string& serverTarget, const std::vector<unsigned char>& data, bool finished);
+
+		void	buildError(int code);
 
 		static std::string	buildListingPage(const std::string& serverTarget, const std::string& requestTarget);
 		static std::string	buildErrorPage(int errorCode, const ServerConfig& server);
 
-		static int saveFile(const std::string& serverTarget, const std::vector<u_char>& content);
+		static void					saveFile(const std::string& filePath, const std::vector<unsigned char>& content);
+		static void					appendToFile(const std::string& filePath, const std::vector<unsigned char>& content);
+		static void					removeFile(const std::string& filePath);
 
-		static std::string							getContentType(const std::string& filePath);
+		static std::string	getContentType(const std::string& filePath);
 };
 
 static const std::string	HTTP_START = "http://";
@@ -111,4 +137,4 @@ static const std::map<std::string, std::string> extension_to_mime_type = {
 	{".wasm", "application/wasm"}
 };
 
-#endif //HANDLEREQUEST_HPP
+#endif

@@ -10,6 +10,8 @@
 #include <vector>
 
 #include <ServerConfig.hpp>
+#include <MultipartFormDataBody.hpp>
+#include <RequestBody.hpp>
 
 #include <StrictUtoi.hpp>
 #include <VecBuffCmp.hpp>
@@ -22,27 +24,28 @@ static const std::string HTTP_VERSION_STR = "HTTP/1.1";
 static const std::string CRLF = "\r\n";
 static const std::string HEADER_END_STR = "\r\n\r\n";
 
-typedef enum e_parsing_state {
-	PARSING_METHOD,
-	PARSING_TARGET,
-	PARSING_VERSION,
-	PARSING_HEADER,
-	PARSING_BODY,
-	PARSING_DONE,
-}	t_parsing_state;
-
 typedef enum e_request_state {
 	REQUEST_PARSING,
-	REQUEST_BODY_PARSING,
+	REQUEST_CHUNK_RECEIVING,
 	REQUEST_OK,
 	REQUEST_INVALID,
 	REQUEST_BODY_TOO_LARGE,
 	REQUEST_LEN_REQUIRED,
-	REQUEST_UNIMPLEMENTED
+	REQUEST_UNIMPLEMENTED,
+	SERVER_ERROR
 }	t_request_state;
 
 class HttpRequest {
 	private:
+		typedef enum e_parsing_state {
+			PARSING_METHOD,
+			PARSING_TARGET,
+			PARSING_VERSION,
+			PARSING_HEADER,
+			PARSING_BODY,
+			PARSING_DONE,
+		}	t_parsing_state;
+
 		t_request_state		requestState;
 		t_parsing_state		parsingState;
 		std::vector<u_char>	unparsedData;
@@ -53,7 +56,7 @@ class HttpRequest {
 		std::string							target;
 		std::string							version;
 		std::map<std::string, std::string>	headers;
-		std::vector<u_char>					rawBody;
+		RequestBody*						body;
 
 		ServerConfig*						serverConfig;
 
@@ -61,7 +64,7 @@ class HttpRequest {
 		explicit HttpRequest(ServerConfig* serverConfig);
 		HttpRequest(ServerConfig* serverConfig, const u_char* data, size_t len);
 		HttpRequest(const HttpRequest &) = default;
-		~HttpRequest() = default;
+		~HttpRequest();
 
 		HttpRequest& operator=(const HttpRequest &) = default;
 		bool operator==(const HttpRequest &) const = default;
@@ -69,19 +72,20 @@ class HttpRequest {
 
 		bool	parseData(const u_char* data, size_t len);
 
-		[[nodiscard]] std::vector<u_char>			parseMultiPartFormDataBody(
-			std::map<std::string, std::string>& contentDispositionDest) const;
-
+		[[nodiscard]] bool							isChunked() const;
 		[[nodiscard]] t_request_state				getRequestState() const;
 		[[nodiscard]] e_method						getMethod() const;
 		[[nodiscard]] const std::string&			getTarget() const;
 		[[nodiscard]] const std::string&			getVersion() const;
 		[[nodiscard]] const std::string&			getHeader(const std::string &key) const;
-		[[nodiscard]] const std::vector<u_char>&	getBody() const;
+		[[nodiscard]] const RequestBody&			getBody() const;
 
 		[[nodiscard]] const ServerConfig&			getServerConfig() const;
 
+		static bool parseHeaders(const std::vector<u_char>& data, size_t& parseIndex, std::map<std::string, std::string>& dest);
+
 		static std::map<std::string, std::string>	splitHeaderAttributes(const std::string& headerValue);
+		static bool	isCrlf(const std::vector<u_char>& data, size_t start);
 
 	private:
 		bool	readParseMethod();
@@ -91,11 +95,8 @@ class HttpRequest {
 		bool	readBody();
 		bool	readChunk();
 
-		void validateHeaders();
+		void validateHeadersInitBody();
 
-		static bool parseHeaders(const std::vector<u_char>& data, size_t& parseIndex, std::map<std::string, std::string>& dest);
-
-		static bool	isCrlf(const std::vector<u_char>& data, size_t start);
 		static bool	isTargetChar(unsigned char c);
 		static bool	isHeaderKeyChar(unsigned char c);
 		static bool	isHeaderValueChar(unsigned char c);
