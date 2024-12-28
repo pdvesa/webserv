@@ -63,29 +63,21 @@ void CGI::runCGI() {
 	}
 	else {
 		int status;
-		int rv;
 		childPID = pid;
 		signal(SIGALRM, alarmHandler);
-		alarm(15);
-		std::vector<unsigned char>	buffer(BUF_SIZE);
-		close(pipes[1]);
-		while ((rv = read(pipes[0], buffer.data(), BUF_SIZE)) > 0) {
-			buffer.resize(rv);
-			cgiResponse.append(buffer.begin(), buffer.end());
-			if (rv < BUF_SIZE) 
-				break;
-		}
-		close(pipes[0]);
+		alarm(5);
+		close(pipes[1]);	
 		waitpid(pid, &status, 0);
 		alarm(0);
-		if (rv == -1)
-			throw std::runtime_error("Parent failed to read in CGIHandler");
-		else if (rv == 0)
-			std::cout << "MAYBE WE JUST READ 0 THIS IN INSANE" << std::endl;
-		if (WIFEXITED(status))
-            exitStatus = WEXITSTATUS(status);
+		if (WIFEXITED(status)) {
+            if (!(exitStatus = WEXITSTATUS(status))) {
+				cgiResponse = pipes[0];
+				return ;
+			}
+		}
 		else if (WIFSIGNALED(status))
 			exitStatus = WTERMSIG(status);
+		close(pipes[0]);
 	} 
 }
 

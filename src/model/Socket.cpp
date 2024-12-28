@@ -18,7 +18,7 @@ Socket::Socket(int domain, int type, int protocol, int port, std::string host) {
 	socketAddr.sin_addr = ((sockaddr_in *)result->ai_addr)->sin_addr;
 	freeaddrinfo(result);
 	if ((socketFD = socket(domain, type, protocol)) == -1)
-		throw std::runtime_error("Failed in socket creation");
+		throw std::runtime_error("Failed in socket creation: " + std::string(strerror(errno)));
 	std::cout << "Socket created" << std::endl;
 }
 
@@ -30,7 +30,7 @@ Socket &Socket::bindSocket() {
 	if (setsockopt(socketFD, SOL_SOCKET, SO_REUSEADDR, &sock_opts, sizeof(int)) < 0)
 		throw std::runtime_error ("Failed to set socket options");
 	if ((bind(socketFD, (sockaddr *)&socketAddr, sizeof(socketAddr))) == -1)
-		throw std::runtime_error("Failed in bind socket");
+		throw std::runtime_error("Failed in bind socket: " + std::string(strerror(errno)));
 	std::cout << "Socket bound" << std::endl;
 	return (*this);
 }

@@ -2,7 +2,7 @@
 # define CLIENT_HPP
 
 #ifndef BUF_SIZE
-# define BUF_SIZE 420
+# define BUF_SIZE 14
 #endif
 
 #include <iostream>
@@ -20,7 +20,11 @@ class Client {
 		int				listeningSocket;
 		ServerConfig	config;
 		std::optional<HttpRequest>		request;
-		std::optional<HttpResponse>		response;	
+		std::optional<HttpResponse>		response;
+		std::vector<unsigned char>		rawRequest;
+		int 			cgiFD;
+		bool			requestRdy;
+		bool			responseRdy;
 	public:
 		Client(int connection, int listen, ServerConfig conf);
 		~Client();
@@ -32,7 +36,13 @@ class Client {
 		void		buildRequest();
 		void		buildResponse();
 		void		clearClear();
-
+		void		setCgiFD(int fd);
+		int 		getCgiFD();
+		bool		getRequestStatus();
+		bool		getResponseStatus();
+		void		setRequestStatus(bool stat);
+		void		setResponseStatus(bool stat);
+		std::vector<unsigned char> &getRawRequest();
 	private:
 		void		buildErrorResponse();
 

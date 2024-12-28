@@ -1,6 +1,6 @@
 #include <Client.hpp>
 
-Client::Client(int connection, int listen, ServerConfig conf) : clientFD(connection), listeningSocket(listen), config(conf), request(), response() {
+Client::Client(int connection, int listen, ServerConfig conf) : clientFD(connection), listeningSocket(listen), config(conf), request(), response(), rawRequest(), cgiFD(0), requestRdy(false), responseRdy(false) {
 }
 
 Client::~Client() {
@@ -38,9 +38,17 @@ void	Client::buildResponse() {
 	try {
 		if (request->getStatus() >= 200 && request->getStatus() < 300) {
 			std::string	path = request->getPath();
-			if (request->getCGIStatus()) {
-			response.emplace(HttpResponse(*request, HandleRequest::handleCGI(*request), "text/html"));
-		  	}
+			if (request->getCGIStatus()) 
+			{
+				std::cout << "ARE WE HERE AGGAIN\n\n\n" << std::endl;
+				CGI cgi(*request);
+				if (!(cgi.getCGIStatus())) {
+					setCgiFD(cgi.getCGIResponse());
+				}
+				else
+					buildErrorResponse();			
+			}
+//			response.emplace(HttpResponse(*request, HandleRequest::handleCGI(*request), "text/html"));
       		else if (request->getMethod() == "GET")
 			{
 				std::string	contentType;
@@ -93,6 +101,35 @@ void Client::buildErrorResponse() {
 	}
 	response.emplace(HttpResponse(*request, body, "text/html"));
 }
+
+void Client::setCgiFD(int fd) {
+	cgiFD = fd;
+}
+
+int Client::getCgiFD() {
+	return (cgiFD);
+}
+
+void Client::setRequestStatus(bool stat) {
+	requestRdy = stat;
+}
+
+void Client::setResponseStatus(bool stat) {
+	responseRdy = stat;
+}
+
+bool Client::getRequestStatus() {
+	return (requestRdy);
+}
+
+bool Client::getResponseStatus() {
+	return (responseRdy);
+}
+
+std::vector<unsigned char> &Client::getRawRequest() {
+	return (rawRequest);
+}
+
 
 const std::string Client::DEFAULT_BODY = "<!DOCTYPE html><html lang=\"en\"><head><meta charset=\"UTF-8\"><meta name=\"viewport\""
 			" content=\"width=device-width, initial-scale=1.0\"><title>Saku's Error</title><style>body "
