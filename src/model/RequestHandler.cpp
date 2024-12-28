@@ -97,9 +97,9 @@ RouteConfig* RequestHandler::parseTarget()
 	const std::string& requestHostname = request.getHeader("Host");
 	size_t routeStart = 0;
 
-	if (requestTarget.compare(HTTP_START) == 0)
+	if (requestTarget.compare(0, HTTP_START.length(), HTTP_START) == 0)
 		routeStart += HTTP_START.size();
-	if (requestTarget.compare(requestHostname) == 0)
+	if (requestTarget.compare(0, requestHostname.length(), requestHostname) == 0)
 		routeStart += requestHostname.size();
 
 	if (requestTarget[routeStart] == '/' || requestTarget.length() == routeStart)
@@ -205,6 +205,7 @@ void RequestHandler::handlePost()
 			if (!savePart(serverTarget + filename, request.getBody().getContent(),
 				request.getRequestState() == REQUEST_OK))
 				return ;
+			request.getBody().clearContent();
 		}
 		else
 			saveFile(serverTarget + filename, request.getBody().getContent());
@@ -224,7 +225,7 @@ void RequestHandler::handleDelete()
 
 std::string RequestHandler::getPostUploadFileName() const
 {
-	if (contentType.compare("multipart/form-data") == 0)
+	if (contentType.compare(0, MULTIPART_FORM_DATA.length(), MULTIPART_FORM_DATA) == 0)
 	{
 		const MultipartFormDataBody* body = dynamic_cast<const MultipartFormDataBody*>(&request.getBody());
 		if (!body)
@@ -241,7 +242,7 @@ std::string RequestHandler::getPostUploadFileName() const
 			return ("");
 		}
 	}
-	if (contentType.compare("application/octet-stream") == 0)
+	if (contentType.compare(0, APPLICATION_OCTET_STREAM.length(), APPLICATION_OCTET_STREAM) == 0)
 	{
 		try {
 			const std::string contentDisposition = request.getHeader("Content-Disposition");

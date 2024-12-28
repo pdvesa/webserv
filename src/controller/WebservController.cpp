@@ -5,7 +5,6 @@
 #include <WebservController.hpp>
 #include "HttpRequest.hpp"
 #include "HttpResponse.hpp"
-#include "HandleRequest.hpp"
 #include <unordered_map>
 
 bool running = true;

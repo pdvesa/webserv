@@ -31,7 +31,6 @@ class MultipartFormDataBody final : public RequestBody {
 
 		std::map<std::string, std::string>	bodyHeaders;
 		std::vector<u_char>					bodyContent;
-		size_t								parsedLength;
 
 
 	public:
@@ -49,7 +48,8 @@ class MultipartFormDataBody final : public RequestBody {
 
 		[[nodiscard]] const std::string&			getHeader(const std::string& key) const;
 		[[nodiscard]] const std::vector<u_char>&	getContent() const override;
-		[[nodiscard]] size_t						getSize() const override;
+
+		void	clearContent() override;
 
 	private:
 		bool	readExceptContent(const std::string& content);

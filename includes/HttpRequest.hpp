@@ -24,6 +24,9 @@ static const std::string HTTP_VERSION_STR = "HTTP/1.1";
 static const std::string CRLF = "\r\n";
 static const std::string HEADER_END_STR = "\r\n\r\n";
 
+static const std::string MULTIPART_FORM_DATA = "multipart/form-data";
+static const std::string APPLICATION_OCTET_STREAM = "application/octet-stream";
+
 typedef enum e_request_state {
 	REQUEST_PARSING,
 	REQUEST_CHUNK_RECEIVING,
@@ -78,7 +81,7 @@ class HttpRequest {
 		[[nodiscard]] const std::string&			getTarget() const;
 		[[nodiscard]] const std::string&			getVersion() const;
 		[[nodiscard]] const std::string&			getHeader(const std::string &key) const;
-		[[nodiscard]] const RequestBody&			getBody() const;
+		[[nodiscard]] RequestBody&					getBody() const;
 
 		[[nodiscard]] const ServerConfig&			getServerConfig() const;
 

@@ -114,21 +114,25 @@ bool HttpRequest::parseData(const u_char* data, const size_t len)
 	return (false);
 }
 
-//TODO Really bad not actual parsing of "" or escaped char to improve GREATLY :P
 std::map<std::string, std::string> HttpRequest::splitHeaderAttributes(const std::string& headerValue)
 {
-	std::vector<std::string>	attributes = CppSplit::cppSplit(headerValue, ';');
+	std::vector<std::string> attributes = CppSplit::cppSplit(headerValue, ';');
 
-	std::map<std::string, std::string>	attributesMap;
-	for (const std::string& attribute : attributes)
-	{
+	std::map<std::string, std::string> attributesMap;
+	for (std::string& attribute: attributes) {
 		const size_t equalIndex = attribute.find('=');
 		if (equalIndex == std::string::npos || equalIndex == 0 || equalIndex == attribute.size() - 1)
 			throw InvalidRequestException();
-		attributesMap.insert(std::make_pair(attribute.substr(0, equalIndex),
-			attribute.substr(equalIndex + 1)));
+
+		std::string key = attribute.substr(0, equalIndex);
+		std::string value = attribute.substr(equalIndex + 1);
+
+		if (!value.empty() && value.front() == '"' && value.back() == '"')
+			value = value.substr(1, value.size() - 2);
+
+		attributesMap.insert(std::make_pair(key, value));
 	}
-	return (attributesMap);
+	return attributesMap;
 }
 
 bool HttpRequest::readParseMethod()
@@ -208,14 +212,17 @@ bool HttpRequest::readBody()
 		if (contentLength > serverConfig->getMaxClientBodySize())
 			throw RequestBodyTooLargeException();
 
+		if (contentLength < unparsedData.size() - parseIndex)
+			throw InvalidRequestException();
+
 		std::vector<u_char>	bodyData;
-		while (parseIndex < unparsedData.size() && bodyData.size() < contentLength)
+		while (parseIndex < unparsedData.size())
 			bodyData.push_back(unparsedData[parseIndex++]);
 
 		if (!body->addData(bodyData))
 			throw InvalidRequestException();
 
-		if (body->getSize() == contentLength)
+		if (body->getCumulatedSize() == contentLength)
 			return (true);
 		return (false);
 	}
@@ -304,7 +311,8 @@ void HttpRequest::validateHeadersInitBody()
 		else if (!headers.contains("Content-Length"))
 			throw RequestContentLengthMissingException();
 
-		if (const std::string& contentType = headers.at("Content-Type"); contentType == "multipart/form-data")
+		if (const std::string& contentType = headers.at("Content-Type"); contentType.compare(0,
+			MULTIPART_FORM_DATA.length(), MULTIPART_FORM_DATA) == 0)
 		{
 			const std::map<std::string, std::string> attributes = splitHeaderAttributes(contentType);
 			if (!attributes.contains("boundary"))
@@ -380,7 +388,6 @@ bool HttpRequest::isCrlf(const std::vector<u_char>& data, const size_t start)
 	return (true);
 }
 
-//TODO Mouais unimplemented
 bool HttpRequest::isTargetChar(const unsigned char c)
 {
 	if (std::isalnum(c) || c == '-' || c == '_' || c == '.' || c == '~')
@@ -400,7 +407,6 @@ bool HttpRequest::isHeaderKeyChar(const unsigned char c)
 	return (std::isalnum(c) || c == '-' || c == '_');
 }
 
-//TODO Mouais mouais mouais
 bool HttpRequest::isHeaderValueChar(const unsigned char c)
 {
 	return (std::isalnum(c) || std::isspace(c) || c == '-' || c == '_' || c == '.' || c == '!' || c == '~' || c == '*'
@@ -437,6 +443,10 @@ const std::string& HttpRequest::getHeader(const std::string& key) const {
 
 const ServerConfig& HttpRequest::getServerConfig() const {
 	return (*serverConfig);
+}
+
+RequestBody& HttpRequest::getBody() const {
+	return (*body);
 }
 
 //----GETTERS-----

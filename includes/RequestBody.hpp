@@ -11,9 +11,11 @@
 class RequestBody {
 	private:
 		std::vector<u_char>	rawBody;
+	protected:
+		size_t				parsedLength;
 
 	public:
-		RequestBody() = default;
+		RequestBody();
 		RequestBody(const RequestBody&) = default;
 		virtual ~RequestBody() = default;
 
@@ -23,8 +25,10 @@ class RequestBody {
 
 		virtual bool		addData(const std::vector<u_char>& data);
 
-		[[nodiscard]] virtual size_t						getSize() const;
+		[[nodiscard]] size_t								getCumulatedSize() const;
 		[[nodiscard]] virtual const std::vector<u_char>&	getContent() const;
+
+		virtual void	clearContent();
 };
 
 #endif

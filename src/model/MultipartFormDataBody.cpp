@@ -5,11 +5,9 @@
 #include <MultipartFormDataBody.hpp>
 
 MultipartFormDataBody::MultipartFormDataBody(const std::string& boundary) :
-	RequestBody(),
 	parsingState(PARSING_BOUNDARY_START),
 	boundary(boundary),
-	parseIndex(0),
-	parsedLength(0)
+	parseIndex(0)
 { }
 
 bool MultipartFormDataBody::addData(const std::vector<u_char>& data)
@@ -101,7 +99,8 @@ bool MultipartFormDataBody::readContent()
 				0, std::min(unparsedData.size() - parseIndex, boundary.size() + 4)))
 			{
 				parseIndex += boundary.size() + 4;
-				//TODO Handle remaining
+				if (parseIndex < unparsedData.size() && unparsedData.size() - parseIndex <= CRLF.length())
+					parseIndex += unparsedData.size() - parseIndex;
 				return (true);
 			}
 		}
@@ -122,7 +121,7 @@ const std::vector<u_char>& MultipartFormDataBody::getContent() const
 	return (this->bodyContent);
 }
 
-size_t MultipartFormDataBody::getSize() const
+void MultipartFormDataBody::clearContent()
 {
-	return (this->parsedLength);
+	bodyContent.clear();
 }
