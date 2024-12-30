@@ -1,6 +1,6 @@
 #include <Client.hpp>
 
-Client::Client(int connection, int listen, ServerConfig conf) : clientFD(connection), listeningSocket(listen), config(conf), request(), response(), rawRequest(), cgiFD(0), requestRdy(false), responseRdy(false) {
+Client::Client(int connection, int listen, ServerConfig conf) : clientFD(connection), listeningSocket(listen), config(conf), request(&config), response(), cgiFD(0) {
 }
 
 Client::~Client() {
@@ -18,15 +18,15 @@ const ServerConfig &Client::getConfig() const {
 	return (config);
 }
 
-std::optional<HttpRequest> Client::getRequest() const {
-	return request;
+HttpRequest &Client::getRequest() {
+	return (request);
 }
 
 std::optional<HttpResponse> Client::getResponse() const {
 	return response;
 }
 
-void	Client::buildRequest() {
+/*void	Client::buildRequest() {
 	if (request.has_value()) {
 		request->appendR(getClientFD());
 	}
@@ -79,14 +79,14 @@ void	Client::buildResponse() {
 		request->setStatus(static_cast<int>(statusCode));
 		buildErrorResponse();
 	}
-}
+}*/
 
 void	Client::clearClear() {
-	request.reset();
+	//request.reset();
 	response.reset();
 }
 
-void Client::buildErrorResponse() {
+/*void Client::buildErrorResponse() {
 
 	std::string	body = DEFAULT_BODY;
 
@@ -100,7 +100,7 @@ void Client::buildErrorResponse() {
 		} catch (std::exception&) { }
 	}
 	response.emplace(HttpResponse(*request, body, "text/html"));
-}
+}*/
 
 void Client::setCgiFD(int fd) {
 	cgiFD = fd;
@@ -109,27 +109,6 @@ void Client::setCgiFD(int fd) {
 int Client::getCgiFD() {
 	return (cgiFD);
 }
-
-void Client::setRequestStatus(bool stat) {
-	requestRdy = stat;
-}
-
-void Client::setResponseStatus(bool stat) {
-	responseRdy = stat;
-}
-
-bool Client::getRequestStatus() {
-	return (requestRdy);
-}
-
-bool Client::getResponseStatus() {
-	return (responseRdy);
-}
-
-std::vector<unsigned char> &Client::getRawRequest() {
-	return (rawRequest);
-}
-
 
 const std::string Client::DEFAULT_BODY = "<!DOCTYPE html><html lang=\"en\"><head><meta charset=\"UTF-8\"><meta name=\"viewport\""
 			" content=\"width=device-width, initial-scale=1.0\"><title>Saku's Error</title><style>body "

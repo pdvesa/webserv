@@ -1,15 +1,3 @@
-# **************************************************************************** #
-#                                                                              #
-#                                                         :::      ::::::::    #
-#    Makefile                                           :+:      :+:    :+:    #
-#                                                     +:+ +:+         +:+      #
-#    By: dbarrene <dbarrene@student.hive.fi>        +#+  +:+       +#+         #
-#                                                 +#+#+#+#+#+   +#+            #
-#    Created: 2024/09/01 18:14:56 by dbarrene          #+#    #+#              #
-#    Updated: 2024/11/20 11:25:00 by dbarrene         ###   ########.fr        #
-#                                                                              #
-# **************************************************************************** #
-
 NAME  = webserv
 SRCDIR = src
 OBJDIR = obj
@@ -32,11 +20,10 @@ SRCS = $(SRCDIR)/run/main.cpp \
 	   $(SRCDIR)/model/Server.cpp \
        $(SRCDIR)/model/HttpRequest.cpp \
        $(SRCDIR)/model/HttpResponse.cpp \
-       $(SRCDIR)/util/BodyChunk.cpp \
-       $(SRCDIR)/util/ExtractChunk.cpp \
-       $(SRCDIR)/model/HandleRequest.cpp \
 	   $(SRCDIR)/model/CGIHandler.cpp \
-	   $(SRCDIR)/util/VecBuffCmp.cpp
+	   $(SRCDIR)/util/VecBuffCmp.cpp \
+	   $(SRCDIR)/model/MultipartFormDataBody.cpp \
+	   $(SRCDIR)/model/RequestBody.cpp
 
 OBJS = $(patsubst $(SRCDIR)/%.cpp, $(OBJDIR)/%.o, $(SRCS))
 

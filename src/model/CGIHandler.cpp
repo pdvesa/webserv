@@ -1,15 +1,15 @@
 #include <CGIHandler.hpp>
 
-static pid_t childPID = -1;
+//static pid_t childPID = -1;
 
-static void alarmHandler(int signal) {
+/*static void alarmHandler(int signal) {
 	if (childPID != -1 && signal == SIGALRM)
 		kill(childPID, SIGTERM);
-}
+}*/
 
 CGI::CGI(HttpRequest request) : req(request), env(), envp(), exitStatus(0) {
 	try {
-		runCGI();
+		//runCGI();
 	}
 	catch (const std::runtime_error &e) {
 		exitStatus = 1;
@@ -19,7 +19,7 @@ CGI::CGI(HttpRequest request) : req(request), env(), envp(), exitStatus(0) {
 CGI::~CGI() {	
 }
 
-void CGI::runCGI() {
+/*void CGI::runCGI() {
 	pid_t	pid;
 	int		pipes[2];
 	char	*args[3];
@@ -79,9 +79,9 @@ void CGI::runCGI() {
 			exitStatus = WTERMSIG(status);
 		close(pipes[0]);
 	} 
-}
+}*/
 
-void CGI::fillEnv() { 
+/*void CGI::fillEnv() { 
 	env.push_back("SERVER_SOFTWARE=KYS/0.0.1 (Unix)");
 	env.push_back("SERVER_NAME=" + req.getServer().getHost());
 	env.push_back("SERVER_PORT=" + std::to_string(req.getServer().getPort()));
@@ -98,4 +98,4 @@ void CGI::fillEnv() {
 		envp.push_back(const_cast<char*>(var.c_str()));
 	}
 	envp.push_back(nullptr);
-}
+}*/

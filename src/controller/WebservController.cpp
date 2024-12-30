@@ -40,13 +40,8 @@ void	WebservController::run() {
 			}
 			else if (eventWaitlist[i].events & EPOLLIN)
 				makeRequest(currentFD);
-			else if (eventWaitlist[i].events & EPOLLOUT && clients.at(currentFD).getRequest())
+			else if (eventWaitlist[i].events & EPOLLOUT)
 				makeResponse(currentFD);
-			else if (clients.at(currentFD).getRequestStatus()) {
-				std::cout << "debug" << std::endl;
-				for (auto c : clients.at(currentFD).getRawRequest())
-					std::cout << c;
-			}
 		}
 	}
 }
@@ -88,22 +83,17 @@ void WebservController::acceptConnection(int listenFD) {
 
 void WebservController::makeRequest(int fd) {
 	std::vector<unsigned char>	buffer(BUF_SIZE);
-	std::vector<unsigned char>  &request = clients.at(fd).getRawRequest();
-	std::string end = "\r\n\r\n";
+	HttpRequest					&req = clients.at(fd).getRequest();
 	int rb;
-	std::cout << "here?" << std::endl;
-	if (!(clients.at(fd).getRequestStatus())) {
+	if (req.getRequestState() == REQUEST_PARSING) {
 		if ((rb = read(fd, buffer.data(), BUF_SIZE)) > 0) {
 			buffer.resize(rb);
-			request.insert(request.end(), buffer.begin(), buffer.end());
+			req.parseData(buffer.data(), rb);
 		}
-		std::cout << rb << std::endl;
-		std::string ending(request.end() - 4, request.end());
-		if (end == ending) {
-			clients.at(fd).setRequestStatus(true);
-		}
+		if (rb == 0)
+			std::cerr << "Something" << std::endl;
 		if (rb == -1)
-			std::cerr << "failure of everything" << std::endl;
+			std::cerr << "Failure of everything" << std::endl;
 	}
 }
 
@@ -121,7 +111,9 @@ void WebservController::makeRequest(int fd) {
 }*/
 
 void WebservController::makeResponse(int fd) {
-	int wb;
+if (fd)
+	return ;
+/*	int wb;
 	try {
 		clients.at(fd).buildResponse();			
 		if (clients.at(fd).getResponse()) { 
@@ -137,7 +129,7 @@ void WebservController::makeResponse(int fd) {
 	}
 	catch (const std::runtime_error &e) {
 		errorHandler(e, false);
-	}
+	}*/
 }
 
 void WebservController::errorHandler(const std::runtime_error &err, bool ifExit) {
