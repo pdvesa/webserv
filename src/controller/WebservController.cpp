@@ -3,9 +3,6 @@
 //
 
 #include <WebservController.hpp>
-#include "HttpRequest.hpp"
-#include "HttpResponse.hpp"
-#include <unordered_map>
 
 bool running = true;
 
@@ -35,7 +32,7 @@ void	WebservController::run() {
 			else if (eventWaitlist[i].events & EPOLLRDHUP) {
 				epollDelete(epollFD, currentFD);
 				close(currentFD);
-				clients.at(currentFD).clearClear();
+				clients.at(currentFD).clearClear(); //change also clear the map values
 				std::cout << "debug" << std::endl;
 			}
 			else if (eventWaitlist[i].events & EPOLLIN)
@@ -84,17 +81,21 @@ void WebservController::acceptConnection(int listenFD) {
 void WebservController::makeRequest(int fd) {
 	std::vector<unsigned char>	buffer(BUF_SIZE);
 	HttpRequest					&req = clients.at(fd).getRequest();
-	int rb;
+	int							rb;
 	if (req.getRequestState() == REQUEST_PARSING) {
 		if ((rb = read(fd, buffer.data(), BUF_SIZE)) > 0) {
 			buffer.resize(rb);
-			req.parseData(buffer.data(), rb);
-		}
+			if (req.parseData(buffer.data(), rb) == false) {
+				std::cerr << "Parser broke" << std::endl; //something smarter
+			}
+		} 
 		if (rb == 0)
 			std::cerr << "Something" << std::endl;
 		if (rb == -1)
 			std::cerr << "Failure of everything" << std::endl;
 	}
+	else
+		std::cerr << "Something went wrong in make request, retrying..." << std::endl;
 }
 
 
@@ -111,8 +112,21 @@ void WebservController::makeRequest(int fd) {
 }*/
 
 void WebservController::makeResponse(int fd) {
-if (fd)
-	return ;
+	HttpRequest					&req = clients.at(fd).getRequest();
+	RequestHandler				handler(req);
+	handler.handle();
+	HttpResponse				response = handler.buildResponse();
+	std::vector<unsigned char>	rVector = response.asResponseBuffer();
+	int 						wb;
+	wb = write(fd, rVector.data(), rVector.size());
+	epollDelete(epollFD, fd);
+	close(fd);
+	if (wb == -1)
+		std::cerr << "Something" << std::endl;
+	else if (wb == 0)
+		std::cerr << "Something something" << std::endl;
+}
+
 /*	int wb;
 	try {
 		clients.at(fd).buildResponse();			
@@ -130,7 +144,6 @@ if (fd)
 	catch (const std::runtime_error &e) {
 		errorHandler(e, false);
 	}*/
-}
 
 void WebservController::errorHandler(const std::runtime_error &err, bool ifExit) {
 	errorLogger(err.what());

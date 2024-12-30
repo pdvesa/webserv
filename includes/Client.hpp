@@ -21,7 +21,7 @@ class Client {
 		int				listeningSocket;
 		ServerConfig	config;
 		HttpRequest		request;
-		std::optional<HttpResponse>	response;
+		HttpResponse	response;
 		int 			cgiFD;
 	public:
 		Client(int connection, int listen, ServerConfig conf);
@@ -29,7 +29,7 @@ class Client {
 		int getClientFD();
 		int getListening() const;
 		HttpRequest &getRequest();
-		std::optional<HttpResponse> getResponse() const;
+		HttpResponse &getResponse();
 		const ServerConfig &getConfig() const;
 		void		buildRequest();
 		void		buildResponse();

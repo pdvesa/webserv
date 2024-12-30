@@ -125,3 +125,7 @@ void MultipartFormDataBody::clearContent()
 {
 	bodyContent.clear();
 }
+
+bool MultipartFormDataBody::headersDone() const { //compiling
+	return (true);
+}

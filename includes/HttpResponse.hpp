@@ -23,7 +23,7 @@ class HttpResponse {
 		std::vector<u_char>	responseBody;
 
 	public:
-		HttpResponse() = delete;
+		HttpResponse();
 		HttpResponse(int statusCode, const std::string& location, const std::string& contentType,
 			const std::vector<u_char>& responseBody, e_method method);
 		HttpResponse(const HttpResponse & other) = default;

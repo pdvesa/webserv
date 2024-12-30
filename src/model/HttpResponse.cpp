@@ -3,6 +3,10 @@
 //
 
 #include <HttpResponse.hpp>
+#include <iostream> //debug
+
+HttpResponse::HttpResponse() : statusCode(0), location(), contentType(), responseBody() {
+}
 
 HttpResponse::HttpResponse(const int statusCode, const std::string& location, const std::string& contentType,
 							const std::vector<u_char>& responseBody, const e_method method) :
@@ -33,9 +37,10 @@ std::vector<u_char> HttpResponse::asResponseBuffer() const
 	}
 	responseHeaderBuf << createConnectionLine() << HTTP_NEWLINE;
 	responseHeaderBuf << HTTP_NEWLINE;
+    std::string content = responseHeaderBuf.str();	
+	std::vector<u_char> responseBuf(content.begin(), content.end());
 
-	std::vector<u_char> responseBuf(responseHeaderBuf.str().begin(), responseHeaderBuf.str().end());
-	if (statusCode >= 300 && statusCode < 400 && contentLength > 0)
+	if (statusCode >= 300 && statusCode <= 500 && contentLength > 0) //i dont know if this was correct
 	{
 		responseBuf.reserve(responseBuf.size() + responseBody.size());
 		responseBuf.insert(responseBuf.end(), responseBody.begin(), responseBody.end());

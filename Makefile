@@ -23,7 +23,8 @@ SRCS = $(SRCDIR)/run/main.cpp \
 	   $(SRCDIR)/model/CGIHandler.cpp \
 	   $(SRCDIR)/util/VecBuffCmp.cpp \
 	   $(SRCDIR)/model/MultipartFormDataBody.cpp \
-	   $(SRCDIR)/model/RequestBody.cpp
+	   $(SRCDIR)/model/RequestBody.cpp \
+	   $(SRCDIR)/model/RequestHandler.cpp
 
 OBJS = $(patsubst $(SRCDIR)/%.cpp, $(OBJDIR)/%.o, $(SRCS))
 

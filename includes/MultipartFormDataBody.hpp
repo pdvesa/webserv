@@ -44,7 +44,7 @@ class MultipartFormDataBody final : public RequestBody {
 
 		bool	addData(const std::vector<u_char>& data) override;
 
-		[[nodiscard]] bool	headersDone() const;
+		[[nodiscard]] bool	headersDone() const ; 
 
 		[[nodiscard]] const std::string&			getHeader(const std::string& key) const;
 		[[nodiscard]] const std::vector<u_char>&	getContent() const override;

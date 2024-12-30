@@ -22,8 +22,8 @@ HttpRequest &Client::getRequest() {
 	return (request);
 }
 
-std::optional<HttpResponse> Client::getResponse() const {
-	return response;
+HttpResponse &Client::getResponse() {
+	return (response);
 }
 
 /*void	Client::buildRequest() {
@@ -83,7 +83,7 @@ void	Client::buildResponse() {
 
 void	Client::clearClear() {
 	//request.reset();
-	response.reset();
+	//response.reset();
 }
 
 /*void Client::buildErrorResponse() {
