@@ -36,6 +36,7 @@ class RequestHandler {
 		e_handling_state	handlingState;
 
 		//POST
+		bool				postLog = false;
 		std::string			postUploadPath;
 		std::string			postUploadFilename;
 		bool				filePart = false;
@@ -63,15 +64,17 @@ class RequestHandler {
 		void	handlePost(const RouteConfig& route);
 		void	handleDelete(const RouteConfig& route);
 
-		[[nodiscard]] std::string	getPostUploadTarget() const;
+		void	getPostUploadFilename();
 
-		bool	savePart(const std::string& serverTarget, const std::string& filename, const std::vector<unsigned char>& data, bool finished);
+	void savePart(const std::string& serverTarget, const std::string& filename, const std::vector<unsigned char>& data,
+				bool finished);
 
 		void	buildError(int code);
 
 		static std::string	buildListingPage(const std::string& serverTarget, const std::string& requestTarget);
 		static std::string	buildErrorPage(int errorCode, const ServerConfig& server);
 
+		static void			postLogContent(const std::vector<unsigned char>& content);
 		static void			saveFile(const std::string& path, const std::string& filename, const std::vector<unsigned char>& content);
 		static void			appendToFile(const std::string& path, const std::string& filename, const std::vector<unsigned char>& content);
 		static void			removeFile(const std::string& filePath);

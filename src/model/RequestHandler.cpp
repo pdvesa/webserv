@@ -199,20 +199,32 @@ void RequestHandler::handlePost(const RouteConfig& route)
 		postUploadPath = "." + route.getRootDir() + route.getUploadDir() + remainingPath;
 		if (postUploadPath.back() != '/')
 			postUploadPath += '/';
-		postUploadFilename = getPostUploadTarget();
+		getPostUploadFilename();
 	}
-	if (request.isChunked())
+	if (!postUploadFilename.empty() || postLog)
 	{
-		handlingState = STATE_WAITING_CHUNK;
-		if (!savePart(postUploadPath, postUploadFilename, request.getBody().getContent(),
-		request.getRequestState() == REQUEST_OK))
-			return ;
-		request.getBody().clearContent();
+		if (request.isChunked())
+		{
+			handlingState = STATE_WAITING_CHUNK;
+			if (postLog)
+				postLogContent(request.getBody().getContent());
+			else
+				savePart(postUploadPath, postUploadFilename, request.getBody().getContent(),
+			request.getRequestState() == REQUEST_OK);
+			request.getBody().clearContent();
+			if (request.getRequestState() != REQUEST_OK)
+				return ;
+		}
+		else
+		{
+			if (postLog)
+				postLogContent(request.getBody().getContent());
+			else
+				saveFile(postUploadPath, postUploadFilename, request.getBody().getContent());
+		}
+		handlingState = STATE_YES;
+		statusCode = 200;
 	}
-	else
-		saveFile(postUploadPath, postUploadFilename, request.getBody().getContent());
-	handlingState = STATE_YES;
-	statusCode = 200;
 }
 
 void RequestHandler::handleDelete(const RouteConfig& route)
@@ -224,7 +236,7 @@ void RequestHandler::handleDelete(const RouteConfig& route)
 	statusCode = 200;
 }
 
-std::string RequestHandler::getPostUploadTarget() const
+void	RequestHandler::getPostUploadFilename()
 {
 	if (request.getHeader("Content-Type").compare(0, MULTIPART_FORM_DATA.length(), MULTIPART_FORM_DATA) == 0)
 	{
@@ -236,49 +248,41 @@ std::string RequestHandler::getPostUploadTarget() const
 			const std::map<std::string, std::string> attributes = HttpRequest::splitHeaderAttributes(contentDisposition);
 			if (!attributes.contains("filename"))
 				throw InvalidRequestException();
-			return (attributes.at("filename"));
+			postUploadFilename = attributes.at("filename");
 		} catch (std::out_of_range&) {
 			if (body->headersDone())
-				throw InvalidRequestException();
-			return ("");
+				postLog = true;
 		}
 	}
-	if (request.getHeader("Content-Type").compare(0, APPLICATION_OCTET_STREAM.length(), APPLICATION_OCTET_STREAM) == 0)
+	else if (request.getHeader("Content-Type").compare(0, APPLICATION_OCTET_STREAM.length(), APPLICATION_OCTET_STREAM)
+	== 0)
 	{
 		try {
 			const std::string contentDisposition = request.getHeader("Content-Disposition");
 			const std::map<std::string, std::string> attributes =
 					HttpRequest::splitHeaderAttributes(contentDisposition);
-			return (attributes.at("filename"));
+			postUploadFilename = attributes.at("filename");
 		} catch (std::out_of_range&) {
-			throw InvalidRequestException();
+			postLog = true;
 		}
 	}
 	else
 		throw NotImplementedException();
 }
 
-bool RequestHandler::savePart(const std::string& serverTarget, const std::string& filename,
+void RequestHandler::savePart(const std::string& serverTarget, const std::string& filename,
 							const std::vector<unsigned char>& data, const bool finished)
 {
 	if (!filePart && finished)
-	{
 		saveFile(serverTarget, filename, data);
-		return (true);
-	}
 	if (!filePart)
 	{
 		filePart = true;
 		saveFile(serverTarget, filename + ".part", data);
-		return (false);;
 	}
 	appendToFile(serverTarget, filename + ".part", data);
 	if (finished)
-	{
 		std::filesystem::rename(serverTarget + filename + ".part", serverTarget + filename);
-		return (true);
-	}
-	return (false);
 }
 
 void RequestHandler::buildError(const int code)
@@ -343,6 +347,13 @@ std::string RequestHandler::buildErrorPage(const int errorCode, const ServerConf
 	}
 	errorPage.replace(index, 11, errorStr);
 	return (errorPage);
+}
+
+void RequestHandler::postLogContent(const std::vector<unsigned char>& content)
+{
+	for (const unsigned char c : content)
+		std::cout << c;
+	std::cout << std::endl;
 }
 
 void RequestHandler::saveFile(const std::string& path, const std::string& filename, const std::vector<unsigned char>& content)
