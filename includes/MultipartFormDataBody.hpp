@@ -18,7 +18,6 @@ class MultipartFormDataBody final : public RequestBody {
 	private:
 		enum e_parsing_state {
 			PARSING_BOUNDARY_START,
-			PARSING_BOUNDARY_END,
 			PARSING_HEADERS,
 			PARSING_CONTENT,
 			PARSING_OK,

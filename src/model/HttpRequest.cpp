@@ -27,7 +27,6 @@ HttpRequest::~HttpRequest()
 
 bool HttpRequest::parseData(const u_char* data, const size_t len)
 {
-	std::cerr << "Parsing data" << std::endl;
 	if (requestState != REQUEST_PARSING)
 		return (false);
 	try {
@@ -41,21 +40,18 @@ bool HttpRequest::parseData(const u_char* data, const size_t len)
 			case PARSING_METHOD:
 				if (!readParseMethod())
 					break ;
-				std::cerr << "Method: " << method << std::endl;
 				parsingState = PARSING_TARGET;
 				//Fallthrough
 
 			case PARSING_TARGET:
 				if (!readParseTarget())
 					break ;
-				std::cerr << "Target: " << target << std::endl;
 				parsingState = PARSING_VERSION;
 				//Fallthrough
 
 			case PARSING_VERSION:
 				if (!readParseVersion())
 					break ;
-				std::cerr << "Version: " << version << std::endl;
 				parsingState = PARSING_HEADER;
 				//Fallthrough
 
@@ -63,8 +59,6 @@ bool HttpRequest::parseData(const u_char* data, const size_t len)
 				if (!readParseHeaders())
 					break ;
 				validateHeadersInitBody();
-				for (const auto& header: headers)
-					std::cerr << header.first << ": " << header.second << std::endl;
 				if (method != POST)
 				{
 					parsingState = PARSING_DONE;

@@ -47,14 +47,14 @@ bool RequestHandler::handle()
 		}
 		else
 		{
-			if (!filePartPath.empty())
+			if (filePart)
 			{
 				try {
-					removeFile(filePartPath);
+					removeFile(postUploadPath + postUploadFilename + ".part");
 				} catch (...) {
-					std::cerr << "Unable to remove temporary file " << filePartPath << std::endl;
+					std::cerr << "Unable to remove temporary file " << postUploadPath << postUploadFilename << ".part" << std::endl;
 				}
-				filePartPath.clear();
+				filePart = false;
 			}
 			handleInvalid();
 		}
@@ -194,27 +194,25 @@ void RequestHandler::handleGet(const RouteConfig& route)
 
 void RequestHandler::handlePost(const RouteConfig& route)
 {
-	static std::string	serverTarget = "." + route.getRootDir() + route.getUploadDir() + remainingPath;
-	static std::string	contentType = request.getHeader("Content-Type");
-	static std::string	filename;
-
-	if (filename.empty())
-		filename = getPostUploadFileName();
-	if (!filename.empty())
+	if (postUploadFilename.empty())
 	{
-		if (request.isChunked())
-		{
-			handlingState = STATE_WAITING_CHUNK;
-			if (!savePart(serverTarget + filename, request.getBody().getContent(),
-				request.getRequestState() == REQUEST_OK))
-				return ;
-			request.getBody().clearContent();
-		}
-		else
-			saveFile(serverTarget + filename, request.getBody().getContent());
-		handlingState = STATE_YES;
-		statusCode = 200;
+		postUploadPath = "." + route.getRootDir() + route.getUploadDir() + remainingPath;
+		if (postUploadPath.back() != '/')
+			postUploadPath += '/';
+		postUploadFilename = getPostUploadTarget();
 	}
+	if (request.isChunked())
+	{
+		handlingState = STATE_WAITING_CHUNK;
+		if (!savePart(postUploadPath, postUploadFilename, request.getBody().getContent(),
+		request.getRequestState() == REQUEST_OK))
+			return ;
+		request.getBody().clearContent();
+	}
+	else
+		saveFile(postUploadPath, postUploadFilename, request.getBody().getContent());
+	handlingState = STATE_YES;
+	statusCode = 200;
 }
 
 void RequestHandler::handleDelete(const RouteConfig& route)
@@ -226,9 +224,9 @@ void RequestHandler::handleDelete(const RouteConfig& route)
 	statusCode = 200;
 }
 
-std::string RequestHandler::getPostUploadFileName() const
+std::string RequestHandler::getPostUploadTarget() const
 {
-	if (contentType.compare(0, MULTIPART_FORM_DATA.length(), MULTIPART_FORM_DATA) == 0)
+	if (request.getHeader("Content-Type").compare(0, MULTIPART_FORM_DATA.length(), MULTIPART_FORM_DATA) == 0)
 	{
 		const MultipartFormDataBody* body = dynamic_cast<const MultipartFormDataBody*>(&request.getBody());
 		if (!body)
@@ -245,7 +243,7 @@ std::string RequestHandler::getPostUploadFileName() const
 			return ("");
 		}
 	}
-	if (contentType.compare(0, APPLICATION_OCTET_STREAM.length(), APPLICATION_OCTET_STREAM) == 0)
+	if (request.getHeader("Content-Type").compare(0, APPLICATION_OCTET_STREAM.length(), APPLICATION_OCTET_STREAM) == 0)
 	{
 		try {
 			const std::string contentDisposition = request.getHeader("Content-Disposition");
@@ -260,24 +258,24 @@ std::string RequestHandler::getPostUploadFileName() const
 		throw NotImplementedException();
 }
 
-bool RequestHandler::savePart(const std::string& serverTarget, const std::vector<unsigned char>& data,
-	const bool finished)
+bool RequestHandler::savePart(const std::string& serverTarget, const std::string& filename,
+							const std::vector<unsigned char>& data, const bool finished)
 {
-	if (filePartPath.empty() && finished)
+	if (!filePart && finished)
 	{
-		saveFile(serverTarget, data);
+		saveFile(serverTarget, filename, data);
 		return (true);
 	}
-	if (filePartPath.empty())
+	if (!filePart)
 	{
-		filePartPath = serverTarget + ".part";
-		saveFile(filePartPath, data);
+		filePart = true;
+		saveFile(serverTarget, filename + ".part", data);
 		return (false);;
 	}
-	appendToFile(filePartPath, data);
+	appendToFile(serverTarget, filename + ".part", data);
 	if (finished)
 	{
-		std::filesystem::rename(filePartPath, serverTarget);
+		std::filesystem::rename(serverTarget + filename + ".part", serverTarget + filename);
 		return (true);
 	}
 	return (false);
@@ -347,30 +345,31 @@ std::string RequestHandler::buildErrorPage(const int errorCode, const ServerConf
 	return (errorPage);
 }
 
-void RequestHandler::saveFile(const std::string& filePath, const std::vector<unsigned char>& content)
+void RequestHandler::saveFile(const std::string& path, const std::string& filename, const std::vector<unsigned char>& content)
 {
-	if (exists(std::filesystem::path(filePath)))
+	std::cerr << path << filename << std::endl;
+	if (exists(std::filesystem::path(path + filename)))
 		throw ForbiddenException();
-	if (access(filePath.c_str(), W_OK) != 0)
+	if (access(path.c_str(), W_OK) != 0)
 		throw ForbiddenException();
-	std::ofstream	file(filePath, std::ios::binary);
+	std::ofstream	file(path + filename, std::ios::binary);
 	if (!file.is_open())
 		throw std::runtime_error("Unable to open file");
 	file.write(reinterpret_cast<const char*>(content.data()), content.size());
 	file.close();
 }
 
-void RequestHandler::appendToFile(const std::string& filePath, const std::vector<unsigned char>& content)
+void RequestHandler::appendToFile(const std::string& path, const std::string& filename, const std::vector<unsigned char>& content)
 {
-	if (!exists(std::filesystem::path(filePath)))
+	if (!exists(std::filesystem::path(path + filename)))
 		throw NotFoundException();
-	if (is_directory(std::filesystem::path(filePath)))
+	if (is_directory(std::filesystem::path(path + filename)))
 		throw std::runtime_error("Unable to append to directory");
-	if (!is_regular_file(std::filesystem::path(filePath)))
+	if (!is_regular_file(std::filesystem::path(path + filename)))
 		throw NotFoundException();
-	if (access(filePath.c_str(), W_OK) != 0)
+	if (access((path + filename).c_str(), W_OK) != 0)
 		throw ForbiddenException();
-	std::ofstream	file(filePath, std::ios::binary | std::ios::app);
+	std::ofstream	file(path + filename, std::ios::binary | std::ios::app);
 	if (!file.is_open())
 		throw std::runtime_error("Unable to open file");
 	file.write(reinterpret_cast<const char*>(content.data()), content.size());

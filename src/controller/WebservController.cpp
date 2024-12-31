@@ -37,8 +37,8 @@ void	WebservController::run() {
 			}
 			else if (eventWaitlist[i].events & EPOLLIN)
 				makeRequest(currentFD);
-			// else if (eventWaitlist[i].events & EPOLLOUT)
-			// 	makeResponse(currentFD);
+			else if (eventWaitlist[i].events & EPOLLOUT)
+				makeResponse(currentFD);
 		}
 	}
 }
