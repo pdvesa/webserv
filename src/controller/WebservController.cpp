@@ -85,9 +85,7 @@ void WebservController::makeRequest(int fd) {
 	if (req.getRequestState() == REQUEST_PARSING) {
 		if ((rb = read(fd, buffer.data(), BUF_SIZE)) > 0) {
 			buffer.resize(rb);
-			if (req.parseData(buffer.data(), rb) == false) {
-				std::cerr << "Parser broke" << std::endl; //something smarter
-			}
+			req.parseData(buffer.data(), rb);
 		} 
 		if (rb == 0)
 			std::cerr << "Something" << std::endl;
@@ -113,9 +111,7 @@ void WebservController::makeRequest(int fd) {
 
 void WebservController::makeResponse(int fd) {
 	HttpRequest					&req = clients.at(fd).getRequest();
-	std::cout << req.getMethod() << std::endl;
-	std::cout << req.getTarget() << std::endl;
-	if (req.getRequestState() == REQUEST_OK) {
+	if (req.getRequestState() != REQUEST_PARSING && req.getRequestState() != REQUEST_CHUNK_RECEIVING) {
 		RequestHandler				handler(req);
 		handler.handle();
 		HttpResponse				response = handler.buildResponse();
