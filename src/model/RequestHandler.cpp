@@ -6,10 +6,9 @@
 
 RequestHandler::RequestHandler(const HttpRequest& request) :
 	request(request),
-	route(nullptr),
 	statusCode(0),
-	handlingState(STATE_NO)
-{ }
+	handlingState(STATE_NO) {
+}
 
 bool RequestHandler::handle()
 {
@@ -21,30 +20,27 @@ bool RequestHandler::handle()
 	try {
 		if (request.getRequestState() == REQUEST_OK || request.getRequestState() == REQUEST_CHUNK_RECEIVING)
 		{
+			const RouteConfig route = parseTarget();
 			if (handlingState == STATE_NO)
 			{
-				route = parseTarget();
-				if (route == nullptr)
-					throw NotFoundException();
-
-				if (!route->isMethodAllowed(request.getMethod()))
+				if (!route.isMethodAllowed(request.getMethod()))
 					throw MethodNotAllowedException();
 
-				if (route->isRedirection())
-					handleRedirection();
+				if (route.isRedirection())
+					handleRedirection(route);
 				else if (request.getMethod() == GET)
-					handleGet();
+					handleGet(route);
 				else if (request.getMethod() == POST)
-					handlePost();
+					handlePost(route);
 				else if (request.getMethod() == DELETE)
-					handleDelete();
+					handleDelete(route);
 				else
 					throw std::runtime_error("Unknown method");
 			}
 			else if (handlingState == STATE_WAITING_CHUNK)
 			{
 				if (request.getMethod() == POST)
-					handlePost();
+					handlePost(route);
 				else
 					throw std::runtime_error("Invalid method for chunked request");
 			}
@@ -77,7 +73,8 @@ bool RequestHandler::handle()
 	catch (NotImplementedException&) {
 		buildError(501);
 	}
-	catch (...) {
+	catch (std::exception& e) {
+		std::cerr << e.what() << std::endl;
 		buildError(500);
 	}
 	return (isHandled());
@@ -90,37 +87,43 @@ HttpResponse RequestHandler::buildResponse() const
 	return (HttpResponse(statusCode, location, contentType, responseBody, request.getMethod()));
 }
 
-RouteConfig* RequestHandler::parseTarget()
+RouteConfig RequestHandler::parseTarget()
 {
-	RouteConfig* routeConfig = nullptr;
 	const std::string& requestTarget = request.getTarget();
 	const std::string& requestHostname = request.getHeader("Host");
 	size_t routeStart = 0;
 
-	if (requestTarget.compare(0, HTTP_START.length(), HTTP_START) == 0)
+	if (requestTarget.compare(0, HTTP_START.length(), HTTP_START) == 0) {
 		routeStart += HTTP_START.size();
-	if (requestTarget.compare(0, requestHostname.length(), requestHostname) == 0)
+		if (requestTarget.compare(0, requestHostname.length(), requestHostname) == 0)
+			routeStart += requestHostname.size();
+		else
+			throw InvalidRequestException();
+	}
+	else if (requestTarget.compare(0, requestHostname.length(), requestHostname) == 0)
 		routeStart += requestHostname.size();
 
-	if (requestTarget[routeStart] == '/' || requestTarget.length() == routeStart)
-	{
-		if (request.getServerConfig().getRoutes().contains("/"))
-			routeConfig = &request.getServerConfig().getRoutes()["/"];
-	}
+	RouteConfig routeConfig;
+	bool found = false;
 	size_t i = routeStart;
 	size_t	routeEnd = routeStart;
+
 	while (i < requestTarget.size())
 	{
 		const size_t nextSlash = requestTarget.find('/', i);
 		if (nextSlash == std::string::npos)
 			break ;
-		if (std::string route = requestTarget.substr(routeStart, nextSlash - routeStart);
-			request.getServerConfig().getRoutes().contains(route)) {
-			routeConfig = &request.getServerConfig().getRoutes()[route];
+		std::string route = requestTarget.substr(routeStart, nextSlash - routeStart + 1);
+		if (request.getServerConfig().getRoutes().contains(route))
+		{
+			found = true;
+			routeConfig = request.getServerConfig().getRoutes().at(route);
 			routeEnd = nextSlash;
 		}
 		i = nextSlash + 1; // NOLINT(*-narrowing-conversions)
 	}
+	if (!found)
+		throw NotFoundException();
 	if (routeEnd + 1 < requestTarget.size())
 		remainingPath = requestTarget.substr(routeEnd + 1);
 	return (routeConfig);
@@ -146,20 +149,20 @@ void RequestHandler::handleInvalid()
 	}
 }
 
-void RequestHandler::handleRedirection()
+void RequestHandler::handleRedirection(const RouteConfig& route)
 {
-	location = route->getRedirection().path;
+	location = route.getRedirection().path;
 	location += remainingPath;
-	statusCode = route->getRedirection().code; // NOLINT(*-narrowing-conversions)
+	statusCode = route.getRedirection().code; // NOLINT(*-narrowing-conversions)
 	handlingState = STATE_YES;
 }
 
-void RequestHandler::handleGet()
+void RequestHandler::handleGet(const RouteConfig& route)
 {
-	std::string	serverTarget = route->getRootDir();
+	std::string	serverTarget = "." + route.getRootDir();
 
-	if (remainingPath.empty() && !route->getIndex().empty())
-		serverTarget += route->getIndex();
+	if (remainingPath.empty() && !route.getIndex().empty())
+		serverTarget += route.getIndex();
 
 	if (access(serverTarget.c_str(), F_OK) != 0)
 		throw NotFoundException();
@@ -176,7 +179,7 @@ void RequestHandler::handleGet()
 	}
 	else if (std::filesystem::is_directory(serverTarget))
 	{
-		if (!route->getListing())
+		if (!route.getListing())
 			throw ForbiddenException();
 		contentType = "text/html";
 		std::string listingPage = buildListingPage(serverTarget, request.getTarget());
@@ -189,9 +192,9 @@ void RequestHandler::handleGet()
 	statusCode = 200;
 }
 
-void RequestHandler::handlePost()
+void RequestHandler::handlePost(const RouteConfig& route)
 {
-	static std::string	serverTarget = route->getRootDir() + route->getUploadDir() + remainingPath;
+	static std::string	serverTarget = "." + route.getRootDir() + route.getUploadDir() + remainingPath;
 	static std::string	contentType = request.getHeader("Content-Type");
 	static std::string	filename;
 
@@ -214,9 +217,9 @@ void RequestHandler::handlePost()
 	}
 }
 
-void RequestHandler::handleDelete()
+void RequestHandler::handleDelete(const RouteConfig& route)
 {
-	const std::string	serverTarget = route->getRootDir() + remainingPath;
+	const std::string	serverTarget = "." + route.getRootDir() + remainingPath;
 
 	removeFile(serverTarget);
 	handlingState = STATE_YES;

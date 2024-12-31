@@ -40,7 +40,7 @@ std::vector<u_char> HttpResponse::asResponseBuffer() const
     std::string content = responseHeaderBuf.str();	
 	std::vector<u_char> responseBuf(content.begin(), content.end());
 
-	if (statusCode >= 300 && statusCode <= 500 && contentLength > 0) //i dont know if this was correct
+	if (contentLength > 0)
 	{
 		responseBuf.reserve(responseBuf.size() + responseBody.size());
 		responseBuf.insert(responseBuf.end(), responseBody.begin(), responseBody.end());

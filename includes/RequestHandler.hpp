@@ -26,7 +26,6 @@ class RequestHandler {
 		};
 
 		const HttpRequest&	request;
-		RouteConfig*		route;
 		std::string			remainingPath;
 
 		std::string			location;
@@ -51,14 +50,14 @@ class RequestHandler {
 		[[nodiscard]] bool			isHandled() const;
 
 	private:
-		RouteConfig*	parseTarget();
+	RouteConfig parseTarget();
 
 		void	handleInvalid();
-		void	handleRedirection();
-		void	handleGet();
+		void	handleRedirection(const RouteConfig& route);
+		void	handleGet(const RouteConfig& route);
 
-		void	handlePost();
-		void	handleDelete();
+		void	handlePost(const RouteConfig& route);
+		void	handleDelete(const RouteConfig& route);
 
 		[[nodiscard]] std::string	getPostUploadFileName() const;
 
