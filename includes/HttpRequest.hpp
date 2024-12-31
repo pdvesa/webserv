@@ -102,7 +102,6 @@ class HttpRequest {
 
 		static bool	isTargetChar(unsigned char c);
 		static bool	isHeaderKeyChar(unsigned char c);
-		static bool	isHeaderValueChar(unsigned char c);
 };
 
 #endif

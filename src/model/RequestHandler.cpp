@@ -159,7 +159,7 @@ void RequestHandler::handleRedirection(const RouteConfig& route)
 
 void RequestHandler::handleGet(const RouteConfig& route)
 {
-	std::string	serverTarget = "." + route.getRootDir();
+	std::string	serverTarget = "." + route.getRootDir() + remainingPath;
 
 	if (remainingPath.empty() && !route.getIndex().empty())
 		serverTarget += route.getIndex();
@@ -300,7 +300,6 @@ std::string RequestHandler::buildListingPage(const std::string& serverTarget, co
 {
 	std::ostringstream	listingPage;
 
-	errno = 0;
 	if (DIR* directory; (directory = opendir(serverTarget.c_str())) != nullptr)
 	{
 		dirent* entry;
@@ -308,14 +307,13 @@ std::string RequestHandler::buildListingPage(const std::string& serverTarget, co
 		while ((entry = readdir(directory)) != nullptr)
 		{
 			if (std::string name = entry->d_name; name != "." && name != "..") {
-				listingPage << "<li><a href=\"" << serverTarget << name << "\">" << name << "</a></li>";
+				listingPage << "<li><a href=\"" << requestTarget << (requestTarget.back() == '/' ? "" : "/") << name
+				<< "\">" << name << "</a></li>";
 			}
 		}
 		closedir(directory);
 		listingPage << "</ul></body></html>";
 	} else {
-		if (errno == EACCES)
-			throw ForbiddenException();
 		throw std::runtime_error("Unable to open directory");
 	}
 	return (listingPage.str());

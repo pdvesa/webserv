@@ -363,10 +363,6 @@ bool HttpRequest::parseHeaders(const std::vector<u_char>& data, size_t& parseInd
 		{
 			if (isCrlf(data, (i + parseIndex)))
 				break ;
-			if (!isHeaderValueChar(data[(i + parseIndex)])) {
-				std::cerr << "Not a valid header value char"<< data[i + parseIndex] << std::endl;
-				throw InvalidRequestException("Not a valid header value char");
-			}
 			value += static_cast<char>(data[(i + parseIndex)]);
 			i++;
 		}
@@ -409,13 +405,6 @@ bool HttpRequest::isTargetChar(const unsigned char c)
 bool HttpRequest::isHeaderKeyChar(const unsigned char c)
 {
 	return (std::isalnum(c) || c == '-' || c == '_');
-}
-
-bool HttpRequest::isHeaderValueChar(const unsigned char c)
-{
-	return (std::isalnum(c) || std::isspace(c) || c == '-' || c == '_' || c == '.' || c == '!' || c == '~' || c == '*'
-		|| c == '\'' || c == '(' || c == ')' || c == '/' || c == ':' || c == '@' || c == '&' || c == '+' || c == '$'
-		|| c == ',' || c == ';' || c == '=' || c == '%' || c == '"' || c == '\'');
 }
 
 //----GETTERS-----
