@@ -27,6 +27,7 @@ HttpRequest::~HttpRequest()
 
 bool HttpRequest::parseData(const u_char* data, const size_t len)
 {
+	std::cerr << "Parsing data" << std::endl;
 	if (requestState != REQUEST_PARSING)
 		return (false);
 	try {
@@ -40,18 +41,21 @@ bool HttpRequest::parseData(const u_char* data, const size_t len)
 			case PARSING_METHOD:
 				if (!readParseMethod())
 					break ;
+				std::cerr << "Method: " << method << std::endl;
 				parsingState = PARSING_TARGET;
 				//Fallthrough
 
 			case PARSING_TARGET:
 				if (!readParseTarget())
 					break ;
+				std::cerr << "Target: " << target << std::endl;
 				parsingState = PARSING_VERSION;
 				//Fallthrough
 
 			case PARSING_VERSION:
 				if (!readParseVersion())
 					break ;
+				std::cerr << "Version: " << version << std::endl;
 				parsingState = PARSING_HEADER;
 				//Fallthrough
 
@@ -59,6 +63,8 @@ bool HttpRequest::parseData(const u_char* data, const size_t len)
 				if (!readParseHeaders())
 					break ;
 				validateHeadersInitBody();
+				for (const auto& header: headers)
+					std::cerr << header.first << ": " << header.second << std::endl;
 				if (method != POST)
 				{
 					parsingState = PARSING_DONE;
@@ -121,18 +127,20 @@ std::map<std::string, std::string> HttpRequest::splitHeaderAttributes(const std:
 	std::map<std::string, std::string> attributesMap;
 	for (std::string& attribute: attributes) {
 		const size_t equalIndex = attribute.find('=');
-		if (equalIndex == std::string::npos || equalIndex == 0 || equalIndex == attribute.size() - 1)
+		if (equalIndex == std::string::npos)
+			continue ;
+		if (equalIndex == 0 || equalIndex == attribute.size() - 1)
 			throw InvalidRequestException();
 
-		std::string key = attribute.substr(0, equalIndex);
-		std::string value = attribute.substr(equalIndex + 1);
+		std::string key = SpacesClean::cleanSpaces(attribute.substr(0, equalIndex));
+		std::string value = SpacesClean::cleanSpaces(attribute.substr(equalIndex + 1));
 
 		if (!value.empty() && value.front() == '"' && value.back() == '"')
 			value = value.substr(1, value.size() - 2);
 
 		attributesMap.insert(std::make_pair(key, value));
 	}
-	return attributesMap;
+	return (attributesMap);
 }
 
 bool HttpRequest::readParseMethod()
@@ -208,7 +216,7 @@ bool HttpRequest::readBody()
 		throw (std::runtime_error("Parsing body with body pointer uninitialized"));
 	if (!chunked)
 	{
-		static size_t	contentLength = StrictUtoi::strictUtoi(headers.at("Content-Length"));
+		const size_t contentLength = StrictUtoi::strictUtoi(headers.at("Content-Length"));
 		if (contentLength > serverConfig->getMaxClientBodySize())
 			throw RequestBodyTooLargeException();
 
@@ -361,8 +369,10 @@ bool HttpRequest::parseHeaders(const std::vector<u_char>& data, size_t& parseInd
 		{
 			if (isCrlf(data, (i + parseIndex)))
 				break ;
-			if (!isHeaderValueChar(data[(i + parseIndex)]))
-				throw InvalidRequestException();
+			if (!isHeaderValueChar(data[(i + parseIndex)])) {
+				std::cerr << "Not a valid header value char"<< data[i + parseIndex] << std::endl;
+				throw InvalidRequestException("Not a valid header value char");
+			}
 			value += static_cast<char>(data[(i + parseIndex)]);
 			i++;
 		}
@@ -411,7 +421,7 @@ bool HttpRequest::isHeaderValueChar(const unsigned char c)
 {
 	return (std::isalnum(c) || std::isspace(c) || c == '-' || c == '_' || c == '.' || c == '!' || c == '~' || c == '*'
 		|| c == '\'' || c == '(' || c == ')' || c == '/' || c == ':' || c == '@' || c == '&' || c == '+' || c == '$'
-		|| c == ',' || c == ';' || c == '=' || c == '%');
+		|| c == ',' || c == ';' || c == '=' || c == '%' || c == '"' || c == '\'');
 }
 
 //----GETTERS-----
