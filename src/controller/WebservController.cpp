@@ -37,8 +37,8 @@ void	WebservController::run() {
 			}
 			else if (eventWaitlist[i].events & EPOLLIN)
 				makeRequest(currentFD);
-			else if (eventWaitlist[i].events & EPOLLOUT)
-				makeResponse(currentFD);
+			// else if (eventWaitlist[i].events & EPOLLOUT)
+			// 	makeResponse(currentFD);
 		}
 	}
 }
@@ -95,7 +95,7 @@ void WebservController::makeRequest(int fd) {
 			std::cerr << "Failure of everything" << std::endl;
 	}
 	else
-		std::cerr << "Something went wrong in make request, retrying..." << std::endl;
+		exit(0);
 }
 
 
