@@ -5,6 +5,7 @@
 # define BUF_SIZE 1028
 #endif
 
+#include <memory>
 #include <iostream>
 #include <arpa/inet.h>
 #include <ServerConfig.hpp>
@@ -19,18 +20,18 @@ class Client {
 	private:
 		int				clientFD;
 		int				listeningSocket;
-		ServerConfig	config;
+		std::shared_ptr<ServerConfig>	config;
 		HttpRequest		request;
 		HttpResponse	response;
 		int 			cgiFD;
 	public:
-		Client(int connection, int listen, ServerConfig conf);
+		Client(int connection, int listen, std::shared_ptr<ServerConfig> conf);
 		~Client();
 		int getClientFD();
 		int getListening() const;
 		HttpRequest &getRequest();
 		HttpResponse &getResponse();
-		const ServerConfig &getConfig() const;
+		const std::shared_ptr<ServerConfig> getConfig() const;
 		void		buildRequest();
 		void		buildResponse();
 		void		clearClear();

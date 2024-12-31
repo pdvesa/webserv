@@ -1,6 +1,6 @@
 #include <Client.hpp>
 
-Client::Client(int connection, int listen, ServerConfig conf) : clientFD(connection), listeningSocket(listen), config(conf), request(&config), response(), cgiFD(0) {
+Client::Client(int connection, int listen, std::shared_ptr<ServerConfig> conf) : clientFD(connection), listeningSocket(listen), config(conf), request(config.get()), response(), cgiFD(0) {
 }
 
 Client::~Client() {
@@ -14,7 +14,7 @@ int Client::getListening() const {
 	return (listeningSocket);
 }
 
-const ServerConfig &Client::getConfig() const {
+const std::shared_ptr<ServerConfig> Client::getConfig() const {
 	return (config);
 }
 

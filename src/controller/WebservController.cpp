@@ -71,7 +71,7 @@ void WebservController::acceptConnection(int listenFD) {
 	[listenFD](const Server &server)
 	{ return server.getServerFD() == listenFD; });
 	if (found != servers.cend()) {
-		ServerConfig config = found->getServerData();
+		std::shared_ptr<ServerConfig> config = found->getServerPtr();
 		Client client(connectionFD, listenFD, config);
 		clients.insert_or_assign(connectionFD, client);
 		epollAdd(epollFD, connectionFD, true);
@@ -113,18 +113,22 @@ void WebservController::makeRequest(int fd) {
 
 void WebservController::makeResponse(int fd) {
 	HttpRequest					&req = clients.at(fd).getRequest();
-	RequestHandler				handler(req);
-	handler.handle();
-	HttpResponse				response = handler.buildResponse();
-	std::vector<unsigned char>	rVector = response.asResponseBuffer();
-	int 						wb;
-	wb = write(fd, rVector.data(), rVector.size());
-	epollDelete(epollFD, fd);
-	close(fd);
-	if (wb == -1)
-		std::cerr << "Something" << std::endl;
-	else if (wb == 0)
-		std::cerr << "Something something" << std::endl;
+	std::cout << req.getMethod() << std::endl;
+	std::cout << req.getTarget() << std::endl;
+	if (req.getRequestState() == REQUEST_OK) {
+		RequestHandler				handler(req);
+		handler.handle();
+		HttpResponse				response = handler.buildResponse();
+		std::vector<unsigned char>	rVector = response.asResponseBuffer();
+		int 						wb;
+		wb = write(fd, rVector.data(), rVector.size());
+		epollDelete(epollFD, fd);
+		close(fd);
+		if (wb == -1)
+			std::cerr << "Something" << std::endl;
+		else if (wb == 0)
+			std::cerr << "Something something" << std::endl;
+	}
 }
 
 /*	int wb;
