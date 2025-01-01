@@ -194,12 +194,23 @@ void RequestHandler::handleGet(const RouteConfig& route)
 
 void RequestHandler::handlePost(const RouteConfig& route)
 {
-	if (postUploadFilename.empty())
+	if (postUploadFilename.empty() && !postLog)
 	{
-		postUploadPath = "." + route.getRootDir() + route.getUploadDir() + remainingPath;
-		if (postUploadPath.back() != '/')
-			postUploadPath += '/';
 		getPostUploadFilename();
+		if (!postLog)
+		{
+			postUploadPath = "." + route.getRootDir();
+			if (!exists(std::filesystem::path(postUploadPath + route.getUploadDir())))
+			{
+				if (access(postUploadPath.c_str(), W_OK) != 0)
+					throw ForbiddenException();
+				if (!std::filesystem::create_directory(postUploadPath + route.getUploadDir()))
+					throw std::runtime_error("Unable to create directory");
+			}
+			postUploadPath += route.getUploadDir() + remainingPath;
+			if (postUploadPath.back() != '/')
+				postUploadPath += '/';
+		}
 	}
 	if (!postUploadFilename.empty() || postLog)
 	{
@@ -267,7 +278,7 @@ void	RequestHandler::getPostUploadFilename()
 		}
 	}
 	else
-		throw NotImplementedException();
+		postLog = true;
 }
 
 void RequestHandler::savePart(const std::string& serverTarget, const std::string& filename,
