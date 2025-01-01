@@ -85,6 +85,8 @@ void WebservController::makeRequest(int fd) {
 	if (req.getRequestState() == REQUEST_PARSING) {
 		if ((rb = read(fd, buffer.data(), BUF_SIZE)) > 0) {
 			buffer.resize(rb);
+			for (u_char &c : buffer)
+				std::cout << c;
 			req.parseData(buffer.data(), rb);
 		} 
 		if (rb == 0)

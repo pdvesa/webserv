@@ -102,6 +102,7 @@ bool HttpRequest::parseData(const u_char* data, const size_t len)
 		parseIndex = 0;
 	} catch (InvalidRequestException& e) {
 		std::cerr << e.what() << std::endl;
+		std::cerr << "Request: " << std::string(unparsedData.begin(), unparsedData.end()) << "|" <<std::endl;
 		requestState = REQUEST_INVALID;
 		unparsedData.clear();
 		parseIndex = 0;
@@ -336,10 +337,11 @@ bool HttpRequest::parseHeaders(const std::vector<u_char>& data, size_t& parseInd
 		std::string	key;
 		std::string	value;
 
-		if (data.size() - parseIndex >= 2 &&
-			VecBuffCmp::vecBuffCmp(data, parseIndex, CRLF.c_str(), 0,
-				CRLF.size()) == 0)
+		if (VecBuffCmp::vecBuffCmp(data, parseIndex, CRLF.c_str(), 0,
+				std::min(CRLF.size(), data.size() - parseIndex)) == 0)
 		{
+			if (data.size() - parseIndex < CRLF.size())
+				return (false);
 			parseIndex += CRLF.size();
 			return (true);
 		}
@@ -351,7 +353,7 @@ bool HttpRequest::parseHeaders(const std::vector<u_char>& data, size_t& parseInd
 			key += static_cast<char>(data[(i + parseIndex)]);
 			i++;
 		}
-		if ((i + parseIndex) == data.size())
+		if ((i + parseIndex) >= data.size())
 			return (false);
 		if (key.empty())
 			throw InvalidRequestException("Empty header key");
@@ -359,14 +361,14 @@ bool HttpRequest::parseHeaders(const std::vector<u_char>& data, size_t& parseInd
 			throw InvalidRequestException("Duplicate header key");
 
 		i++;
-		while ((i + parseIndex) + (CRLF.length() - 1) < data.size())
+		while ((i + parseIndex) + (CRLF.length()) < data.size())
 		{
 			if (isCrlf(data, (i + parseIndex)))
 				break ;
 			value += static_cast<char>(data[(i + parseIndex)]);
 			i++;
 		}
-		if ((i + parseIndex) + (CRLF.length() - 1) == data.size())
+		if ((i + parseIndex) + (CRLF.length()) >= data.size())
 			return (false);
 		value = SpacesClean::cleanSpaces(value);
 		if (value.empty())

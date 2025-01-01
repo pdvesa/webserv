@@ -2,7 +2,7 @@
 # define CLIENT_HPP
 
 #ifndef BUF_SIZE
-# define BUF_SIZE 1028
+# define BUF_SIZE 2
 #endif
 
 #include <memory>
