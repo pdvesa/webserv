@@ -12,6 +12,11 @@ MultipartFormDataBody::MultipartFormDataBody(const std::string& boundary) :
 
 bool MultipartFormDataBody::addData(const std::vector<u_char>& data)
 {
+	if (parsingState == PARSING_OK)
+	{
+		parsedLength += data.size();
+		return (true);
+	}
 	unparsedData.insert(unparsedData.end(), data.begin(), data.end());
 	try {
 		std::cerr << parsingState << std::endl;
@@ -42,7 +47,6 @@ bool MultipartFormDataBody::addData(const std::vector<u_char>& data)
 			default:
 				throw InvalidRequestException();
 		}
-
 		unparsedData.erase(unparsedData.begin(), unparsedData.begin() + parseIndex); // NOLINT(*-narrowing-conversions)
 		parsedLength += parseIndex;
 		parseIndex = 0;
@@ -91,20 +95,19 @@ bool MultipartFormDataBody::readContent()
 {
 	while (parseIndex < unparsedData.size())
 	{
-		if (HttpRequest::isCrlf(unparsedData, parseIndex))
+		if (VecBuffCmp::vecBuffCmp(unparsedData, parseIndex,
+			std::string(CRLF + "--" + boundary + "--").c_str(), 0, std::min(unparsedData.size() -
+				(parseIndex), boundary.size() + 6)) == 0)
 		{
-			if (VecBuffCmp::vecBuffCmp(unparsedData, parseIndex + CRLF.length(),
-				std::string("--" + boundary + "--").c_str(), 0, std::min(unparsedData.size() -
-					(parseIndex + CRLF.length()), boundary.size() + 4)) == 0)
+			if (unparsedData.size() - parseIndex >= boundary.size() + 6)
 			{
 				parseIndex += boundary.size() + 4 + CRLF.length();
 				if (parseIndex < unparsedData.size() && unparsedData.size() - parseIndex <= CRLF.length())
 					parseIndex += unparsedData.size() - parseIndex;
 				return (true);
 			}
-		}
-		else if (unparsedData.size() - parseIndex < CRLF.length())
 			return (false);
+		}
 		bodyContent.push_back(unparsedData[parseIndex++]);
 	}
 	return (false);

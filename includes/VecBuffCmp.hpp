@@ -3,9 +3,10 @@
 //
 
 #ifndef VECBUFFCMP_HPP
-#define VECBUFFCMP_HPP
+# define VECBUFFCMP_HPP
 
 #include <vector>
+#include <cstddef>
 
 class VecBuffCmp {
 	public:
