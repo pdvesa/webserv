@@ -33,7 +33,7 @@ void	WebservController::run() {
 				epollDelete(epollFD, currentFD);
 				close(currentFD);
 				clients.at(currentFD).clearClear(); //change also clear the map values
-				std::cout << "debug" << std::endl;
+				std::cout << "DEBUG" << std::endl;
 			}
 			else if (eventWaitlist[i].events & EPOLLIN)
 				makeRequest(currentFD);
@@ -98,19 +98,6 @@ void WebservController::makeRequest(int fd) {
 		exit(0);
 }
 
-
-/*void WebservController::makeRequest(int fd) {
-	try {
-		clients.at(fd).buildRequest();
-	}
-	catch (const std::runtime_error &e) {
-		epollDelete(epollFD, fd);
-		close(fd);
-		clients.at(fd).clearClear();
-		errorHandler(e, false);
-	}
-}*/
-
 void WebservController::makeResponse(int fd) {
 	HttpRequest					&req = clients.at(fd).getRequest();
 	if (req.getRequestState() != REQUEST_PARSING && req.getRequestState() != REQUEST_CHUNK_RECEIVING) {
@@ -128,24 +115,6 @@ void WebservController::makeResponse(int fd) {
 			std::cerr << "Something something" << std::endl;
 	}
 }
-
-/*	int wb;
-	try {
-		clients.at(fd).buildResponse();			
-		if (clients.at(fd).getResponse()) { 
-			wb = write(fd, clients.at(fd).getResponse()->toString().c_str(), clients.at(fd).getResponse()->toString().length());
-			epollDelete(epollFD, fd);
-			close(fd);
-			clients.at(fd).clearClear();
-			if (wb == -1)
-				throw std::runtime_error("Write failed in responding");
-			else if (wb == 0)
-				throw std::runtime_error("Write sent nothing in response");
-		}
-	}
-	catch (const std::runtime_error &e) {
-		errorHandler(e, false);
-	}*/
 
 void WebservController::errorHandler(const std::runtime_error &err, bool ifExit) {
 	errorLogger(err.what());

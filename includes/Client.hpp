@@ -32,15 +32,9 @@ class Client {
 		HttpRequest &getRequest();
 		HttpResponse &getResponse();
 		const std::shared_ptr<ServerConfig> getConfig() const;
-		void		buildRequest();
-		void		buildResponse();
 		void		clearClear();
 		void		setCgiFD(int fd);
 		int 		getCgiFD();
-	private:
-		void		buildErrorResponse();
-
-		static const	std::string DEFAULT_BODY;
 };
 
 #endif
