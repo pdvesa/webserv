@@ -32,19 +32,38 @@ RouteConfig RouteConfig::fromLocationBlock(std::string& locationBlock) {
 	}
 
 	if (!IsBlank::isBlank(locationBlock))
-		throw ServerConfig::InvalidConfigFileException();
+		throw InvalidConfigFileException();
 
 	return (RouteConfig(GET, POST, DELETE, index, listing, rootDir, uploadDir, redirection));
 }
 
+bool RouteConfig::isRedirection() const
+{
+	return (redirection.code != 0);
+}
+
+bool RouteConfig::isMethodAllowed(const t_method method) const
+{
+	switch (method) {
+		case e_method::GET:
+			return (GET);
+		case e_method::POST:
+			return (POST);
+		case e_method::DELETE:
+			return (DELETE);
+		default:
+			throw std::runtime_error("Invalid method");
+	}
+}
+
 RouteConfig::RouteConfig(const bool& GET,
-	const bool& POST,
-	const bool& DELETE,
-	const std::string& index,
-	const bool& listing,
-	const std::string& rootDir,
-	const std::string& uploadDir,
-	const t_redirection& redirection):
+						const bool& POST,
+						const bool& DELETE,
+						const std::string& index,
+						const bool& listing,
+						const std::string& rootDir,
+						const std::string& uploadDir,
+						const t_redirection& redirection):
 	GET(GET),
 	POST(POST),
 	DELETE(DELETE),
@@ -97,7 +116,7 @@ void RouteConfig::extractMethods(bool& GET, bool& POST, bool& DELETE, std::strin
 		Parsing::extractVariable(locationBlock,"methods"), ' ');
 
 	if (methodsVector.empty())
-		throw ServerConfig::InvalidConfigFileException();
+		throw InvalidConfigFileException();
 
 	if (std::find(methodsVector.cbegin(), methodsVector.cend(), "GET") != std::end(methodsVector))
 		GET = true;
@@ -107,7 +126,7 @@ void RouteConfig::extractMethods(bool& GET, bool& POST, bool& DELETE, std::strin
 		DELETE = true;
 
 	if (static_cast<int>(methodsVector.size()) != static_cast<int>(GET) + static_cast<int>(POST) + static_cast<int>(DELETE))
-		throw ServerConfig::InvalidConfigFileException();
+		throw InvalidConfigFileException();
 }
 
 std::string RouteConfig::extractIndex(std::string& locationBlock) {
@@ -115,13 +134,13 @@ std::string RouteConfig::extractIndex(std::string& locationBlock) {
 }
 
 bool RouteConfig::extractListing(std::string& locationBlock) {
-	std::string	listing	= Parsing::extractVariable(locationBlock, "listing");
+	const std::string	listing	= Parsing::extractVariable(locationBlock, "listing");
 
 	if (listing == "on")
 		return (true);
 	if (listing == "off")
 		return (false);
-	throw ServerConfig::InvalidConfigFileException();
+	throw InvalidConfigFileException();
 }
 
 std::string RouteConfig::extractRootDir(std::string& locationBlock) {
@@ -133,16 +152,16 @@ std::string RouteConfig::extractUploadDir(std::string& locationBlock) {
 }
 
 RouteConfig::t_redirection RouteConfig::extractRedirection(std::string& locationBlock) {
-	t_redirection				redirection = {"", 0};
-	std::string					redirection_string = Parsing::extractVariable(locationBlock, "return");
-	std::vector<std::string>	methodsVector = CppSplit::cppSplit(redirection_string, ' ');
+	t_redirection			        redirection = {"", 0};
+	const std::string				redirection_string = Parsing::extractVariable(locationBlock, "return");
+	const std::vector<std::string>	methodsVector = CppSplit::cppSplit(redirection_string, ' ');
 
 	if (methodsVector.size() != 2)
-		throw ServerConfig::InvalidConfigFileException();
+		throw InvalidConfigFileException();
 
 	redirection.code = StrictUtoi::strictUtoi(methodsVector.front());
-	if (redirection.code < 300 || redirection.code > 399)
-		throw ServerConfig::InvalidConfigFileException();
+	if (redirection.code < 300 || redirection.code > 399 || !httpCodes.contains(redirection.code))
+		throw InvalidConfigFileException();
 	redirection.path = methodsVector.back();
 
 	return (redirection);

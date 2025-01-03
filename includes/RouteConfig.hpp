@@ -5,17 +5,16 @@
 #ifndef ROUTE_HPP
 # define ROUTE_HPP
 
-#include <list>
-#include <map>
 #include <string>
 #include <vector>
 #include <algorithm>
 
 #include <CppSplit.hpp>
 #include <Parsing.hpp>
-#include <ServerConfig.hpp>
-
-class ServerConfig;
+#include <IsBlank.hpp>
+#include <InvalidConfigFileException.hpp>
+#include <HttpCodes.hpp>
+#include <http_methods.h>
 
 class RouteConfig {
 
@@ -26,17 +25,14 @@ class RouteConfig {
 		};
 
 	private:
-		bool			GET;
-		bool			POST;
-		bool			DELETE;
+		bool			GET{};
+		bool			POST{};
+		bool			DELETE{};
 		std::string		index;
-		bool			listing;
+		bool			listing{};
 		std::string		rootDir;
 		std::string		uploadDir;
 		t_redirection	redirection;
-
-		RouteConfig();
-
 
 		static void				extractMethods(bool& GET, bool& POST, bool& DELETE, std::string& locationBlock);
 		static std::string		extractIndex(std::string& locationBlock);
@@ -46,6 +42,7 @@ class RouteConfig {
 		static t_redirection	extractRedirection(std::string& locationBlock);
 
 	public:
+		RouteConfig() = default;
 		RouteConfig(const bool& GET,
 			const bool& POST,
 			const bool& DELETE,
@@ -62,6 +59,9 @@ class RouteConfig {
 
 		static RouteConfig	fromLocationBlock(std::string& locationBlock);
 
+		bool			isRedirection() const;
+		bool			isMethodAllowed(t_method method) const;
+	
 		bool			getGET() const;
 		bool			getPOST() const;
 		bool			getDELETE() const;

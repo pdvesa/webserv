@@ -1,325 +1,447 @@
-#include "HttpRequest.hpp"
-#include <iostream>
-#include <unistd.h>
-#include "Client.hpp"
+//
+// Created by jules on 19/12/2024.
+//
 
-HttpRequest::HttpRequest(const HttpRequest& other) : serv(other.serv)
+#include <HttpRequest.hpp>
+
+HttpRequest::HttpRequest(ServerConfig* serverConfig) :
+	requestState(REQUEST_PARSING),
+	parsingState(PARSING_METHOD),
+	parseIndex(0),
+	chunked(false),
+	method(UNINITIALIZED),
+	body(nullptr),
+	serverConfig(serverConfig)
+{ }
+
+HttpRequest::HttpRequest(ServerConfig* serverConfig, const u_char* data, const size_t len) :
+	HttpRequest(serverConfig)
 {
-		requestMethod = other.requestMethod;
-		requestTarget = other.requestTarget;
-		requestVersion = other.requestVersion;
-		requestHeader = other.requestHeader;
-		rawBody = other.rawBody;
-		fullRequest = other.fullRequest;
-		requestPath = other.requestPath;
-		requestStatus = other.requestStatus;
-		requestedResource = other.requestedResource;
-		cgiStatus = other.cgiStatus;
-		hasListing = other.hasListing;
-		maxSize = other.maxSize;
+	parseData(data, len);
 }
 
-HttpRequest& HttpRequest::operator=(const HttpRequest& other)
+HttpRequest::~HttpRequest()
 {
-	if (this != &other)
-	{
-		requestMethod = other.requestMethod;
-		requestTarget = other.requestTarget;
-		requestVersion = other.requestVersion;
-		requestHeader = other.requestHeader;
-		rawBody = other.rawBody;
-		fullRequest = other.fullRequest;
-		requestPath = other.requestPath;
-		requestStatus = other.requestStatus;
-		requestedResource = other.requestedResource;
-		cgiStatus = other.cgiStatus;
-		hasListing = other.hasListing;
-		maxSize = other.maxSize;
-	}
-	return (*this);
+	delete body;
 }
 
-
-HttpRequest::HttpRequest(const ServerConfig &cfg, int fd) : serv(cfg), requestedResource(""), cgiStatus(0), requestStatus(200), maxSize(cfg.getMaxClientBodySize() * 1024)
+bool HttpRequest::parseData(const u_char* data, const size_t len)
 {
-	readSocket(fd, true);
-}
+	if (requestState != REQUEST_PARSING)
+		return (false);
+	try {
+		unparsedData.insert(unparsedData.end(), data, data + len);
 
-void HttpRequest::readSocket(int socket, bool first)
-{
-	int							rv;
-	std::vector<unsigned char>	buffer(BUF_SIZE);
-	fullRequest.clear();
-
-	while ((rv = read(socket, buffer.data(), BUF_SIZE)) > 0) {
-		fullRequest.insert(fullRequest.end(), buffer.begin(), buffer.begin() + rv);
-		if (rv < BUF_SIZE) 
-			break;
-	}
-	if (rv == -1)
-		throw std::runtime_error("Failed to read from socket");
-	else if (rv == 0)
-		std::cout << "We read 0 in request. Maybe it was EOF?. Maybe it wasn't, who cares?" << std::endl;
-	std::string reqstr(fullRequest.begin(), fullRequest.end());
-	if (first)
-		fillRequest(reqstr);
-	else
-		fillRawBody(reqstr);
-}
-
-HttpRequest::~HttpRequest(){}
-
-void	HttpRequest::fillRequest(std::string req)
-{
-	std::string	req_line = req.substr(0, req.find("\r\n"));
-	std::string mtv[3];
-	int			pos;
-	for (int i = 0; i < 3; i++)
-	{
-		pos = req_line.find(' ');
-		mtv[i] = req_line.substr(0, pos);
-		req_line.erase(0, pos + 1);
-	}
-	requestMethod = mtv[0];
-	if (mtv[0] != "GET" && mtv[0] != "POST" && mtv[0] != "DELETE")
-	{
-		requestStatus = 405;
-		serveError(405);
-		return ;
-	}
-	requestTarget = mtv[1];
-	requestVersion = mtv[2];
-	if (requestVersion != "HTTP/1.1")
-	{
-		requestStatus = 505;
-		return ;
-	}
-	req.erase(0, req.find("\r\n") + 2);
-	fillHeaders(req);
-	fillRawBody(req);
-	if (rawBody.empty())
-		requestHeader.insert({"Content-Type", " text/html"});
-	if (requestHeader.count("Transfer-Encoding"))
-	{
-		if (requestHeader.at("Transfer-Encoding") == " chunked")
-			rawBody = dechunkBody();
-	}
-}
-
-void	HttpRequest::fillHeaders(std::string &req)
-{
-	while (req.substr(0, 2) != "\r\n")
-	{
-		std::string key = req.substr(0, req.find(':'));
-		req.erase(0, req.find(':') + 1);
-		std::string value = req.substr(0, req.find("\r\n"));
-		if (value[0] != ' ')
+		switch (parsingState)
 		{
-			requestStatus = 400;
-		}
-		req.erase(0, req.find("\r\n") + 2);
-		requestHeader.insert({key,value});
-	}
-	if (!requestHeader.count("Host"))
-	{
-		requestStatus = 400; 
-		requestPath = serv.getErrorsPages().at(404);
-		requestPath = "." + requestPath;
-		return ;
-	}
-	buildPath();
-	req.erase(0, 2);
-}
-void	HttpRequest::printElements() const
-{
-	std::cout << "Request Method:" << requestMethod << std::endl;
-	std::cout << "Request Target:" << requestTarget << std::endl;
-	std::cout << "Request Version:" << requestVersion << std::endl;
-	for (const auto &i : requestHeader)
-		std::cout << "Key:" << i.first << " Value:" << i.second << std::endl;
-}
-
-void	HttpRequest::fillRawBody(std::string &req)
-{
-	rawBody.reserve(req.size());
-	for (const auto &i : req)
-		rawBody.push_back(i);
-	if (rawBody.size() > maxSize)
-		requestStatus = 413;
-}
-
-
- std::vector<unsigned char>	HttpRequest::dechunkBody()
-{
-	std::vector<unsigned char> dechunkedBody;
-
-	auto iter = rawBody.begin();
-	while (iter != rawBody.end())
-	{
-		try{
-			auto chunkStart = iter;
-			auto chunkEnd = std::find(iter, rawBody.end(), '\r');
-			if (chunkEnd == rawBody.end() || chunkEnd + 1 == rawBody.end())
-				throw std::runtime_error("bad chunked request\n");
-			std::string chunkSize(chunkStart, chunkEnd);
-			size_t chunkLen = std::stoi(chunkSize, nullptr, 16);
-			if (chunkLen == 0)
+			case PARSING_DONE:
 				break ;
-			chunkEnd += 2;
-			std::copy(chunkEnd, chunkEnd + chunkLen, std::back_inserter(dechunkedBody));
-			if (dechunkedBody.size() > maxSize)
-			{
-				requestStatus = 413;
+
+			case PARSING_METHOD:
+				if (!readParseMethod())
+					break ;
+				parsingState = PARSING_TARGET;
+				//Fallthrough
+
+			case PARSING_TARGET:
+				if (!readParseTarget())
+					break ;
+				parsingState = PARSING_VERSION;
+				//Fallthrough
+
+			case PARSING_VERSION:
+				if (!readParseVersion())
+					break ;
+				parsingState = PARSING_HEADER;
+				//Fallthrough
+
+			case PARSING_HEADER:
+				if (!readParseHeaders())
+					break ;
+				validateHeadersInitBody();
+				if (method != POST)
+				{
+					parsingState = PARSING_DONE;
+					break ;
+				}
+				parsingState = PARSING_BODY;
+				//Fallthrough
+
+			case PARSING_BODY:
+				if (!readBody())
+					break ;
+				parsingState = PARSING_DONE;
 				break ;
-			}
-			iter = chunkEnd + chunkLen + 2;
+
+			default:
+				throw InvalidRequestException();
 		}
-		catch (std::exception &e)
+
+		unparsedData.erase(unparsedData.begin(), unparsedData.begin() + parseIndex); // NOLINT(*-narrowing-conversions)
+		parseIndex = 0;
+
+		if (parsingState == PARSING_DONE)
 		{
-			requestStatus = 400;
+			if (!unparsedData.empty())
+				throw InvalidRequestException();
+			requestState = REQUEST_OK;
+		}
+
+		return (true);
+	} catch (NotImplementedException&) {
+		requestState = REQUEST_UNIMPLEMENTED;
+		unparsedData.clear();
+		parseIndex = 0;
+	} catch (RequestBodyTooLargeException&) {
+		requestState = REQUEST_BODY_TOO_LARGE;
+		unparsedData.clear();
+		parseIndex = 0;
+	} catch (RequestContentLengthMissingException&) {
+		requestState = REQUEST_LEN_REQUIRED;
+		unparsedData.clear();
+		parseIndex = 0;
+	} catch (InvalidRequestException& e) {
+		std::cerr << e.what() << std::endl;
+		std::cerr << "Request: " << std::string(unparsedData.begin(), unparsedData.end()) << "|" <<std::endl;
+		requestState = REQUEST_INVALID;
+		unparsedData.clear();
+		parseIndex = 0;
+	} catch (std::exception& e) {
+		std::cerr << e.what() << std::endl;
+		requestState = SERVER_ERROR;
+		unparsedData.clear();
+		parseIndex = 0;
+	}
+	return (false);
+}
+
+std::map<std::string, std::string> HttpRequest::splitHeaderAttributes(const std::string& headerValue)
+{
+	std::vector<std::string> attributes = CppSplit::cppSplit(headerValue, ';');
+
+	std::map<std::string, std::string> attributesMap;
+	for (std::string& attribute: attributes) {
+		const size_t equalIndex = attribute.find('=');
+		if (equalIndex == std::string::npos)
+			continue ;
+		if (equalIndex == 0 || equalIndex == attribute.size() - 1)
+			throw InvalidRequestException();
+
+		std::string key = SpacesClean::cleanSpaces(attribute.substr(0, equalIndex));
+		std::string value = SpacesClean::cleanSpaces(attribute.substr(equalIndex + 1));
+
+		if (!value.empty() && value.front() == '"' && value.back() == '"')
+			value = value.substr(1, value.size() - 2);
+
+		attributesMap.insert(std::make_pair(key, value));
+	}
+	return (attributesMap);
+}
+
+bool HttpRequest::readParseMethod()
+{
+	size_t spacePos = 0;
+
+	while (spacePos < unparsedData.size() - parseIndex)
+	{
+		if (unparsedData[parseIndex + spacePos] == ' ')
 			break ;
-		}
+		if (!isalpha(unparsedData[parseIndex + spacePos]) || spacePos > 6)
+			throw InvalidRequestException();
+		spacePos++;
 	}
-	return dechunkedBody;
+	if (unparsedData[parseIndex + spacePos] != ' ')
+		return (false);
+	const std::string methodStr = std::string(unparsedData.begin() + parseIndex, // NOLINT(*-narrowing-conversions)
+		unparsedData.begin() + parseIndex + spacePos); // NOLINT(*-narrowing-conversions)
+
+	method = stringToMethod(methodStr);
+	if (method == UNINITIALIZED)
+		throw NotImplementedException();
+
+	parseIndex += spacePos + 1;
+	return (true);
 }
 
-RouteConfig HttpRequest::findRoute() {
-    size_t latestSlash = requestTarget.rfind('/');
-	std::string routeMatch = requestTarget;
-    std::map<std::string, RouteConfig> routes = serv.getRoutes();
-    if (routes.find(requestTarget) != routes.end()) {
-        return routes.at(requestTarget);
-    }
-    while (latestSlash != std::string::npos) {
-        routeMatch = requestTarget.substr(0, latestSlash + 1);
-        if (routes.find(routeMatch) != routes.end())
+bool HttpRequest::readParseTarget()
+{
+	while (parseIndex < unparsedData.size() && unparsedData[parseIndex] != ' ')
+	{
+		if (!isTargetChar(unparsedData[parseIndex]))
+			throw InvalidRequestException();
+		target += static_cast<char>(unparsedData[parseIndex]);
+		parseIndex++;
+	}
+	if (parseIndex == unparsedData.size())
+		return (false);
+
+	if (target.empty())
+		throw InvalidRequestException();
+	parseIndex++;
+	return (true);
+}
+
+bool HttpRequest::readParseVersion()
+{
+	if (VecBuffCmp::vecBuffCmp(unparsedData, parseIndex, HTTP_VERSION_STR.c_str(), 0,
+		std::min(unparsedData.size() - parseIndex, HTTP_VERSION_STR.size())) == 0)
+	{
+		if (unparsedData.size() - parseIndex >= HTTP_VERSION_STR.size() + CRLF.length())
 		{
-			requestedResource = requestTarget.substr(latestSlash + 1);
-			// if (!requestedResource.empty() && requestedResource[0] == '/')
-			// 	requestedResource = requestedResource.substr(1);
-            return routes.at(routeMatch);
-        }
-        routeMatch = routeMatch.substr(0, latestSlash);
-        latestSlash = routeMatch.rfind('/');
-    }
-    if (routes.find("/") != routes.end()) {
-        return routes.at("/");
-    }
-    throw std::runtime_error("Failed to find a route for: " + requestTarget);
-}
-
- bool HttpRequest::checkRedirs(const RouteConfig& rt)
-{
-	if (!rt.getRedirection().path.empty())
-	{
-		RouteConfig::t_redirection redir = rt.getRedirection();
-		requestStatus = redir.code;
-		requestTarget = redir.path;
-		if (!requestedResource.empty())
-			requestTarget.append(requestedResource);
-		return true;
-	}
-	return false;
-}
-
-void HttpRequest::validateRoute(const RouteConfig& rt)
-{
-	hasListing = rt.getListing();
-	if (requestMethod == "POST")
-	{
-		if (!rt.getPOST())
-			throw std::runtime_error("method not supported");
-	}
-	else if (requestMethod == "DELETE")
-	{
-		if (!rt.getDELETE())
-			throw std::runtime_error("method not supported");
-	}
-	else if (requestMethod == "GET")
-	{
-		if (!rt.getGET())
-			throw std::runtime_error("method not supported");
-	}
-}
-
-void HttpRequest::buildPath()
-{
-	try
-	{
-		RouteConfig route = findRoute();
-		if(checkRedirs(route))
-			return ;
-		try {
-			validateRoute(route);
-		} catch (std::exception &e) {
-			requestStatus = 405;
-			serveError(405);
-			return ;
-		}
-		requestPath = route.getRootDir();
-		if (requestedResource.empty() && requestMethod == "GET")
-			requestPath.append(route.getIndex());
-		else
-			requestPath.append(requestedResource);
-		requestPath.insert(0, ".");
-		updateCGI();
-		if (requestMethod == "POST" && !cgiStatus)
-		{
-			if (!std::filesystem::exists(requestPath))
-			{
-				serveError(404);
-				return ;
+			if (!isCrlf(unparsedData, parseIndex + HTTP_VERSION_STR.size())) {
+				throw InvalidRequestException();
 			}
-			requestPath.append(route.getUploadDir());
-			return ;
+			version = HTTP_VERSION_STR;
+			parseIndex += HTTP_VERSION_STR.size() + CRLF.length();
+			return (true);
 		}
-		if (!std::filesystem::exists(requestPath))
-			serveError(404);
-		else if (std::filesystem::is_directory(requestPath) && !requestPath.ends_with('/'))
-			serveError(404);
+		return (false);
 	}
-	catch (std::exception &e)
-	{
-		requestStatus = 404;
-		requestPath = serv.getErrorsPages().at(404);
-	}
+	throw InvalidRequestException();
 }
-void	HttpRequest::serveError(int status)
+
+bool HttpRequest::readParseHeaders()
 {
-	requestStatus = status;
-	requestPath = serv.getErrorsPages().at(status);
-	requestPath.insert(0, ".");
+	return (parseHeaders(unparsedData, parseIndex, headers));
 }
 
-void	HttpRequest::updateCGI()
+bool HttpRequest::readBody()
 {
-	if (requestPath == "./www/cgi-bin/")
-		return ;
-	if (requestPath.find("/cgi-bin/") != std::string::npos)
+	if (!body)
+		throw (std::runtime_error("Parsing body with body pointer uninitialized"));
+	if (!chunked)
 	{
-		if (requestedResource.substr(requestedResource.length() - 3) == ".py")
-		{
-			cgiStatus = PY;
-			return ;
-		}
-		if (requestedResource.substr(requestedResource.length() - 4) == ".cgi")
-		{
-			cgiStatus = CGI_E;
-			return ;
-		}
+		const size_t contentLength = StrictUtoi::strictUtoi(headers.at("Content-Length"));
+		if (contentLength > serverConfig->getMaxClientBodySize())
+			throw RequestBodyTooLargeException();
+
+		if (contentLength < unparsedData.size() - parseIndex)
+			throw InvalidRequestException();
+
+		std::vector<u_char>	bodyData;
+		while (parseIndex < unparsedData.size())
+			bodyData.push_back(unparsedData[parseIndex++]);
+
+		if (!body->addData(bodyData))
+			throw InvalidRequestException();
+
+		if (body->getCumulatedSize() == contentLength)
+			return (true);
+		return (false);
 	}
-	cgiStatus = NO_CGI;
-	return ;
+	else
+		return (readChunk());
 }
 
-std::string HttpRequest::getMapValue(std::string key) {
-	auto found = requestHeader.find(key);
-	if (found == requestHeader.end())
-		return ("");
-	else 
-		return (found->second);
+bool HttpRequest::readChunk()
+{
+	while (true)
+	{
+		static ssize_t	currentChunkSize = -1;
+		if (currentChunkSize == -1)
+		{
+			size_t	endLinePos = parseIndex;
+			while (endLinePos < unparsedData.size() - 1)
+			{
+				if (isCrlf(unparsedData, endLinePos))
+					break ;
+				if (!isdigit(unparsedData[endLinePos]) && !islower(unparsedData[endLinePos]))
+					throw InvalidRequestException();
+				endLinePos++;
+			}
+			if (endLinePos == unparsedData.size() - 1)
+				return (false);
+
+			currentChunkSize = std::stoi(std::string(unparsedData.begin() + parseIndex, // NOLINT(*-narrowing-conversions)
+				unparsedData.begin() + endLinePos), nullptr, 16); // NOLINT(*-narrowing-conversions)
+			if (currentChunkSize > serverConfig->getMaxClientBodySize())
+				throw RequestBodyTooLargeException();
+
+			if (currentChunkSize == 0)
+			{
+				if (endLinePos + CRLF.length() + CRLF.length() >= unparsedData.size())
+				{
+					if (!isCrlf(unparsedData, endLinePos + CRLF.length()))
+						throw InvalidRequestException();
+					parseIndex = endLinePos + CRLF.length() + CRLF.length();
+					return (true);
+				}
+				else
+				{
+					currentChunkSize = - 1;
+					return (false);
+				}
+			}
+			else
+				parseIndex = endLinePos + CRLF.length();
+		}
+
+		std::vector<u_char>	bodyData;
+		while (currentChunkSize > 0 && parseIndex < unparsedData.size())
+		{
+			bodyData.push_back(unparsedData[parseIndex]);
+			currentChunkSize--;
+			parseIndex++;
+		}
+
+		if (!body->addData(bodyData))
+			throw InvalidRequestException();
+
+		if (parseIndex >= unparsedData.size() - 1)
+			return (false);
+		if (!isCrlf(unparsedData, parseIndex))
+			throw InvalidRequestException();
+
+		parseIndex += CRLF.length();
+		currentChunkSize = -1;
+		return (false);
+	}
 }
 
-void HttpRequest::appendR(int fd) {
-	readSocket(fd, false);
+void HttpRequest::validateHeadersInitBody()
+{
+	if (!headers.contains("Host"))
+		throw InvalidRequestException();
+	if (method == POST)
+	{
+		if (!headers.contains("Content-Type"))
+			throw InvalidRequestException();
+		if (headers.contains("Transfer-Encoding") && headers.at("Transfer-Encoding") == "chunked")
+		{
+			chunked = true;
+			requestState = REQUEST_CHUNK_RECEIVING;
+		}
+		else if (!headers.contains("Content-Length"))
+			throw RequestContentLengthMissingException();
+
+		if (const std::string& contentType = headers.at("Content-Type"); contentType.compare(0,
+			MULTIPART_FORM_DATA.length(), MULTIPART_FORM_DATA) == 0)
+		{
+			const std::map<std::string, std::string> attributes = splitHeaderAttributes(contentType);
+			if (!attributes.contains("boundary"))
+				throw InvalidRequestException();
+
+			body = new MultipartFormDataBody(attributes.at("boundary"));
+		}
+		else
+			body = new RequestBody();
+	}
 }
+
+bool HttpRequest::parseHeaders(const std::vector<u_char>& data, size_t& parseIndex, std::map<std::string,
+	std::string>& dest)
+{
+	while (true)
+	{
+		size_t	i = 0;
+		std::string	key;
+		std::string	value;
+
+		if (VecBuffCmp::vecBuffCmp(data, parseIndex, CRLF.c_str(), 0,
+				std::min(CRLF.size(), data.size() - parseIndex)) == 0)
+		{
+			if (data.size() - parseIndex < CRLF.size())
+				return (false);
+			parseIndex += CRLF.size();
+			return (true);
+		}
+
+		while ((i + parseIndex) < data.size() && data[(i + parseIndex)] != ':')
+		{
+			if (!isHeaderKeyChar(data[(i + parseIndex)]))
+				throw InvalidRequestException("Not a valid header key char");
+			key += static_cast<char>(data[(i + parseIndex)]);
+			i++;
+		}
+		if ((i + parseIndex) >= data.size())
+			return (false);
+		if (key.empty())
+			throw InvalidRequestException("Empty header key");
+		if (dest.contains(key))
+			throw InvalidRequestException("Duplicate header key");
+
+		i++;
+		while ((i + parseIndex) + (CRLF.length()) < data.size())
+		{
+			if (isCrlf(data, (i + parseIndex)))
+				break ;
+			value += static_cast<char>(data[(i + parseIndex)]);
+			i++;
+		}
+		if ((i + parseIndex) + (CRLF.length()) >= data.size())
+			return (false);
+		value = SpacesClean::cleanSpaces(value);
+		if (value.empty())
+			throw InvalidRequestException("Empty header value");
+		i += CRLF.length(); // NOLINT(*-narrowing-conversions)
+
+		dest.insert(std::make_pair(key, value));
+		parseIndex += i;
+	}
+}
+
+
+bool HttpRequest::isCrlf(const std::vector<u_char>& data, const size_t start)
+{
+	if (data.size() - start < CRLF.length())
+		return (false);
+	if (VecBuffCmp::vecBuffCmp(data, start, CRLF.c_str(), 0, CRLF.length()) != 0)
+		return (false);
+	return (true);
+}
+
+bool HttpRequest::isTargetChar(const unsigned char c)
+{
+	if (std::isalnum(c) || c == '-' || c == '_' || c == '.' || c == '~')
+		return (true);
+	if (c == ':' || c == '/' || c == '?' || c == '#' || c == '[' || c == ']' || c == '@')
+		return (true);
+	if (c == '%')
+		return (true);
+	if (c == '!' || c == '$' || c == '&' || c == '\'' || c == '(' || c == ')' || c == '*' || c == '+' || c == ','
+		|| c == ';' || c == '=')
+		return (true);
+	return (false);
+}
+
+bool HttpRequest::isHeaderKeyChar(const unsigned char c)
+{
+	return (std::isalnum(c) || c == '-' || c == '_');
+}
+
+//----GETTERS-----
+
+bool HttpRequest::isChunked() const
+{
+	return (chunked);
+}
+
+t_request_state HttpRequest::getRequestState() const {
+	return (requestState);
+}
+
+e_method HttpRequest::getMethod() const {
+	return (method);
+}
+
+const std::string& HttpRequest::getTarget() const {
+	return (target);
+}
+
+const std::string& HttpRequest::getVersion() const {
+	return (version);
+}
+
+const std::string& HttpRequest::getHeader(const std::string& key) const {
+	return (headers.at(key));
+}
+
+const ServerConfig& HttpRequest::getServerConfig() const {
+	return (*serverConfig);
+}
+
+RequestBody& HttpRequest::getBody() const {
+	return (*body);
+}
+
+//----GETTERS-----

@@ -2,37 +2,41 @@
 # define CLIENT_HPP
 
 #ifndef BUF_SIZE
-# define BUF_SIZE 420
+# define BUF_SIZE 1
 #endif
 
+#include <memory>
 #include <iostream>
 #include <arpa/inet.h>
 #include <ServerConfig.hpp>
-#include "HttpResponse.hpp"
 #include <optional>
-#include "HandleRequest.hpp"
+#include <HttpRequest.hpp>
+#include <HttpResponse.hpp>
 
 class HttpRequest;
 class HttpResponse;
+
 class Client {
 	private:
 		int				clientFD;
 		int				listeningSocket;
-		ServerConfig	config;
-		std::optional<HttpRequest>		request;
-		std::optional<HttpResponse>		response;	
+		std::shared_ptr<ServerConfig>	config;
+		HttpRequest		request;
+		HttpResponse	response;
+		int 			cgiFD;
 	public:
-		Client(int connection, int listen, ServerConfig conf);
+		Client(int connection, int listen, std::shared_ptr<ServerConfig> conf);
 		~Client();
 		int getClientFD();
 		int getListening() const;
-		std::optional<HttpRequest> getRequest() const;
-		std::optional<HttpResponse> getResponse() const;
-		const ServerConfig &getConfig() const;
+		HttpRequest &getRequest();
+		HttpResponse &getResponse();
+		const std::shared_ptr<ServerConfig> getConfig() const;
 		void		buildRequest();
 		void		buildResponse();
 		void		clearClear();
-
+		void		setCgiFD(int fd);
+		int 		getCgiFD();
 	private:
 		void		buildErrorResponse();
 

@@ -3,10 +3,6 @@
 //
 
 #include <WebservController.hpp>
-#include "HttpRequest.hpp"
-#include "HttpResponse.hpp"
-#include "HandleRequest.hpp"
-#include <unordered_map>
 
 bool running = true;
 
@@ -31,22 +27,17 @@ void	WebservController::run() {
 		eventsWaiting = epoll_wait(epollFD, eventWaitlist, MAX_EVENTS, -1);
 		for (int i = 0; i < eventsWaiting; i++) {
 			int currentFD = eventWaitlist[i].data.fd;
-			if (std::find(listenFDs.cbegin(), listenFDs.cend(), currentFD) != std::end(listenFDs)) {
-				try {
-					acceptConnection(currentFD); 
-				}
-				catch (const std::runtime_error &e) {
-					errorHandler(e, true);
-				}
-			}
+			if (std::find(listenFDs.cbegin(), listenFDs.cend(), currentFD) != std::end(listenFDs))
+				acceptConnection(currentFD); 
 			else if (eventWaitlist[i].events & EPOLLRDHUP) {
 				epollDelete(epollFD, currentFD);
 				close(currentFD);
-				clients.at(currentFD).clearClear();
+				clients.at(currentFD).clearClear(); //change also clear the map values
+				std::cout << "debug" << std::endl;
 			}
 			else if (eventWaitlist[i].events & EPOLLIN)
 				makeRequest(currentFD);
-			else if (eventWaitlist[i].events & EPOLLOUT && clients.at(currentFD).getRequest())
+			else if (eventWaitlist[i].events & EPOLLOUT)
 				makeResponse(currentFD);
 		}
 	}
@@ -72,13 +63,15 @@ void WebservController::acceptConnection(int listenFD) {
 	sockaddr_in		clientTemp;
 	unsigned int	clientSize = sizeof(clientTemp);
 	std::memset(&clientTemp, 0 , clientSize);
-	if ((connectionFD = accept(listenFD, (sockaddr *)&clientTemp, &clientSize)) == -1)
-		throw std::runtime_error("Failed in accept connection");
+	if ((connectionFD = accept(listenFD, (sockaddr *)&clientTemp, &clientSize)) == -1) {
+		errorLogger("Syscall 'accept' failed because: " + std::string(strerror(errno)));
+		return ; 
+	}
 	auto found = std::find_if(servers.cbegin(), servers.cend(),
 	[listenFD](const Server &server)
 	{ return server.getServerFD() == listenFD; });
 	if (found != servers.cend()) {
-		ServerConfig config = found->getServerData();
+		std::shared_ptr<ServerConfig> config = found->getServerPtr();
 		Client client(connectionFD, listenFD, config);
 		clients.insert_or_assign(connectionFD, client);
 		epollAdd(epollFD, connectionFD, true);
@@ -86,6 +79,27 @@ void WebservController::acceptConnection(int listenFD) {
 }
 
 void WebservController::makeRequest(int fd) {
+	std::vector<unsigned char>	buffer(BUF_SIZE);
+	HttpRequest					&req = clients.at(fd).getRequest();
+	int							rb;
+	if (req.getRequestState() == REQUEST_PARSING) {
+		if ((rb = read(fd, buffer.data(), BUF_SIZE)) > 0) {
+			buffer.resize(rb);
+			for (u_char &c : buffer)
+				std::cout << c;
+			req.parseData(buffer.data(), rb);
+		} 
+		if (rb == 0)
+			std::cerr << "Something" << std::endl;
+		if (rb == -1)
+			std::cerr << "Failure of everything" << std::endl;
+	}
+	else
+		exit(0);
+}
+
+
+/*void WebservController::makeRequest(int fd) {
 	try {
 		clients.at(fd).buildRequest();
 	}
@@ -95,10 +109,27 @@ void WebservController::makeRequest(int fd) {
 		clients.at(fd).clearClear();
 		errorHandler(e, false);
 	}
-}
+}*/
 
 void WebservController::makeResponse(int fd) {
-	int wb;
+	HttpRequest					&req = clients.at(fd).getRequest();
+	if (req.getRequestState() != REQUEST_PARSING && req.getRequestState() != REQUEST_CHUNK_RECEIVING) {
+		RequestHandler				handler(req);
+		handler.handle();
+		HttpResponse				response = handler.buildResponse();
+		std::vector<unsigned char>	rVector = response.asResponseBuffer();
+		int 						wb;
+		wb = write(fd, rVector.data(), rVector.size());
+		epollDelete(epollFD, fd);
+		close(fd);
+		if (wb == -1)
+			std::cerr << "Something" << std::endl;
+		else if (wb == 0)
+			std::cerr << "Something something" << std::endl;
+	}
+}
+
+/*	int wb;
 	try {
 		clients.at(fd).buildResponse();			
 		if (clients.at(fd).getResponse()) { 
@@ -114,8 +145,7 @@ void WebservController::makeResponse(int fd) {
 	}
 	catch (const std::runtime_error &e) {
 		errorHandler(e, false);
-	}
-}
+	}*/
 
 void WebservController::errorHandler(const std::runtime_error &err, bool ifExit) {
 	errorLogger(err.what());
@@ -147,7 +177,7 @@ void WebservController::cleanResources() {
 }
 
 static void sigHandler(int signal) {
-	if (signal == SIGINT || signal == SIGTERM || signal == SIGKILL || signal == SIGQUIT)
+	if (signal == SIGINT || signal == SIGTERM || signal == SIGQUIT)
 		running = false;
 }
 

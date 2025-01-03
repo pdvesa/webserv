@@ -1,15 +1,15 @@
 #include <CGIHandler.hpp>
 
-static pid_t childPID = -1;
+//static pid_t childPID = -1;
 
-static void alarmHandler(int signal) {
+/*static void alarmHandler(int signal) {
 	if (childPID != -1 && signal == SIGALRM)
 		kill(childPID, SIGTERM);
-}
+}*/
 
 CGI::CGI(HttpRequest request) : req(request), env(), envp(), exitStatus(0) {
 	try {
-		runCGI();
+		//runCGI();
 	}
 	catch (const std::runtime_error &e) {
 		exitStatus = 1;
@@ -19,7 +19,7 @@ CGI::CGI(HttpRequest request) : req(request), env(), envp(), exitStatus(0) {
 CGI::~CGI() {	
 }
 
-void CGI::runCGI() {
+/*void CGI::runCGI() {
 	pid_t	pid;
 	int		pipes[2];
 	char	*args[3];
@@ -63,33 +63,25 @@ void CGI::runCGI() {
 	}
 	else {
 		int status;
-		int rv;
 		childPID = pid;
 		signal(SIGALRM, alarmHandler);
-		alarm(15);
-		std::vector<unsigned char>	buffer(BUF_SIZE);
-		close(pipes[1]);
-		while ((rv = read(pipes[0], buffer.data(), BUF_SIZE)) > 0) {
-			buffer.resize(rv);
-			cgiResponse.append(buffer.begin(), buffer.end());
-			if (rv < BUF_SIZE) 
-				break;
-		}
-		close(pipes[0]);
+		alarm(5);
+		close(pipes[1]);	
 		waitpid(pid, &status, 0);
 		alarm(0);
-		if (rv == -1)
-			throw std::runtime_error("Parent failed to read in CGIHandler");
-		else if (rv == 0)
-			std::cout << "MAYBE WE JUST READ 0 THIS IN INSANE" << std::endl;
-		if (WIFEXITED(status))
-            exitStatus = WEXITSTATUS(status);
+		if (WIFEXITED(status)) {
+            if (!(exitStatus = WEXITSTATUS(status))) {
+				cgiResponse = pipes[0];
+				return ;
+			}
+		}
 		else if (WIFSIGNALED(status))
 			exitStatus = WTERMSIG(status);
+		close(pipes[0]);
 	} 
-}
+}*/
 
-void CGI::fillEnv() { 
+/*void CGI::fillEnv() { 
 	env.push_back("SERVER_SOFTWARE=KYS/0.0.1 (Unix)");
 	env.push_back("SERVER_NAME=" + req.getServer().getHost());
 	env.push_back("SERVER_PORT=" + std::to_string(req.getServer().getPort()));
@@ -106,4 +98,4 @@ void CGI::fillEnv() {
 		envp.push_back(const_cast<char*>(var.c_str()));
 	}
 	envp.push_back(nullptr);
-}
+}*/

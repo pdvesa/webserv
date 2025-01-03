@@ -69,7 +69,7 @@ std::string	Parsing::extractBlock(std::string& string, const std::string& blockN
 		throw InvalidFileFormatException("Argument string must contain open bracket");
 
 	std::string	blockContent = extractBracketLayer(string, openBracket);
-	std::string	remaining = string.substr(0, pos) + string.substr(openBracket, string.size() - (openBracket));
+	const std::string remaining = string.substr(0, pos) + string.substr(openBracket, string.size() - (openBracket));
 	string = remaining;
 	return (blockContent);
 }

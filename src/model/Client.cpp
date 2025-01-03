@@ -1,6 +1,6 @@
 #include <Client.hpp>
 
-Client::Client(int connection, int listen, ServerConfig conf) : clientFD(connection), listeningSocket(listen), config(conf), request(), response() {
+Client::Client(int connection, int listen, std::shared_ptr<ServerConfig> conf) : clientFD(connection), listeningSocket(listen), config(conf), request(config.get()), response(), cgiFD(0) {
 }
 
 Client::~Client() {
@@ -14,19 +14,19 @@ int Client::getListening() const {
 	return (listeningSocket);
 }
 
-const ServerConfig &Client::getConfig() const {
+const std::shared_ptr<ServerConfig> Client::getConfig() const {
 	return (config);
 }
 
-std::optional<HttpRequest> Client::getRequest() const {
-	return request;
+HttpRequest &Client::getRequest() {
+	return (request);
 }
 
-std::optional<HttpResponse> Client::getResponse() const {
-	return response;
+HttpResponse &Client::getResponse() {
+	return (response);
 }
 
-void	Client::buildRequest() {
+/*void	Client::buildRequest() {
 	if (request.has_value()) {
 		request->appendR(getClientFD());
 	}
@@ -38,9 +38,17 @@ void	Client::buildResponse() {
 	try {
 		if (request->getStatus() >= 200 && request->getStatus() < 300) {
 			std::string	path = request->getPath();
-			if (request->getCGIStatus()) {
-			response.emplace(HttpResponse(*request, HandleRequest::handleCGI(*request), "text/html"));
-		  	}
+			if (request->getCGIStatus()) 
+			{
+				std::cout << "ARE WE HERE AGGAIN\n\n\n" << std::endl;
+				CGI cgi(*request);
+				if (!(cgi.getCGIStatus())) {
+					setCgiFD(cgi.getCGIResponse());
+				}
+				else
+					buildErrorResponse();			
+			}
+//			response.emplace(HttpResponse(*request, HandleRequest::handleCGI(*request), "text/html"));
       		else if (request->getMethod() == "GET")
 			{
 				std::string	contentType;
@@ -71,14 +79,14 @@ void	Client::buildResponse() {
 		request->setStatus(static_cast<int>(statusCode));
 		buildErrorResponse();
 	}
-}
+}*/
 
 void	Client::clearClear() {
-	request.reset();
-	response.reset();
+	//request.reset();
+	//response.reset();
 }
 
-void Client::buildErrorResponse() {
+/*void Client::buildErrorResponse() {
 
 	std::string	body = DEFAULT_BODY;
 
@@ -92,6 +100,14 @@ void Client::buildErrorResponse() {
 		} catch (std::exception&) { }
 	}
 	response.emplace(HttpResponse(*request, body, "text/html"));
+}*/
+
+void Client::setCgiFD(int fd) {
+	cgiFD = fd;
+}
+
+int Client::getCgiFD() {
+	return (cgiFD);
 }
 
 const std::string Client::DEFAULT_BODY = "<!DOCTYPE html><html lang=\"en\"><head><meta charset=\"UTF-8\"><meta name=\"viewport\""

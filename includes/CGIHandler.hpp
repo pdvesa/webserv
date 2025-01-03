@@ -9,14 +9,15 @@
 #include <HttpRequest.hpp>
 #include <Client.hpp>
 #include <signal.h>
+#include <EpollUtils.hpp>
 
 class CGI {
 	private:
 		HttpRequest					req;
 		std::vector<std::string>	env;
 		std::vector<char *>			envp;
-		std::string					cgiResponse;
 		int							exitStatus;
+		int							cgiResponse;
 
 		void fillEnv();
 		void runCGI();
@@ -24,7 +25,7 @@ class CGI {
 		CGI(HttpRequest request);
 		~CGI();
 		
-		std::string getCGIResponse(){return cgiResponse;}
+		int			getCGIResponse(){return cgiResponse;}
 		int			getCGIStatus(){return exitStatus;}
 };
 

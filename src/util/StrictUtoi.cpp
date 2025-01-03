@@ -6,9 +6,12 @@
 #include <StrictUtoi.hpp>
 
 u_int StrictUtoi::strictUtoi(const std::string& str) {
-	size_t	treatedChar;
+	if (!isdigit(str[0]))
+		throw std::invalid_argument("str is not a number");
 
-	u_int result = std::stoul(str, &treatedChar, 10);
+	size_t	treatedChar;
+	const u_int result = std::stoul(str, &treatedChar, 10);
+
 	if (treatedChar != str.size())
 		throw std::invalid_argument("str is not a number");
 	return (result);

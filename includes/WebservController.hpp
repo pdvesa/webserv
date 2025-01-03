@@ -23,6 +23,11 @@
 #include <EpollUtils.hpp>
 #include <Server.hpp>
 #include <unordered_map>
+#include <RequestHandler.hpp>
+#include <HttpRequest.hpp>
+#include <HttpResponse.hpp>
+
+class RequestHandler;
 
 class WebservController {
 	private:
