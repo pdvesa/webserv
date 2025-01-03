@@ -27,6 +27,7 @@ class RequestHandler {
 
 		const HttpRequest&	request;
 		std::string			remainingPath;
+		bool				isCgi = false;
 
 		std::string			location;
 		std::string			contentType;
@@ -49,18 +50,19 @@ class RequestHandler {
 
 		RequestHandler	&operator=(const RequestHandler&) = delete;
 
+
 		bool						handle();
 		[[nodiscard]] HttpResponse	buildResponse() const;
 
 		[[nodiscard]] bool			isHandled() const;
 
 	private:
-	RouteConfig parseTarget();
+		RouteConfig parseTarget();
 
 		void	handleInvalid();
 		void	handleRedirection(const RouteConfig& route);
+		void	handleCgi(const RouteConfig& route);
 		void	handleGet(const RouteConfig& route);
-
 		void	handlePost(const RouteConfig& route);
 		void	handleDelete(const RouteConfig& route);
 

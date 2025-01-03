@@ -39,8 +39,6 @@ $(NAME): $(OBJS)
 	@echo "Compiling $(NAME)"
 	@echo "Compilation finished :)"
 
-
-
 debug:
 	make
 	valgrind --leak-check=full ./$(NAME) configs/sampleconf

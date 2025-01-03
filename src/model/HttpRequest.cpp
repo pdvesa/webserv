@@ -115,6 +115,13 @@ bool HttpRequest::parseData(const u_char* data, const size_t len)
 	return (false);
 }
 
+void HttpRequest::timeout()
+{
+	requestState = REQUEST_TIMEOUT;
+	unparsedData.clear();
+	parseIndex = 0;
+}
+
 std::map<std::string, std::string> HttpRequest::splitHeaderAttributes(const std::string& headerValue)
 {
 	std::vector<std::string> attributes = CppSplit::cppSplit(headerValue, ';');
@@ -150,6 +157,8 @@ bool HttpRequest::readParseMethod()
 			throw InvalidRequestException();
 		spacePos++;
 	}
+	if (spacePos == unparsedData.size() - parseIndex)
+		return (false);
 	if (unparsedData[parseIndex + spacePos] != ' ')
 		return (false);
 	const std::string methodStr = std::string(unparsedData.begin() + parseIndex, // NOLINT(*-narrowing-conversions)

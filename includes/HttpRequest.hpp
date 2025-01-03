@@ -35,6 +35,7 @@ typedef enum e_request_state {
 	REQUEST_BODY_TOO_LARGE,
 	REQUEST_LEN_REQUIRED,
 	REQUEST_UNIMPLEMENTED,
+	REQUEST_TIMEOUT,
 	SERVER_ERROR
 }	t_request_state;
 
@@ -74,6 +75,7 @@ class HttpRequest {
 		bool operator!=(const HttpRequest &) const = default;
 
 		bool	parseData(const u_char* data, size_t len);
+		void	timeout();
 
 		[[nodiscard]] bool							isChunked() const;
 		[[nodiscard]] t_request_state				getRequestState() const;

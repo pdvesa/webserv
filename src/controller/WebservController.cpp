@@ -6,15 +6,15 @@
 
 bool running = true;
 
-WebservController::WebservController() {	
-}
+WebservController::WebservController()
+{ }
 
 WebservController::~WebservController() {
 	cleanResources();
 }
 
 WebservController::WebservController(const std::string& configFilePath) {
-		serverConfigs = ServerConfig::fromConfigFile(configFilePath);
+	serverConfigs = ServerConfig::fromConfigFile(configFilePath);
 }
 
 void	WebservController::run() {
@@ -109,6 +109,7 @@ void WebservController::makeResponse(int fd) {
 		wb = write(fd, rVector.data(), rVector.size());
 		epollDelete(epollFD, fd);
 		close(fd);
+		clients.erase(fd);
 		if (wb == -1)
 			std::cerr << "Something" << std::endl;
 		else if (wb == 0)

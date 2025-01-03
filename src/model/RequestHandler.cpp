@@ -25,9 +25,10 @@ bool RequestHandler::handle()
 			{
 				if (!route.isMethodAllowed(request.getMethod()))
 					throw MethodNotAllowedException();
-
 				if (route.isRedirection())
 					handleRedirection(route);
+				else if (isCgi)
+					handleCgi(route);
 				else if (request.getMethod() == GET)
 					handleGet(route);
 				else if (request.getMethod() == POST)
@@ -116,6 +117,10 @@ RouteConfig RequestHandler::parseTarget()
 		std::string route = requestTarget.substr(routeStart, nextSlash - routeStart + 1);
 		if (request.getServerConfig().getRoutes().contains(route))
 		{
+			if (route == "/cgi-bin/")
+				isCgi = true;
+			else
+				isCgi = false;
 			found = true;
 			routeConfig = request.getServerConfig().getRoutes().at(route);
 			routeEnd = nextSlash;
@@ -144,6 +149,9 @@ void RequestHandler::handleInvalid()
 		case REQUEST_UNIMPLEMENTED:
 			buildError(501);
 			break;
+		case REQUEST_TIMEOUT:
+			buildError(408);
+			break;
 		default:
 			buildError(500);
 	}
@@ -155,6 +163,11 @@ void RequestHandler::handleRedirection(const RouteConfig& route)
 	location += remainingPath;
 	statusCode = route.getRedirection().code; // NOLINT(*-narrowing-conversions)
 	handlingState = STATE_YES;
+}
+
+void RequestHandler::handleCgi(const RouteConfig& route)
+{
+
 }
 
 void RequestHandler::handleGet(const RouteConfig& route)
