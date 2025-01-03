@@ -122,6 +122,13 @@ void HttpRequest::timeout()
 	parseIndex = 0;
 }
 
+void HttpRequest::serverError()
+{
+	requestState = SERVER_ERROR;
+	unparsedData.clear();
+	parseIndex = 0;
+}
+
 std::map<std::string, std::string> HttpRequest::splitHeaderAttributes(const std::string& headerValue)
 {
 	std::vector<std::string> attributes = CppSplit::cppSplit(headerValue, ';');

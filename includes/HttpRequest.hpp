@@ -76,6 +76,7 @@ class HttpRequest {
 
 		bool	parseData(const u_char* data, size_t len);
 		void	timeout();
+		void	serverError();
 
 		[[nodiscard]] bool							isChunked() const;
 		[[nodiscard]] t_request_state				getRequestState() const;
