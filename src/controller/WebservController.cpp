@@ -105,8 +105,7 @@ void WebservController::makeResponse(int fd) {
 		handler.handle();
 		HttpResponse				response = handler.buildResponse();
 		std::vector<unsigned char>	rVector = response.asResponseBuffer();
-		int 						wb;
-		wb = write(fd, rVector.data(), rVector.size());
+		int wb = write(fd, rVector.data(), rVector.size()); // NOLINT(*-narrowing-conversions)
 		epollDelete(epollFD, fd);
 		close(fd);
 		clients.erase(fd);
@@ -156,4 +155,3 @@ void WebservController::controllerSignals() {
 	signal(SIGTERM, sigHandler);
 	signal(SIGQUIT, sigHandler);
 }
-

@@ -43,7 +43,7 @@ class WebservController {
 		void	errorHandler(const std::runtime_error &err, bool ifExit);
 		void	errorLogger(const std::string &errMsg);
 		void	cleanResources();
-		void	controllerSignals();
+		static void	controllerSignals();
 		void	makeResponse(int fd);
 		void	makeRequest(int fd);
 	public:
