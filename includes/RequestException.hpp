@@ -28,6 +28,12 @@ class ForbiddenException final : public std::runtime_error {
 	ForbiddenException() : std::runtime_error("Forbidden") {}
 };
 
+class IamATeapotException final : public std::runtime_error {
+	public:
+	IamATeapotException() : std::runtime_error("I am a teapot") {}
+	explicit IamATeapotException(const std::string &msg) : std::runtime_error(msg) {}
+};
+
 class NotImplementedException final : public std::runtime_error {
 	public:
 	NotImplementedException() : std::runtime_error("Not implemented") {}
@@ -41,6 +47,11 @@ class RequestBodyTooLargeException final : public std::runtime_error {
 class RequestContentLengthMissingException final : public std::runtime_error {
 	public:
 	RequestContentLengthMissingException() : std::runtime_error("Request content length missing") {}
+};
+
+class HttpVersionNotSupportedException final : public std::runtime_error {
+	public:
+	HttpVersionNotSupportedException() : std::runtime_error("HTTP version not supported") {}
 };
 
 #endif
