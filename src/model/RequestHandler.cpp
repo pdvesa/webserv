@@ -81,11 +81,13 @@ bool RequestHandler::handle()
 	return (isHandled());
 }
 
-HttpResponse RequestHandler::buildResponse() const
+std::vector<u_char> RequestHandler::buildResponse() const
 {
 	if (!isHandled())
 		throw std::runtime_error("Request haven't been handled");
-	return (HttpResponse(statusCode, location, contentType, responseBody, request.getMethod()));
+	if (isCgi)
+		return (cgiResponse);
+	return (HttpResponse(statusCode, location, contentType, responseBody, request.getMethod()).asResponseBuffer());
 }
 
 RouteConfig RequestHandler::parseTarget()
@@ -167,7 +169,7 @@ void RequestHandler::handleRedirection(const RouteConfig& route)
 
 void RequestHandler::handleCgi(const RouteConfig& route)
 {
-
+	(void)route;
 }
 
 void RequestHandler::handleGet(const RouteConfig& route)

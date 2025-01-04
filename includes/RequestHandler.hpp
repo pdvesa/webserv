@@ -42,6 +42,9 @@ class RequestHandler {
 		std::string			postUploadFilename;
 		bool				filePart = false;
 
+		//CGI
+		std::vector<u_char>	cgiResponse;
+
 
 	public:
 		explicit RequestHandler(const HttpRequest& request);
@@ -52,7 +55,7 @@ class RequestHandler {
 
 
 		bool						handle();
-		[[nodiscard]] HttpResponse	buildResponse() const;
+		[[nodiscard]] std::vector<u_char> buildResponse() const;
 
 		[[nodiscard]] bool			isHandled() const;
 
@@ -68,7 +71,7 @@ class RequestHandler {
 
 		void	getPostUploadFilename();
 
-	void savePart(const std::string& serverTarget, const std::string& filename, const std::vector<unsigned char>& data,
+		void savePart(const std::string& serverTarget, const std::string& filename, const std::vector<unsigned char>& data,
 				bool finished);
 
 		void	buildError(int code);

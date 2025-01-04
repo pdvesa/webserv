@@ -103,9 +103,8 @@ void WebservController::makeResponse(int fd) {
 	if (req.getRequestState() != REQUEST_PARSING && req.getRequestState() != REQUEST_CHUNK_RECEIVING) {
 		RequestHandler				handler(req);
 		handler.handle();
-		HttpResponse				response = handler.buildResponse();
-		std::vector<unsigned char>	rVector = response.asResponseBuffer();
-		int wb = write(fd, rVector.data(), rVector.size()); // NOLINT(*-narrowing-conversions)
+		std::vector<unsigned char>	response = handler.buildResponse();
+		int wb = write(fd, response.data(), response.size()); // NOLINT(*-narrowing-conversions)
 		epollDelete(epollFD, fd);
 		close(fd);
 		clients.erase(fd);
