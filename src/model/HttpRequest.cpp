@@ -27,7 +27,7 @@ HttpRequest::~HttpRequest()
 
 bool HttpRequest::parseData(const u_char* data, const size_t len)
 {
-	if (requestState != REQUEST_PARSING)
+	if (requestState != REQUEST_PARSING && requestState != REQUEST_CHUNK_RECEIVING)
 		return (false);
 	try {
 		unparsedData.insert(unparsedData.end(), data, data + len);
@@ -278,11 +278,13 @@ bool HttpRequest::readChunk()
 					throw InvalidRequestException();
 				endLinePos++;
 			}
-			if (endLinePos == unparsedData.size() - 1)
+			if (endLinePos >= unparsedData.size() - 1)
 				return (false);
 
-			currentChunkSize = std::stoi(std::string(unparsedData.begin() + parseIndex, // NOLINT(*-narrowing-conversions)
-				unparsedData.begin() + endLinePos), nullptr, 16); // NOLINT(*-narrowing-conversions)
+			std::string chunkSize(unparsedData.begin() + parseIndex, unparsedData.begin() + endLinePos);
+
+
+			currentChunkSize = std::stoi(chunkSize, nullptr, 16);
 			if (currentChunkSize > serverConfig->getMaxClientBodySize())
 				throw RequestBodyTooLargeException();
 
@@ -295,11 +297,7 @@ bool HttpRequest::readChunk()
 					parseIndex = endLinePos + CRLF.length() + CRLF.length();
 					return (true);
 				}
-				else
-				{
-					currentChunkSize = - 1;
-					return (false);
-				}
+				return (false);
 			}
 			else
 				parseIndex = endLinePos + CRLF.length();
