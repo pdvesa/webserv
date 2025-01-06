@@ -13,16 +13,20 @@
 
 class CGI {
 	private:
-		HttpRequest					req;
+		Client						&client;
+		const HttpRequest			&req;
+		std::string					path;
 		std::vector<std::string>	env;
 		std::vector<char *>			envp;
 		int							exitStatus;
 		int							cgiResponse;
+		int 						clientFD;
+		int							pollFD;
 
 		void fillEnv();
 		void runCGI();
 	public:
-		CGI(HttpRequest request);
+		CGI(Client &kunde, const HttpRequest &request, int pfd, std::string target);
 		~CGI();
 		
 		int			getCGIResponse(){return cgiResponse;}
