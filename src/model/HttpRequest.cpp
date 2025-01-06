@@ -20,6 +20,11 @@ HttpRequest::HttpRequest(ServerConfig* serverConfig, const u_char* data, const s
 	parseData(data, len);
 }
 
+HttpRequest::~HttpRequest()
+{
+	delete body;
+}
+
 bool HttpRequest::parseData(const u_char* data, const size_t len)
 {
 	if (requestState != REQUEST_PARSING && requestState != REQUEST_CHUNK_RECEIVING)
@@ -261,7 +266,6 @@ bool HttpRequest::readChunk()
 {
 	while (true)
 	{
-		static ssize_t	currentChunkSize = -1;
 		if (currentChunkSize == -1)
 		{
 			size_t	endLinePos = parseIndex;
@@ -285,16 +289,14 @@ bool HttpRequest::readChunk()
 
 			if (currentChunkSize == 0)
 			{
-				if (endLinePos + CRLF.length() + CRLF.length() - 1 >= unparsedData.size())
+				if (endLinePos + CRLF.length() + CRLF.length() < unparsedData.size())
 				{
-					if (!isCrlf(unparsedData, endLinePos + CRLF.length() - 1))
-					{
-						std::cerr << (int) unparsedData[endLinePos + CRLF.length()] << "  " << (int) unparsedData[endLinePos + CRLF.length() + 1] << std::endl;
+					if (!isCrlf(unparsedData, endLinePos + CRLF.length()))
 						throw InvalidRequestException();
-					}
-					parseIndex = endLinePos + CRLF.length() + CRLF.length() - 1;
+					parseIndex = endLinePos + CRLF.length() + CRLF.length();
 					return (true);
 				}
+				currentChunkSize = -1;
 				return (false);
 			}
 			else

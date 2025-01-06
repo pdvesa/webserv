@@ -355,8 +355,15 @@ std::string RequestHandler::buildErrorPage(const int errorCode, const ServerConf
 {
 	std::string	errorPage;
 
-	if (server.getErrorsPages().contains(errorCode))
-		errorPage = server.getErrorsPages()[errorCode];
+	if (server.getErrorsPages().contains(errorCode)) {
+		try {
+			std::vector<unsigned char>	content;
+			readFile(server.getErrorsPages().at(errorCode), content);
+			errorPage = std::string(content.begin(), content.end());
+		} catch (...) { // NOLINT(*-except-type)
+			errorPage = SAKU_ERROR_PAGE;
+		}
+	}
 	else
 		errorPage = SAKU_ERROR_PAGE;
 
@@ -385,6 +392,23 @@ void RequestHandler::postLogContent(const std::vector<unsigned char>& content)
 		std::cout << c;
 	std::cout << std::endl;
 }
+
+void RequestHandler::readFile(const std::string& path, std::vector<unsigned char>& contentDest)
+{
+	if (access(path.c_str(), F_OK) != 0)
+		throw NotFoundException();
+	if (access(path.c_str(), R_OK) != 0)
+		throw ForbiddenException();
+	if (std::filesystem::is_regular_file(path))
+	{
+		std::ifstream	file(path, std::ios::binary);
+		if (!file.is_open())
+			throw std::runtime_error("Unable to open file");
+		contentDest = std::vector<u_char>((std::istreambuf_iterator(file)), std::istreambuf_iterator<char>());
+		file.close();
+	}
+}
+
 
 void RequestHandler::saveFile(const std::string& path, const std::string& filename, const std::vector<unsigned char>& content)
 {

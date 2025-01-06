@@ -68,6 +68,8 @@ class HttpRequest {
 
 		ServerConfig*						serverConfig;
 
+		ssize_t								currentChunkSize = -1;
+
 	public:
 		explicit HttpRequest(ServerConfig* serverConfig);
 		HttpRequest(ServerConfig* serverConfig, const u_char* data, size_t len);
