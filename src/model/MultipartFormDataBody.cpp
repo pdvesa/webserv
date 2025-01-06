@@ -7,20 +7,14 @@
 MultipartFormDataBody::MultipartFormDataBody(const std::string& boundary) :
 	parsingState(PARSING_BOUNDARY_START),
 	boundary(boundary),
-	parseIndex(0)
+	parseIndex(0),
+	isTerminated(false)
 { }
 
 bool MultipartFormDataBody::addData(const std::vector<u_char>& data)
 {
-	if (parsingState == PARSING_OK)
-	{
-		parsedLength += data.size();
-		return (true);
-	}
 	unparsedData.insert(unparsedData.end(), data.begin(), data.end());
 	try {
-		std::cerr << parsingState << std::endl;
-
 		switch (parsingState)
 		{
 			case PARSING_OK:
@@ -53,17 +47,23 @@ bool MultipartFormDataBody::addData(const std::vector<u_char>& data)
 
 		if (parsingState == PARSING_OK)
 		{
+			if (!isTerminated && !unparsedData.empty())
+			{
+				if (VecBuffCmp::vecBuffCmp(unparsedData, 0, CRLF.c_str(), 0, std::min(unparsedData.size(), CRLF.size())) == 0) {
+					if (unparsedData.size() >= CRLF.size()) {
+						isTerminated = true;
+						parsedLength += CRLF.size();
+						unparsedData.erase(unparsedData.begin(), unparsedData.begin() + CRLF.size()); // NOLINT(*-narrowing-conversions)
+					}
+					else
+						return (true);
+				}
+			}
 			if (!unparsedData.empty())
-				throw InvalidRequestException();
+				throw IamATeapotException("Multi-part multipart form data body not supported");
 		}
-
 		return (true);
-	} catch (InvalidRequestException& e) {
-		std::cerr << e.what() << std::endl;
-		parsingState = PARSING_ERROR;
-		return (false);
-	} catch (std::exception& e) {
-		std::cerr << e.what() << std::endl;
+	} catch (std::exception&) {
 		parsingState = PARSING_ERROR;
 		throw;
 	}

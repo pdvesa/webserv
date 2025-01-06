@@ -27,7 +27,7 @@ HttpRequest::~HttpRequest()
 
 bool HttpRequest::parseData(const u_char* data, const size_t len)
 {
-	if (requestState != REQUEST_PARSING)
+	if (requestState != REQUEST_PARSING && requestState != REQUEST_CHUNK_RECEIVING)
 		return (false);
 	try {
 		unparsedData.insert(unparsedData.end(), data, data + len);
@@ -100,9 +100,17 @@ bool HttpRequest::parseData(const u_char* data, const size_t len)
 		requestState = REQUEST_LEN_REQUIRED;
 		unparsedData.clear();
 		parseIndex = 0;
+	} catch (HttpVersionNotSupportedException&) {
+		requestState = HTTP_VERSION_NOT_SUPPORTED;
+		unparsedData.clear();
+		parseIndex = 0;
+	} catch (IamATeapotException& e) {
+		std::cerr << e.what() << std::endl;
+		requestState = I_AM_A_TEAPOT;
+		unparsedData.clear();
+		parseIndex = 0;
 	} catch (InvalidRequestException& e) {
 		std::cerr << e.what() << std::endl;
-		std::cerr << "Request: " << std::string(unparsedData.begin(), unparsedData.end()) << "|" <<std::endl;
 		requestState = REQUEST_INVALID;
 		unparsedData.clear();
 		parseIndex = 0;
@@ -118,6 +126,13 @@ bool HttpRequest::parseData(const u_char* data, const size_t len)
 void HttpRequest::timeout()
 {
 	requestState = REQUEST_TIMEOUT;
+	unparsedData.clear();
+	parseIndex = 0;
+}
+
+void HttpRequest::serverError()
+{
+	requestState = SERVER_ERROR;
 	unparsedData.clear();
 	parseIndex = 0;
 }
@@ -206,6 +221,9 @@ bool HttpRequest::readParseVersion()
 		}
 		return (false);
 	}
+	else if (VecBuffCmp::vecBuffCmp(unparsedData, parseIndex, HTTP_STR.c_str(), 0,
+		std::min(unparsedData.size() - parseIndex, HTTP_STR.size())) == 0)
+		throw HttpVersionNotSupportedException();
 	throw InvalidRequestException();
 }
 
@@ -236,6 +254,8 @@ bool HttpRequest::readBody()
 
 		if (body->getCumulatedSize() == contentLength)
 			return (true);
+		else if (body->getCumulatedSize() > contentLength)
+			throw InvalidRequestException();
 		return (false);
 	}
 	else
@@ -258,11 +278,13 @@ bool HttpRequest::readChunk()
 					throw InvalidRequestException();
 				endLinePos++;
 			}
-			if (endLinePos == unparsedData.size() - 1)
+			if (endLinePos >= unparsedData.size() - 1)
 				return (false);
 
-			currentChunkSize = std::stoi(std::string(unparsedData.begin() + parseIndex, // NOLINT(*-narrowing-conversions)
-				unparsedData.begin() + endLinePos), nullptr, 16); // NOLINT(*-narrowing-conversions)
+			std::string chunkSize(unparsedData.begin() + parseIndex, unparsedData.begin() + endLinePos);
+
+
+			currentChunkSize = std::stoi(chunkSize, nullptr, 16);
 			if (currentChunkSize > serverConfig->getMaxClientBodySize())
 				throw RequestBodyTooLargeException();
 
@@ -275,11 +297,7 @@ bool HttpRequest::readChunk()
 					parseIndex = endLinePos + CRLF.length() + CRLF.length();
 					return (true);
 				}
-				else
-				{
-					currentChunkSize = - 1;
-					return (false);
-				}
+				return (false);
 			}
 			else
 				parseIndex = endLinePos + CRLF.length();

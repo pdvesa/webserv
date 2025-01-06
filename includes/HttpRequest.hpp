@@ -20,6 +20,7 @@
 #include <SpacesClean.hpp>
 
 static const std::string HTTP_VERSION_STR = "HTTP/1.1";
+static const std::string HTTP_STR = "HTTP/";
 
 static const std::string CRLF = "\r\n";
 static const std::string HEADER_END_STR = "\r\n\r\n";
@@ -34,8 +35,10 @@ typedef enum e_request_state {
 	REQUEST_INVALID,
 	REQUEST_BODY_TOO_LARGE,
 	REQUEST_LEN_REQUIRED,
+	I_AM_A_TEAPOT,
 	REQUEST_UNIMPLEMENTED,
 	REQUEST_TIMEOUT,
+	HTTP_VERSION_NOT_SUPPORTED,
 	SERVER_ERROR
 }	t_request_state;
 
@@ -76,6 +79,7 @@ class HttpRequest {
 
 		bool	parseData(const u_char* data, size_t len);
 		void	timeout();
+		void	serverError();
 
 		[[nodiscard]] bool							isChunked() const;
 		[[nodiscard]] t_request_state				getRequestState() const;

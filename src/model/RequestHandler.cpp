@@ -83,11 +83,13 @@ bool RequestHandler::handle()
 	return (isHandled());
 }
 
-HttpResponse RequestHandler::buildResponse() const
+std::vector<u_char> RequestHandler::buildResponse() const
 {
 	if (!isHandled())
 		throw std::runtime_error("Request haven't been handled");
-	return (HttpResponse(statusCode, location, contentType, responseBody, request.getMethod()));
+	if (isCgi)
+		return (cgiResponse);
+	return (HttpResponse(statusCode, location, contentType, responseBody, request.getMethod()).asResponseBuffer());
 }
 
 RouteConfig RequestHandler::parseTarget()
@@ -153,6 +155,12 @@ void RequestHandler::handleInvalid()
 			break;
 		case REQUEST_TIMEOUT:
 			buildError(408);
+			break;
+		case I_AM_A_TEAPOT:
+			buildError(418);
+			break;
+		case HTTP_VERSION_NOT_SUPPORTED:
+			buildError(505);
 			break;
 		default:
 			buildError(500);
@@ -411,7 +419,6 @@ void RequestHandler::postLogContent(const std::vector<unsigned char>& content)
 
 void RequestHandler::saveFile(const std::string& path, const std::string& filename, const std::vector<unsigned char>& content)
 {
-	std::cerr << path << filename << std::endl;
 	if (exists(std::filesystem::path(path + filename)))
 		throw ForbiddenException();
 	if (access(path.c_str(), W_OK) != 0)

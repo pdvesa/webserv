@@ -30,6 +30,7 @@ class MultipartFormDataBody final : public RequestBody {
 
 		std::map<std::string, std::string>	bodyHeaders;
 		std::vector<u_char>					bodyContent;
+		bool								isTerminated;
 
 
 	public:

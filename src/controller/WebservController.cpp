@@ -119,11 +119,9 @@ void WebservController::makeRequest(int fd) {
 	std::vector<unsigned char>	buffer(BUF_SIZE);
 	HttpRequest					&req = clients.at(fd).getRequest();
 	int							rb;
-	if (req.getRequestState() == REQUEST_PARSING) {
+	if (req.getRequestState() == REQUEST_PARSING || req.getRequestState() == REQUEST_CHUNK_RECEIVING) {
 		if ((rb = read(fd, buffer.data(), BUF_SIZE)) > 0) {
 			buffer.resize(rb);
-			for (auto c : buffer)
-				std::cout << c;
 			req.parseData(buffer.data(), rb);
 		} 
 		if (rb == 0)
