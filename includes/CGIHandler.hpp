@@ -20,7 +20,6 @@ class CGI {
 		std::vector<char *>			envp;
 		int							exitStatus;
 		int							cgiResponse;
-		int 						clientFD;
 		int							pollFD;
 
 		void fillEnv();

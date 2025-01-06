@@ -83,7 +83,7 @@ void WebservController::acceptConnection(int listenFD) {
 		Client client(connectionFD, listenFD, config);
 		clients.insert_or_assign(connectionFD, client);
 		epollAdd(epollFD, connectionFD, true);
-		std::cout << "accepted: " << connectionFD << std::endl;
+		std::cout << "accepted: " << connectionFD << " from " << listenFD << std::endl;
 	}
 }
 
@@ -152,9 +152,8 @@ void WebservController::makeResponse(int fd) {
 				clients.at(fd).setCgiStatus(CGI_WAIT);
 				return ;
 			}
-			HttpResponse	response = handler.buildResponse();
-			std::vector<unsigned char>	rVector = response.asResponseBuffer();
-			int wb = write(fd, rVector.data(), rVector.size());
+			std::vector<unsigned char>	response = handler.buildResponse();
+			int wb = write(fd, response.data(), response.size());
 			epollDelete(epollFD, fd);
 			close(fd);
 			clients.erase(fd);
@@ -212,13 +211,12 @@ void WebservController::checkForTimeout() {
     	auto diff = now - client.second.getTimestamp();
 		auto passed = std::chrono::duration_cast<std::chrono::seconds>(diff);
 		if (passed.count() > TIMEOUT) {
+			std::cout << client.second.getPid() << std::endl;
 			if (client.second.getCgiStatus() == CGI_WAIT)
 				kill(client.second.getPid(), SIGTERM);
 			std::cout << "in timeout" << std::endl;
 			std::cout << client.first << std::endl;
-			exit (0);
-			//call timeout from jules
-			
+			client.second.getRequest().timeout();
 			/*epollDelete(epollFD, fd);
 			close(fd);
 			clients.erase(fd);*/

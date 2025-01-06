@@ -46,13 +46,13 @@ void CGI::runCGI() {
 	else {
 		int status;
 		close(pipes[1]);	
-		waitpid(pid, &status, 0); //will this hang?
+		waitpid(pid, &status, WNOHANG); //will this hang?
 		if (WIFEXITED(status)) {
-            if (!(exitStatus = WEXITSTATUS(status))) {
+        	if (!(exitStatus = WEXITSTATUS(status))) {
 				epollAdd(pollFD, pipes[0], true);				
 				client.setCgiFD(pipes[0]);
 				client.setPid(pid);
-				std::cout << "this time in cgi " << pipes[0] << std::endl;
+		std::cout << "this time in cgi " << pipes[0] << std::endl;
 				return ;
 			}
 		}
@@ -63,11 +63,12 @@ void CGI::runCGI() {
 }
 
 void CGI::fillEnv() { 
+	std::string methods[3] = {"GET", "POST", "DELETE"};
 	env.push_back("SERVER_SOFTWARE=KYS/0.0.1 (Unix)");
 	env.push_back("SERVER_NAME=" + req.getServerConfig().getHost());
 	env.push_back("SERVER_PORT=" + std::to_string(req.getServerConfig().getPort()));
 	env.push_back("GATEWAY_INTERFACE=CGI/1.1");
-	env.push_back("METHOD=" + req.getMethod()); //prints enum, change
+	env.push_back("METHOD=" + methods[req.getMethod()]);
 	if (req.getMethod() == 1) {
 		env.push_back("CONTENT_TYPE=" + req.getHeader("Content-Type"));
 		env.push_back("CONTENT_LENGTH=" + req.getHeader("Content-Length"));
