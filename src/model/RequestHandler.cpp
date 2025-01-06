@@ -4,8 +4,10 @@
 
 #include <RequestHandler.hpp>
 
-RequestHandler::RequestHandler(const HttpRequest& request) :
+RequestHandler::RequestHandler(Client& kunde, const HttpRequest& request, int pfd) :
 	request(request),
+	client(kunde),
+	pollFD(pfd),
 	statusCode(0),
 	handlingState(STATE_NO) {
 }
@@ -119,7 +121,7 @@ RouteConfig RequestHandler::parseTarget()
 		std::string route = requestTarget.substr(routeStart, nextSlash - routeStart + 1);
 		if (request.getServerConfig().getRoutes().contains(route))
 		{
-			if (route == "/cgi-bin/")
+			if (route == "/cgi-bin/" || route == "/cgi-bin")
 				isCgi = true;
 			else
 				isCgi = false;
@@ -175,7 +177,36 @@ void RequestHandler::handleRedirection(const RouteConfig& route)
 
 void RequestHandler::handleCgi(const RouteConfig& route)
 {
-	(void)route;
+	std::string	serverTarget = "." + route.getRootDir() + remainingPath;
+
+	if (remainingPath.empty() && !route.getIndex().empty())
+		serverTarget += route.getIndex();
+
+	
+	//check extension
+	std::cout << serverTarget << std::endl;
+	if (access(serverTarget.c_str(), F_OK) != 0)
+		throw NotFoundException();
+	if (access(serverTarget.c_str(), X_OK) != 0)
+		throw ForbiddenException();
+	if (std::filesystem::is_regular_file(serverTarget))
+	{
+		CGI cgiRes(client, request, pollFD, serverTarget);
+		/*if (cgiRes.getCGIStatus() == 1)
+			throw GatewayException;*/
+	}
+	else if (std::filesystem::is_directory(serverTarget))
+	{
+		if (!route.getListing())
+			throw ForbiddenException();
+		contentType = "text/html";
+		std::string listingPage = buildListingPage(serverTarget, request.getTarget());
+		responseBody.reserve(listingPage.size());
+		responseBody = std::vector<u_char>(listingPage.begin(), listingPage.end());
+	}
+	else
+		throw NotFoundException();
+	handlingState = STATE_YES;
 }
 
 void RequestHandler::handleGet(const RouteConfig& route)
@@ -184,7 +215,7 @@ void RequestHandler::handleGet(const RouteConfig& route)
 
 	if (remainingPath.empty() && !route.getIndex().empty())
 		serverTarget += route.getIndex();
-
+	
 	if (access(serverTarget.c_str(), F_OK) != 0)
 		throw NotFoundException();
 	if (access(serverTarget.c_str(), R_OK) != 0)
