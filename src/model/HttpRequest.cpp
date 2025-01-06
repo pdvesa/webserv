@@ -20,11 +20,6 @@ HttpRequest::HttpRequest(ServerConfig* serverConfig, const u_char* data, const s
 	parseData(data, len);
 }
 
-HttpRequest::~HttpRequest()
-{
-	delete body;
-}
-
 bool HttpRequest::parseData(const u_char* data, const size_t len)
 {
 	if (requestState != REQUEST_PARSING && requestState != REQUEST_CHUNK_RECEIVING)
@@ -290,11 +285,14 @@ bool HttpRequest::readChunk()
 
 			if (currentChunkSize == 0)
 			{
-				if (endLinePos + CRLF.length() + CRLF.length() >= unparsedData.size())
+				if (endLinePos + CRLF.length() + CRLF.length() - 1 >= unparsedData.size())
 				{
-					if (!isCrlf(unparsedData, endLinePos + CRLF.length()))
+					if (!isCrlf(unparsedData, endLinePos + CRLF.length() - 1))
+					{
+						std::cerr << (int) unparsedData[endLinePos + CRLF.length()] << "  " << (int) unparsedData[endLinePos + CRLF.length() + 1] << std::endl;
 						throw InvalidRequestException();
-					parseIndex = endLinePos + CRLF.length() + CRLF.length();
+					}
+					parseIndex = endLinePos + CRLF.length() + CRLF.length() - 1;
 					return (true);
 				}
 				return (false);

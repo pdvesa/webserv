@@ -16,6 +16,7 @@
 #include <StrictUtoi.hpp>
 #include <VecBuffCmp.hpp>
 #include <http_methods.h>
+#include <memory>
 #include <RequestException.hpp>
 #include <SpacesClean.hpp>
 
