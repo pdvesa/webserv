@@ -277,14 +277,13 @@ bool HttpRequest::readChunk()
 
 			std::string chunkSize(unparsedData.begin() + parseIndex, unparsedData.begin() + endLinePos);
 
-
 			currentChunkSize = std::stoi(chunkSize, nullptr, 16);
 			if (currentChunkSize > serverConfig->getMaxClientBodySize())
 				throw RequestBodyTooLargeException();
 
 			if (currentChunkSize == 0)
 			{
-				if (endLinePos + CRLF.length() + CRLF.length() < unparsedData.size())
+				if (endLinePos + CRLF.length() + CRLF.length() <= unparsedData.size())
 				{
 					if (!isCrlf(unparsedData, endLinePos + CRLF.length()))
 						throw InvalidRequestException();
@@ -316,7 +315,6 @@ bool HttpRequest::readChunk()
 
 		parseIndex += CRLF.length();
 		currentChunkSize = -1;
-		return (false);
 	}
 }
 
