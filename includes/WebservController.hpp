@@ -9,6 +9,10 @@
 #define MAX_EVENTS 128
 #endif
 
+#ifndef TIMEOUT
+#define TIMEOUT 5
+#endif
+
 #include <vector>
 #include <fstream>
 #include <chrono>
@@ -36,16 +40,21 @@ class WebservController {
 		std::unordered_map<int, Client>	clients;
 		std::vector<Server>				servers;
 		int 							epollFD;
+		int								cgiPoll;
 		int								eventsWaiting;
+		int								cgiEvents;
 		epoll_event						eventWaitlist[MAX_EVENTS];
+		epoll_event						cgiEventWaitlist[MAX_EVENTS];
 		void	createSockets(int domain, int type, int protocol);
 		void	acceptConnection(int listenFd);
 		void	errorHandler(const std::runtime_error &err, bool ifExit);
 		void	errorLogger(const std::string &errMsg);
 		void	cleanResources();
 		static void	controllerSignals();
+		void	handleCGIClient(int fd, bool closed);
 		void	makeResponse(int fd);
 		void	makeRequest(int fd);
+		void	checkForTimeout();
 	public:
 		WebservController();
 		WebservController(const std::string& configFilePath);

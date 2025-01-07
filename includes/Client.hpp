@@ -2,19 +2,28 @@
 # define CLIENT_HPP
 
 #ifndef BUF_SIZE
-# define BUF_SIZE 1
+# define BUF_SIZE 256
 #endif
 
 #include <memory>
 #include <iostream>
 #include <arpa/inet.h>
 #include <ServerConfig.hpp>
-#include <optional>
+#include <vector>
+#include <chrono>
 #include <HttpRequest.hpp>
 #include <HttpResponse.hpp>
 
+
 class HttpRequest;
 class HttpResponse;
+
+enum cgi_state {
+	NO_CGI,
+	CGI_WAIT,
+	CGI_RDY,
+	CGI_ERR
+};
 
 class Client {
 	private:
@@ -24,6 +33,10 @@ class Client {
 		HttpRequest		request;
 		HttpResponse	response;
 		int 			cgiFD;
+		int				cgiState;
+		pid_t			pid;
+		std::vector<unsigned char> cgiResp;
+		std::chrono::steady_clock::time_point timestamp;
 	public:
 		Client(int connection, int listen, std::shared_ptr<ServerConfig> conf);
 		~Client();
@@ -32,9 +45,14 @@ class Client {
 		HttpRequest &getRequest();
 		HttpResponse &getResponse();
 		const std::shared_ptr<ServerConfig> getConfig() const;
-		void		clearClear();
 		void		setCgiFD(int fd);
 		int 		getCgiFD();
+		void		setCgiStatus(int state);
+		int			getCgiStatus();
+		pid_t		getPid();
+		void		setPid(pid_t p);
+		std::vector<unsigned char> &getCgiResponse();
+		std::chrono::steady_clock::time_point getTimestamp();
 };
 
 #endif

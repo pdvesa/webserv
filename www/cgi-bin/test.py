@@ -5,6 +5,9 @@ post_body = os.environ.get('POST_BODY')
 key_value = post_body.split('=')
 key, value = key_value
 
+print("Content-Type: text/html")
+print()
+
 print(f"""
 <html>
 <body style="font-family: Arial, sans-serif; text-align: center; padding: 50px; background-color: #f4f4f4;">

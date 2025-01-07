@@ -5,7 +5,7 @@
 #include <fcntl.h>
 #include <fstream>
 
-void	epollAdd(int epollFD, int addFD, bool in);
+void	epollAdd(int epollFD, int addFD);
 void	epollDelete(int epollFD, int deleteFD);
 void	epollModify(int epollFD, int modFD);
 void	setNonBlocking(int fd);

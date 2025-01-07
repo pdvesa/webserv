@@ -1,14 +1,9 @@
 #include <EpollUtils.hpp>
 #include <iostream> //debug
 
-void epollAdd(int epollFD, int addFD, bool in) {
+void epollAdd(int epollFD, int addFD) {
 	epoll_event	temp;
-	if (in) 
-		temp.events = EPOLLIN | EPOLLRDHUP;
-	else 
-		temp.events = EPOLLOUT | EPOLLRDHUP;
-	temp.events = 0;
-	temp.events = EPOLLIN | EPOLLOUT | EPOLLRDHUP;
+	temp.events = EPOLLIN | EPOLLOUT | EPOLLRDHUP | EPOLLHUP;
 	temp.data.fd = addFD;
 	if (epoll_ctl(epollFD, EPOLL_CTL_ADD, addFD, &temp) == -1) 
 		throw std::runtime_error("Adding FD to epoll failed");
@@ -26,7 +21,7 @@ void epollDelete(int epollFD, int deleteFD) {
 
 void epollModify(int epollFD, int modFD) {
 	epoll_event	temp;
-	temp.events = EPOLLIN | EPOLLOUT;
+	temp.events = EPOLLOUT | EPOLLRDHUP;
 	temp.data.fd = modFD;
 	if (epoll_ctl(epollFD, EPOLL_CTL_MOD, modFD, &temp) == -1) 
 		throw std::runtime_error("Modifying FD from epoll failed");	

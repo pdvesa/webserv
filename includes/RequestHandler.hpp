@@ -16,6 +16,7 @@
 #include <HttpRequest.hpp>
 #include <HttpResponse.hpp>
 #include <RequestException.hpp>
+#include <CGIHandler.hpp>
 
 class RequestHandler {
 	private:
@@ -26,8 +27,10 @@ class RequestHandler {
 		};
 
 		const HttpRequest&	request;
+		Client&				client;
 		std::string			remainingPath;
 		bool				isCgi = false;
+		int					pollFD;
 
 		std::string			location;
 		std::string			contentType;
@@ -47,7 +50,7 @@ class RequestHandler {
 
 
 	public:
-		explicit RequestHandler(const HttpRequest& request);
+		explicit RequestHandler(Client &kunde, const HttpRequest& request, int pfd);
 		RequestHandler(const RequestHandler&) = delete;
 		~RequestHandler() = default;
 
@@ -58,6 +61,8 @@ class RequestHandler {
 		[[nodiscard]] std::vector<u_char> buildResponse() const;
 
 		[[nodiscard]] bool			isHandled() const;
+
+		bool						getCGI() {return isCgi;}
 
 	private:
 		RouteConfig parseTarget();
