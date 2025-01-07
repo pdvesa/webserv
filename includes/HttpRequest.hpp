@@ -64,7 +64,7 @@ class HttpRequest {
 		std::string							target;
 		std::string							version;
 		std::map<std::string, std::string>	headers;
-		RequestBody*						body;
+		std::shared_ptr<RequestBody>		body;
 
 		ServerConfig*						serverConfig;
 
@@ -74,7 +74,7 @@ class HttpRequest {
 		explicit HttpRequest(ServerConfig* serverConfig);
 		HttpRequest(ServerConfig* serverConfig, const u_char* data, size_t len);
 		HttpRequest(const HttpRequest &) = default;
-		~HttpRequest();
+		~HttpRequest() = default;
 
 		HttpRequest& operator=(const HttpRequest &) = default;
 		bool operator==(const HttpRequest &) const = default;

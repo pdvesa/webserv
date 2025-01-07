@@ -20,11 +20,6 @@ HttpRequest::HttpRequest(ServerConfig* serverConfig, const u_char* data, const s
 	parseData(data, len);
 }
 
-HttpRequest::~HttpRequest()
-{
-	delete body;
-}
-
 bool HttpRequest::parseData(const u_char* data, const size_t len)
 {
 	if (requestState != REQUEST_PARSING && requestState != REQUEST_CHUNK_RECEIVING)
@@ -348,10 +343,10 @@ void HttpRequest::validateHeadersInitBody()
 			if (!attributes.contains("boundary"))
 				throw InvalidRequestException();
 
-			body = new MultipartFormDataBody(attributes.at("boundary"));
+			body = std::make_shared<MultipartFormDataBody>(attributes.at("boundary"));
 		}
 		else
-			body = new RequestBody();
+			body = std::make_shared<RequestBody>();
 	}
 }
 
