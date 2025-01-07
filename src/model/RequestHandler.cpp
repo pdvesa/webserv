@@ -25,10 +25,10 @@ bool RequestHandler::handle()
 			const RouteConfig route = parseTarget();
 			if (handlingState == STATE_NO)
 			{
-				if (!route.isMethodAllowed(request.getMethod()))
-					throw MethodNotAllowedException();
 				if (route.isRedirection())
 					handleRedirection(route);
+				else if (!route.isMethodAllowed(request.getMethod()))
+					throw MethodNotAllowedException();
 				else if (isCgi)
 					handleCgi(route);
 				else if (request.getMethod() == GET)
@@ -177,7 +177,6 @@ void RequestHandler::handleRedirection(const RouteConfig& route)
 
 void RequestHandler::handleCgi(const RouteConfig& route)
 {
-	std::cout << "cgi handler " << remainingPath << std::endl;
 	std::string	serverTarget = "." + route.getRootDir() + remainingPath;
 
 	if (remainingPath.empty() && !route.getIndex().empty())
@@ -202,8 +201,8 @@ void RequestHandler::handleCgi(const RouteConfig& route)
 	if (std::filesystem::is_regular_file(serverTarget))
 	{
 		CGI cgiRes(client, request, pollFD, serverTarget);
-		/*if (cgiRes.getCGIStatus() == 1)
-			throw GatewayException;*/
+		if (cgiRes.getCGIStatus() == 1)
+			throw std::runtime_error("ok");
 	}
 	else if (std::filesystem::is_directory(serverTarget))
 	{
@@ -365,6 +364,7 @@ void RequestHandler::savePart(const std::string& serverTarget, const std::string
 
 void RequestHandler::buildError(const int code)
 {
+	isCgi = false;
 	location.clear();
 	contentType = "text/html";
 	std::string	errorPage = buildErrorPage(code, request.getServerConfig());

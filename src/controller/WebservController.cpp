@@ -34,7 +34,6 @@ void	WebservController::run() {
 				epollDelete(epollFD, currentFD);
 				close(currentFD);
 				clients.erase(currentFD);
-				std::cout << "DEBUG" << std::endl;
 			}
 			else if (eventWaitlist[i].events & EPOLLIN)
 				makeRequest(currentFD);
@@ -95,8 +94,6 @@ void WebservController::makeRequest(int fd) {
 	int							rb;
 	if (req.getRequestState() == REQUEST_PARSING || req.getRequestState() == REQUEST_CHUNK_RECEIVING) {
 		if ((rb = read(fd, buffer.data(), BUF_SIZE)) > 0) {
-			for (u_char c : buffer)
-				std::cerr << c;
 			buffer.resize(rb);
 			req.parseData(buffer.data(), rb);
 		} 
