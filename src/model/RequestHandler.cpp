@@ -177,13 +177,12 @@ void RequestHandler::handleRedirection(const RouteConfig& route)
 
 void RequestHandler::handleCgi(const RouteConfig& route)
 {
-	std::cout << "cgi handler" << std::endl;
+	std::cout << "cgi handler " << remainingPath << std::endl;
 	std::string	serverTarget = "." + route.getRootDir() + remainingPath;
 
 	if (remainingPath.empty() && !route.getIndex().empty())
 		serverTarget += route.getIndex();
 
-	//check extension
 	if (access(serverTarget.c_str(), F_OK) != 0) 
 	{
 		isCgi = false;
@@ -193,6 +192,12 @@ void RequestHandler::handleCgi(const RouteConfig& route)
 	{
 		isCgi = false;
 		throw ForbiddenException();
+	}
+	std::filesystem::path path(remainingPath);
+	if (path.extension() != ".py" && path.extension() != ".cgi")
+	{
+		isCgi = false;
+		throw NotImplementedException();
 	}
 	if (std::filesystem::is_regular_file(serverTarget))
 	{

@@ -1,6 +1,6 @@
 #include <Client.hpp>
 
-Client::Client(int connection, int listen, std::shared_ptr<ServerConfig> conf) : clientFD(connection), listeningSocket(listen), config(conf), request(config.get()), response(), cgiState(NO_CGI), pid(0), cgiResp(), timestamp(std::chrono::steady_clock::now()) {
+Client::Client(int connection, int listen, std::shared_ptr<ServerConfig> conf) : clientFD(connection), listeningSocket(listen), config(conf), request(config.get()), response(), cgiFD(0), cgiState(NO_CGI), pid(0), cgiResp(), timestamp(std::chrono::steady_clock::now()) {
 }
 
 Client::~Client() {
