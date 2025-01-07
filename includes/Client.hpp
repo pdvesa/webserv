@@ -2,7 +2,7 @@
 # define CLIENT_HPP
 
 #ifndef BUF_SIZE
-# define BUF_SIZE 10280
+# define BUF_SIZE 256
 #endif
 
 #include <memory>
@@ -21,7 +21,8 @@ class HttpResponse;
 enum cgi_state {
 	NO_CGI,
 	CGI_WAIT,
-	CGI_RDY
+	CGI_RDY,
+	CGI_ERR
 };
 
 class Client {

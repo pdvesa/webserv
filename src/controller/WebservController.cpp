@@ -25,7 +25,7 @@ void	WebservController::run() {
 		throw std::runtime_error("Initializing epoll failed, idk :(");
 	createSockets(AF_INET, SOCK_STREAM, 0);
 	while (running) {
-		eventsWaiting = epoll_wait(epollFD, eventWaitlist, MAX_EVENTS, -1);
+		eventsWaiting = epoll_wait(epollFD, eventWaitlist, MAX_EVENTS, 0);
 		for (int i = 0; i < eventsWaiting; i++) {
 			int currentFD = eventWaitlist[i].data.fd;
 			if (std::find(listenFDs.cbegin(), listenFDs.cend(), currentFD) != std::end(listenFDs))
@@ -44,8 +44,10 @@ void	WebservController::run() {
 		cgiEvents = epoll_wait(cgiPoll, cgiEventWaitlist, MAX_EVENTS, 0);
 		for (int i = 0; i < cgiEvents; i++) {
 			int cgiFD = cgiEventWaitlist[i].data.fd;
-			if (cgiEventWaitlist[i].events & EPOLLIN)
-				handleCGIClient(cgiFD);
+			if (cgiEventWaitlist[i].events & EPOLLHUP) 
+				handleCGIClient(cgiFD, true);
+			else if (cgiEventWaitlist[i].events & EPOLLIN)
+				handleCGIClient(cgiFD, false);
 		}
 		checkForTimeout();
 	}
@@ -59,7 +61,7 @@ void WebservController::createSockets(int domain, int type, int protocol) {
 				.listenSocket(FD_SETSIZE)
 				.getSocketFD());
 			servers.push_back(Server(server, listenFDs.back()));
-			epollAdd(epollFD, listenFDs.back(), true); 
+			epollAdd(epollFD, listenFDs.back()); 
 		}
 	} catch (const std::runtime_error &err) {
 		errorHandler(err, true);
@@ -82,38 +84,10 @@ void WebservController::acceptConnection(int listenFD) {
 		std::shared_ptr<ServerConfig> config = found->getServerPtr();
 		Client client(connectionFD, listenFD, config);
 		clients.insert_or_assign(connectionFD, client);
-		epollAdd(epollFD, connectionFD, true);
-		std::cout << "accepted: " << connectionFD << " from " << listenFD << std::endl;
+		epollAdd(epollFD, connectionFD);
 	}
 }
 
-void WebservController::handleCGIClient(int fd) {
-	auto it = std::find_if(clients.begin(), clients.end(), 
-    [fd](std::pair<const int, Client> &pair) {
-    return pair.second.getCgiFD() == fd; });
-    if (it != clients.end()) {
-		Client &client = it->second;
-		if (client.getCgiStatus() == CGI_WAIT) {
-			int							rb;
-			std::vector<unsigned char>	buffer(BUF_SIZE);
-			std::vector<unsigned char>	&cgi = client.getCgiResponse();
-			if ((rb = read(fd, buffer.data(), BUF_SIZE)) > 0) {
-				buffer.resize(rb);
-				cgi.insert(cgi.end(), buffer.begin(), buffer.end());
-				if (rb < BUF_SIZE) {
-					client.setCgiStatus(CGI_RDY);
-					epollDelete(cgiPoll, fd);
-					close(fd);
-				}
-			}
-			if (rb == 0) {
-				std::cerr << "Read 0 in cgi, we close this anyways" << std::endl;
-			}
-			if (rb == -1)
-				std::cerr << "Failure of everything" << std::endl; //jules func
-		}
-	}
-}
 
 void WebservController::makeRequest(int fd) {
 	std::vector<unsigned char>	buffer(BUF_SIZE);
@@ -126,8 +100,10 @@ void WebservController::makeRequest(int fd) {
 		} 
 		if (rb == 0)
 			std::cerr << "Read 0 in request, we close this anyways" << std::endl;
-		if (rb == -1)
-			std::cerr << "Failure of everything" << std::endl; //jules func
+		if (rb == -1) {
+			clients.at(fd).getRequest().serverError();
+			epollModify(epollFD, fd);
+		}
 	}
 }
 
@@ -135,8 +111,10 @@ void WebservController::makeResponse(int fd) {
 	HttpRequest	&req = clients.at(fd).getRequest();
 	if (req.getRequestState() != REQUEST_PARSING && req.getRequestState() != REQUEST_CHUNK_RECEIVING) {	
 		if (clients.at(fd).getCgiStatus() == CGI_RDY) {
-			std::vector<unsigned char>	rVector = clients.at(fd).getCgiResponse();
-			int wb = write(fd, rVector.data(), rVector.size());
+			const std::string status_line = "HTTP/1.1 200 OK";
+			std::vector<unsigned char>	response = clients.at(fd).getCgiResponse();
+			response.insert(response.begin(), status_line.begin(), status_line.end());
+			int wb = write(fd, response.data(), response.size());
 			epollDelete(epollFD, fd);
 			close(fd);
 			clients.erase(fd);
@@ -161,6 +139,44 @@ void WebservController::makeResponse(int fd) {
 				std::cerr << "Write failed in response" << std::endl;
 			else if (wb == 0)
 				std::cerr << "Wrote 0 in response" << std::endl;
+		}
+	}
+}
+
+void WebservController::handleCGIClient(int fd, bool closed) {
+	auto it = std::find_if(clients.begin(), clients.end(), 
+    [fd](std::pair<const int, Client> &pair) {
+    return pair.second.getCgiFD() == fd; });
+    if (it != clients.end()) {
+		Client &client = it->second;
+		if (closed == true) {
+			client.setCgiStatus(CGI_RDY);
+			epollDelete(cgiPoll, fd);
+			close(fd);
+			int status;
+			waitpid(client.getPid(), &status, 0);
+		}
+		else if (client.getCgiStatus() == CGI_WAIT) {
+			int							rb;
+			std::vector<unsigned char>	buffer(BUF_SIZE);
+			std::vector<unsigned char>	&cgi = client.getCgiResponse();
+			rb = read(fd, buffer.data(), BUF_SIZE);
+			if (rb > 0) {
+				buffer.resize(rb);
+				cgi.insert(cgi.end(), buffer.begin(), buffer.end());
+			}
+			if (rb == 0) {
+				std::cerr << "Read 0 in cgi, we close this anyways" << std::endl;
+			}
+			if (rb == -1) {
+				client.getRequest().serverError();
+				epollModify(epollFD, client.getClientFD());
+				client.setCgiStatus(CGI_ERR);
+				epollDelete(cgiPoll, fd);
+				close(fd);
+				int status;
+				waitpid(client.getPid(), &status, 0);
+			}
 		}
 	}
 }
@@ -192,6 +208,7 @@ void WebservController::cleanResources() {
 		close(pair.first);
 	}
 	close(epollFD);
+	close(cgiPoll);
 }
 
 static void sigHandler(int signal) {
@@ -206,20 +223,22 @@ void WebservController::controllerSignals() {
 }
 
 void WebservController::checkForTimeout() {
-	for (auto client : clients) {
+	for (auto &client : clients) {
 		auto now = std::chrono::steady_clock::now();
     	auto diff = now - client.second.getTimestamp();
 		auto passed = std::chrono::duration_cast<std::chrono::seconds>(diff);
 		if (passed.count() > TIMEOUT) {
-			std::cout << client.second.getPid() << std::endl;
-			if (client.second.getCgiStatus() == CGI_WAIT)
-				kill(client.second.getPid(), SIGTERM);
-			std::cout << "in timeout" << std::endl;
-			std::cout << client.first << std::endl;
+			if (client.second.getCgiStatus() == CGI_WAIT) {
+				if (client.second.getPid() != 0) {
+					kill(client.second.getPid(), SIGTERM);
+					int status;
+					waitpid(client.second.getPid(), &status, 0);
+					epollDelete(cgiPoll, client.second.getCgiFD());
+					close(client.second.getCgiFD());
+				}
+				client.second.setCgiStatus(CGI_ERR);
+			}
 			client.second.getRequest().timeout();
-			/*epollDelete(epollFD, fd);
-			close(fd);
-			clients.erase(fd);*/
 		}
 	}
 }

@@ -38,32 +38,20 @@ void CGI::runCGI() {
 		close(pipes[0]);
 		if (dup2(pipes[1], STDOUT_FILENO) == -1)
 			exit(1);
-		close(pipes[1]);
 		execve(args[0], args, envp.data());
 		perror("This happened: ");
 		exit(EXIT_FAILURE);
 	}
 	else {
-		int status;
-		close(pipes[1]);	
-		waitpid(pid, &status, WNOHANG); //will this hang?
-		if (WIFEXITED(status)) {
-        	if (!(exitStatus = WEXITSTATUS(status))) {
-				epollAdd(pollFD, pipes[0], true);				
-				client.setCgiFD(pipes[0]);
-				client.setPid(pid);
-		std::cout << "this time in cgi " << pipes[0] << std::endl;
-				return ;
-			}
-		}
-		else if (WIFSIGNALED(status))
-			exitStatus = WTERMSIG(status);
-		close(pipes[0]);
+		close(pipes[1]);
+		epollAdd(pollFD, pipes[0]);				
+		client.setCgiFD(pipes[0]);		
+		client.setPid(pid);
 	} 
 }
 
 void CGI::fillEnv() { 
-	std::string methods[3] = {"GET", "POST", "DELETE"};
+	std::string methods[4] = {"GET", "POST", "DELETE", "TEAPOT"};
 	env.push_back("SERVER_SOFTWARE=KYS/0.0.1 (Unix)");
 	env.push_back("SERVER_NAME=" + req.getServerConfig().getHost());
 	env.push_back("SERVER_PORT=" + std::to_string(req.getServerConfig().getPort()));

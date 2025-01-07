@@ -10,7 +10,7 @@
 #endif
 
 #ifndef TIMEOUT
-#define TIMEOUT 10
+#define TIMEOUT 5
 #endif
 
 #include <vector>
@@ -51,7 +51,7 @@ class WebservController {
 		void	errorLogger(const std::string &errMsg);
 		void	cleanResources();
 		static void	controllerSignals();
-		void	handleCGIClient(int fd);
+		void	handleCGIClient(int fd, bool closed);
 		void	makeResponse(int fd);
 		void	makeRequest(int fd);
 		void	checkForTimeout();

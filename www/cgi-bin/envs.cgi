@@ -4,6 +4,8 @@ import os
 import cgi
 
 # Start the HTML document
+print("Content-Type: text/html")
+
 print("""
 <html>
 <head>

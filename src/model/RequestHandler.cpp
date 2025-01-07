@@ -177,18 +177,23 @@ void RequestHandler::handleRedirection(const RouteConfig& route)
 
 void RequestHandler::handleCgi(const RouteConfig& route)
 {
+	std::cout << "cgi handler" << std::endl;
 	std::string	serverTarget = "." + route.getRootDir() + remainingPath;
 
 	if (remainingPath.empty() && !route.getIndex().empty())
 		serverTarget += route.getIndex();
 
-	
 	//check extension
-	std::cout << serverTarget << std::endl;
-	if (access(serverTarget.c_str(), F_OK) != 0)
+	if (access(serverTarget.c_str(), F_OK) != 0) 
+	{
+		isCgi = false;
 		throw NotFoundException();
-	if (access(serverTarget.c_str(), X_OK) != 0)
+	}
+	if (access(serverTarget.c_str(), X_OK) != 0) 
+	{
+		isCgi = false;
 		throw ForbiddenException();
+	}
 	if (std::filesystem::is_regular_file(serverTarget))
 	{
 		CGI cgiRes(client, request, pollFD, serverTarget);
@@ -197,6 +202,7 @@ void RequestHandler::handleCgi(const RouteConfig& route)
 	}
 	else if (std::filesystem::is_directory(serverTarget))
 	{
+		isCgi = false;
 		if (!route.getListing())
 			throw ForbiddenException();
 		contentType = "text/html";
@@ -204,9 +210,13 @@ void RequestHandler::handleCgi(const RouteConfig& route)
 		responseBody.reserve(listingPage.size());
 		responseBody = std::vector<u_char>(listingPage.begin(), listingPage.end());
 	}
-	else
+	else 
+	{
+		isCgi = false;
 		throw NotFoundException();
+	}
 	handlingState = STATE_YES;
+	statusCode = 200;
 }
 
 void RequestHandler::handleGet(const RouteConfig& route)
