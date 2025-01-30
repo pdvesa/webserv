@@ -76,6 +76,9 @@ bool RequestHandler::handle()
 	catch (NotImplementedException&) {
 		buildError(501);
 	}
+	catch (IamATeapotException&) {
+		buildError(418);
+	}
 	catch (std::exception& e) {
 		std::cerr << e.what() << std::endl;
 		buildError(500);
@@ -187,19 +190,19 @@ void RequestHandler::handleCgi(const RouteConfig& route)
 		isCgi = false;
 		throw NotFoundException();
 	}
-	if (access(serverTarget.c_str(), X_OK) != 0) 
-	{
-		isCgi = false;
-		throw ForbiddenException();
-	}
-	std::filesystem::path path(remainingPath);
-	if (path.extension() != ".py" && path.extension() != ".cgi")
-	{
-		isCgi = false;
-		throw NotImplementedException();
-	}
 	if (std::filesystem::is_regular_file(serverTarget))
 	{
+		std::filesystem::path path(remainingPath);
+		if (path.extension() != ".py" && path.extension() != ".cgi")
+		{
+			isCgi = false;
+			throw NotImplementedException();
+		}
+		if (access(serverTarget.c_str(), X_OK) != 0) 
+		{
+			isCgi = false;
+			throw ForbiddenException();
+		}
 		CGI cgiRes(client, request, pollFD, serverTarget);
 		if (cgiRes.getCGIStatus() == 1)
 			throw std::runtime_error("ok");
@@ -207,6 +210,8 @@ void RequestHandler::handleCgi(const RouteConfig& route)
 	else if (std::filesystem::is_directory(serverTarget))
 	{
 		isCgi = false;
+		if (request.getMethod() != 0)
+			throw IamATeapotException();
 		if (!route.getListing())
 			throw ForbiddenException();
 		contentType = "text/html";
@@ -268,6 +273,8 @@ void RequestHandler::handlePost(const RouteConfig& route)
 			postUploadPath = "." + route.getRootDir();
 			if (!exists(std::filesystem::path(postUploadPath + route.getUploadDir())))
 			{
+				if (access(postUploadPath.c_str(), F_OK) != 0)
+					throw NotFoundException();
 				if (access(postUploadPath.c_str(), W_OK) != 0)
 					throw ForbiddenException();
 				if (!std::filesystem::create_directory(postUploadPath + route.getUploadDir()))
