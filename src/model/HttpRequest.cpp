@@ -20,11 +20,6 @@ HttpRequest::HttpRequest(ServerConfig* serverConfig, const u_char* data, const s
 	parseData(data, len);
 }
 
-HttpRequest::~HttpRequest()
-{
-	delete body;
-}
-
 bool HttpRequest::parseData(const u_char* data, const size_t len)
 {
 	if (requestState != REQUEST_PARSING && requestState != REQUEST_CHUNK_RECEIVING)
@@ -282,14 +277,13 @@ bool HttpRequest::readChunk()
 
 			std::string chunkSize(unparsedData.begin() + parseIndex, unparsedData.begin() + endLinePos);
 
-
 			currentChunkSize = std::stoi(chunkSize, nullptr, 16);
 			if (currentChunkSize > serverConfig->getMaxClientBodySize())
 				throw RequestBodyTooLargeException();
 
 			if (currentChunkSize == 0)
 			{
-				if (endLinePos + CRLF.length() + CRLF.length() < unparsedData.size())
+				if (endLinePos + CRLF.length() + CRLF.length() <= unparsedData.size())
 				{
 					if (!isCrlf(unparsedData, endLinePos + CRLF.length()))
 						throw InvalidRequestException();
@@ -321,7 +315,6 @@ bool HttpRequest::readChunk()
 
 		parseIndex += CRLF.length();
 		currentChunkSize = -1;
-		return (false);
 	}
 }
 
@@ -348,10 +341,10 @@ void HttpRequest::validateHeadersInitBody()
 			if (!attributes.contains("boundary"))
 				throw InvalidRequestException();
 
-			body = new MultipartFormDataBody(attributes.at("boundary"));
+			body = std::make_shared<MultipartFormDataBody>(attributes.at("boundary"));
 		}
 		else
-			body = new RequestBody();
+			body = std::make_shared<RequestBody>();
 	}
 }
 
