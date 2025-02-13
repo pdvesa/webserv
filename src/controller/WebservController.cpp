@@ -6,8 +6,8 @@
 
 bool running = true;
 
-WebservController::WebservController()
-{ }
+WebservController::WebservController() { 
+}
 
 WebservController::~WebservController() {
 	cleanResources();
@@ -33,8 +33,12 @@ void	WebservController::run() {
 			else if (eventWaitlist[i].events & EPOLLRDHUP) {
 				epollDelete(epollFD, currentFD);
 				close(currentFD);
+				if (clients.at(currentFD).getCgiStatus() != NO_CGI) {
+					kill(clients.at(currentFD).getPid(), SIGTERM);
+					epollDelete(cgiPoll, clients.at(currentFD).getCgiFD());
+					close(clients.at(currentFD).getCgiFD());
+				}
 				clients.erase(currentFD);
-				std::cout << "DEBUG" << std::endl;
 			}
 			else if (eventWaitlist[i].events & EPOLLIN)
 				makeRequest(currentFD);
@@ -95,8 +99,6 @@ void WebservController::makeRequest(int fd) {
 	int							rb;
 	if (req.getRequestState() == REQUEST_PARSING || req.getRequestState() == REQUEST_CHUNK_RECEIVING) {
 		if ((rb = read(fd, buffer.data(), BUF_SIZE)) > 0) {
-			for (u_char c : buffer)
-				std::cerr << c;
 			buffer.resize(rb);
 			req.parseData(buffer.data(), rb);
 		} 
@@ -152,6 +154,7 @@ void WebservController::handleCGIClient(int fd, bool closed) {
     if (it != clients.end()) {
 		Client &client = it->second;
 		if (closed == true) {
+			kill(client.getPid(), SIGTERM);
 			client.setCgiStatus(CGI_RDY);
 			epollDelete(cgiPoll, fd);
 			close(fd);
@@ -230,7 +233,7 @@ void WebservController::checkForTimeout() {
     	auto diff = now - client.second.getTimestamp();
 		auto passed = std::chrono::duration_cast<std::chrono::seconds>(diff);
 		if (passed.count() > TIMEOUT) {
-			if (client.second.getCgiStatus() == CGI_WAIT) {
+			if (client.second.getCgiStatus() != NO_CGI) {
 				if (client.second.getPid() != 0) {
 					kill(client.second.getPid(), SIGTERM);
 					int status;
