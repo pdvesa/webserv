@@ -31,15 +31,15 @@ void	WebservController::run() {
 			if (std::find(listenFDs.cbegin(), listenFDs.cend(), currentFD) != std::end(listenFDs))
 				acceptConnection(currentFD); 
 			else if (eventWaitlist[i].events & EPOLLRDHUP) {
+				if (clients.at(currentFD).getCgiStatus() != NO_CGI && clients.at(currentFD).getCgiFD() != -1) {
+					kill(clients.at(currentFD).getPid(), SIGTERM);
+					epollDelete(cgiPoll, clients.at(currentFD).getCgiFD());
+					close(clients.at(currentFD).getCgiFD());
+					int status;
+					waitpid(clients.at(currentFD).getPid(), &status, 0);
+				}
 				epollDelete(epollFD, currentFD);
 				close(currentFD);
-				if (clients.at(currentFD).getCgiStatus() != NO_CGI) {
-					kill(clients.at(currentFD).getPid(), SIGTERM);
-					if (clients.at(currentFD).getCgiFD() != -1) {
-						epollDelete(cgiPoll, clients.at(currentFD).getCgiFD());
-						close(clients.at(currentFD).getCgiFD());
-					}
-				}
 				clients.erase(currentFD);
 			}
 			else if (eventWaitlist[i].events & EPOLLIN)
