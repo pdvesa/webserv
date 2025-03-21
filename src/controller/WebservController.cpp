@@ -35,8 +35,10 @@ void	WebservController::run() {
 				close(currentFD);
 				if (clients.at(currentFD).getCgiStatus() != NO_CGI) {
 					kill(clients.at(currentFD).getPid(), SIGTERM);
-					epollDelete(cgiPoll, clients.at(currentFD).getCgiFD());
-					close(clients.at(currentFD).getCgiFD());
+					if (clients.at(currentFD).getCgiFD() != -1) {
+						epollDelete(cgiPoll, clients.at(currentFD).getCgiFD());
+						close(clients.at(currentFD).getCgiFD());
+					}
 				}
 				clients.erase(currentFD);
 			}
@@ -158,6 +160,7 @@ void WebservController::handleCGIClient(int fd, bool closed) {
 			client.setCgiStatus(CGI_RDY);
 			epollDelete(cgiPoll, fd);
 			close(fd);
+			client.setCgiFD(-1);
 			int status;
 			waitpid(client.getPid(), &status, 0);
 		}
