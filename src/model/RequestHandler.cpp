@@ -61,23 +61,8 @@ bool RequestHandler::handle()
 			}
 			handleInvalid();
 		}
-	} catch (ForbiddenException&) {
-		buildError(403);
-	}
-	catch (NotFoundException&) {
-		buildError(404);
-	}
-	catch (MethodNotAllowedException&) {
-		buildError(405);
-	}
-	catch (InvalidRequestException&) {
-		buildError(400);
-	}
-	catch (NotImplementedException&) {
-		buildError(501);
-	}
-	catch (IamATeapotException&) {
-		buildError(418);
+	} catch (RequestException &e) {
+		buildError(e.getCode());
 	}
 	catch (std::exception& e) {
 		std::cerr << e.what() << std::endl;

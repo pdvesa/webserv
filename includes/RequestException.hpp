@@ -5,53 +5,81 @@
 #ifndef REQUESTEXCEPTION_HPP
 # define REQUESTEXCEPTION_HPP
 
+#include <RequestState.hpp>
 #include <stdexcept>
 
-class InvalidRequestException final : public std::runtime_error {
+class RequestException : public std::runtime_error {
 	public:
-	InvalidRequestException() : std::runtime_error("Invalid request") {}
-	explicit InvalidRequestException(const std::string &msg) : std::runtime_error(msg) {}
+	explicit RequestException(const std::string& message) : std::runtime_error(message) {}
+	virtual int getCode() = 0;
 };
 
-class NotFoundException final : public std::runtime_error {
+class RequestParsingException : public RequestException {
 	public:
-	NotFoundException() : std::runtime_error("No route found") {}
+	explicit RequestParsingException(const std::string& message) : RequestException(message) {}
+	virtual t_request_state getState() = 0;
 };
 
-class MethodNotAllowedException final : public std::runtime_error {
+class InvalidRequestException : public RequestParsingException {
 	public:
-	MethodNotAllowedException() : std::runtime_error("Method not allowed") {}
+	InvalidRequestException() : RequestParsingException("Invalid request") {}
+	explicit InvalidRequestException(const std::string &msg) : RequestParsingException(msg) {}
+	int getCode() override { return (400); }
+	t_request_state getState() override { return (t_request_state::REQUEST_INVALID);}
 };
 
-class ForbiddenException final : public std::runtime_error {
+class NotFoundException final : public RequestException {
 	public:
-	ForbiddenException() : std::runtime_error("Forbidden") {}
+	NotFoundException() : RequestException("No route found") {}
+	int getCode() override { return (404); }
 };
 
-class IamATeapotException final : public std::runtime_error {
+class MethodNotAllowedException final : public RequestException {
 	public:
-	IamATeapotException() : std::runtime_error("I am a teapot") {}
-	explicit IamATeapotException(const std::string &msg) : std::runtime_error(msg) {}
+	MethodNotAllowedException() : RequestException("Method not allowed") {}
+	int getCode() override { return (405); }
 };
 
-class NotImplementedException final : public std::runtime_error {
+class ForbiddenException final : public RequestException {
 	public:
-	NotImplementedException() : std::runtime_error("Not implemented") {}
+	ForbiddenException() : RequestException("Forbidden") {}
+	int getCode() override { return (403); }
 };
 
-class RequestBodyTooLargeException final : public std::runtime_error {
+class IamATeapotException final : public RequestParsingException {
 	public:
-	RequestBodyTooLargeException() : std::runtime_error("Request body too large") {}
+	IamATeapotException() : RequestParsingException("I am a teapot") {}
+	explicit IamATeapotException(const std::string &msg) : RequestParsingException(msg) {}
+	int getCode() override { return (418); }
+	t_request_state getState() override { return (I_AM_A_TEAPOT); }
 };
 
-class RequestContentLengthMissingException final : public std::runtime_error {
+class NotImplementedException final : public RequestParsingException {
 	public:
-	RequestContentLengthMissingException() : std::runtime_error("Request content length missing") {}
+	NotImplementedException() : RequestParsingException("Not implemented") {}
+	int getCode() override { return (501); }
+	t_request_state getState() override { return (REQUEST_UNIMPLEMENTED); }
 };
 
-class HttpVersionNotSupportedException final : public std::runtime_error {
+class RequestBodyTooLargeException final : public RequestParsingException {
 	public:
-	HttpVersionNotSupportedException() : std::runtime_error("HTTP version not supported") {}
+	RequestBodyTooLargeException() : RequestParsingException("Request body too large") {}
+	int getCode() override { return (413); }
+	t_request_state getState() override { return (REQUEST_BODY_TOO_LARGE); }
+};
+
+class RequestContentLengthMissingException final : public RequestParsingException {
+	public:
+	RequestContentLengthMissingException() : RequestParsingException("Request content length missing") {}
+	int getCode() override { return (411); }
+	t_request_state getState() override { return (REQUEST_LEN_REQUIRED); }
+};
+
+class HttpVersionNotSupportedException final : public RequestParsingException {
+	public:
+	HttpVersionNotSupportedException() : RequestParsingException("HTTP version not supported") {}
+	int getCode() override { return (505); }
+	t_request_state getState() override { return (HTTP_VERSION_NOT_SUPPORTED); }
 };
 
 #endif

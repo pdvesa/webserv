@@ -83,30 +83,8 @@ bool HttpRequest::parseData(const u_char* data, const size_t len)
 		}
 
 		return (true);
-	} catch (NotImplementedException&) {
-		requestState = REQUEST_UNIMPLEMENTED;
-		unparsedData.clear();
-		parseIndex = 0;
-	} catch (RequestBodyTooLargeException&) {
-		requestState = REQUEST_BODY_TOO_LARGE;
-		unparsedData.clear();
-		parseIndex = 0;
-	} catch (RequestContentLengthMissingException&) {
-		requestState = REQUEST_LEN_REQUIRED;
-		unparsedData.clear();
-		parseIndex = 0;
-	} catch (HttpVersionNotSupportedException&) {
-		requestState = HTTP_VERSION_NOT_SUPPORTED;
-		unparsedData.clear();
-		parseIndex = 0;
-	} catch (IamATeapotException& e) {
-		std::cerr << e.what() << std::endl;
-		requestState = I_AM_A_TEAPOT;
-		unparsedData.clear();
-		parseIndex = 0;
-	} catch (InvalidRequestException& e) {
-		std::cerr << e.what() << std::endl;
-		requestState = REQUEST_INVALID;
+	} catch (RequestParsingException& e) {
+		requestState = e.getState();
 		unparsedData.clear();
 		parseIndex = 0;
 	} catch (std::exception& e) {

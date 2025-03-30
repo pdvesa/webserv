@@ -29,20 +29,6 @@ static const std::string HEADER_END_STR = "\r\n\r\n";
 static const std::string MULTIPART_FORM_DATA = "multipart/form-data";
 static const std::string APPLICATION_OCTET_STREAM = "application/octet-stream";
 
-typedef enum e_request_state {
-	REQUEST_PARSING,
-	REQUEST_CHUNK_RECEIVING,
-	REQUEST_OK,
-	REQUEST_INVALID,
-	REQUEST_BODY_TOO_LARGE,
-	REQUEST_LEN_REQUIRED,
-	I_AM_A_TEAPOT,
-	REQUEST_UNIMPLEMENTED,
-	REQUEST_TIMEOUT,
-	HTTP_VERSION_NOT_SUPPORTED,
-	SERVER_ERROR
-}	t_request_state;
-
 class HttpRequest {
 	private:
 		typedef enum e_parsing_state {
