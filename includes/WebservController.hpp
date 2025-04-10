@@ -38,20 +38,16 @@ class WebservController {
 		std::vector<ServerConfig>		serverConfigs;
 		std::vector<int>				listenFDs;
 		std::unordered_map<int, Client>	clients;
-		std::vector<Server>				servers;
+		std::vector<Server>				servers; //map with listen vector
 		int 							epollFD;
-		int								cgiPoll;
 		int								eventsWaiting;
-		int								cgiEvents;
 		epoll_event						eventWaitlist[MAX_EVENTS];
-		epoll_event						cgiEventWaitlist[MAX_EVENTS];
 		void	createSockets(int domain, int type, int protocol);
 		void	acceptConnection(int listenFd);
 		void	errorHandler(const std::runtime_error &err, bool ifExit);
 		void	errorLogger(const std::string &errMsg);
 		void	cleanResources();
 		static void	controllerSignals();
-		void	handleCGIClient(int fd, bool closed);
 		void	makeResponse(int fd);
 		void	makeRequest(int fd);
 		void	checkForTimeout();

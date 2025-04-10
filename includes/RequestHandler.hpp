@@ -30,7 +30,6 @@ class RequestHandler {
 		Client&				client;
 		std::string			remainingPath;
 		bool				isCgi = false;
-		int					pollFD;
 
 		std::string			location;
 		std::string			contentType;
@@ -50,7 +49,7 @@ class RequestHandler {
 
 
 	public:
-		explicit RequestHandler(Client &kunde, const HttpRequest& request, int pfd);
+		explicit RequestHandler(Client &kunde, const HttpRequest& request);
 		RequestHandler(const RequestHandler&) = delete;
 		~RequestHandler() = default;
 

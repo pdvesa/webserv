@@ -4,10 +4,9 @@
 
 #include <RequestHandler.hpp>
 
-RequestHandler::RequestHandler(Client& kunde, const HttpRequest& request, int pfd) :
+RequestHandler::RequestHandler(Client& kunde, const HttpRequest& request) :
 	request(request),
 	client(kunde),
-	pollFD(pfd),
 	statusCode(0),
 	handlingState(STATE_NO) {
 }
@@ -90,8 +89,8 @@ std::vector<u_char> RequestHandler::buildResponse() const
 {
 	if (!isHandled())
 		throw std::runtime_error("Request haven't been handled");
-	if (isCgi)
-		return (cgiResponse);
+//	if (isCgi)
+//		return (cgiResponse);
 	return (HttpResponse(statusCode, location, contentType, responseBody, request.getMethod()).asResponseBuffer());
 }
 
